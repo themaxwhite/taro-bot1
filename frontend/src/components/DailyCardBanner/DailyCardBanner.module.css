@@ -1,0 +1,52 @@
+.banner {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 16px 24px;
+  padding: 20px;
+  border: none;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(
+    135deg,
+    var(--color-accent-strong),
+    var(--color-teal-strong) 90%
+  );
+  color: #06211f;
+  text-align: left;
+  box-shadow: 0 12px 24px -12px rgba(201, 154, 61, 0.5);
+  touch-action: manipulation;
+  width: calc(100% - 32px);
+}
+
+.banner:active {
+  transform: scale(0.98);
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.eyebrow {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.8;
+}
+
+.heading {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.hint {
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+.cardGlyph {
+  font-size: 40px;
+  flex-shrink: 0;
+}

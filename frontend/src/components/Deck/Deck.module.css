@@ -1,0 +1,48 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  padding: 0 16px 16px;
+  /* Prevents horizontal overflow regardless of viewport width */
+  width: 100%;
+}
+
+.footer {
+  position: sticky;
+  bottom: 0;
+  padding: 12px 16px calc(16px + var(--safe-bottom));
+  background: linear-gradient(
+    to top,
+    var(--color-bg) 60%,
+    transparent
+  );
+}
+
+.continueButton {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-accent-strong);
+  color: #06211f;
+  font-size: 16px;
+  font-weight: 600;
+  touch-action: manipulation;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
+}
+
+.continueButton:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.continueButton:disabled {
+  opacity: 0.35;
+}

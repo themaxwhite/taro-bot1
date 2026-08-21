@@ -1,0 +1,25 @@
+.wish {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 16px 20px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-elevated);
+  border: 1px solid rgba(232, 196, 119, 0.2);
+}
+
+.icon {
+  color: var(--color-accent);
+  font-size: 14px;
+  line-height: 1.5;
+  flex-shrink: 0;
+}
+
+.text {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  font-style: italic;
+}

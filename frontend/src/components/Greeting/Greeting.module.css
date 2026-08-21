@@ -1,0 +1,15 @@
+.greeting {
+  padding: 4px 16px 20px;
+}
+
+.subtitle {
+  margin: 0 0 4px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+}

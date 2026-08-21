@@ -1,0 +1,11 @@
+.counter {
+  text-align: center;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  padding: 0 16px 16px;
+}
+
+.value {
+  color: var(--color-text);
+  font-weight: 600;
+}

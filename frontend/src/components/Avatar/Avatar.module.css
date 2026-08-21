@@ -1,0 +1,16 @@
+.avatar {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: linear-gradient(135deg, var(--color-accent-strong), var(--color-teal-strong) 90%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.initial {
+  font-size: 32px;
+  font-weight: 700;
+  color: #06211f;
+}
