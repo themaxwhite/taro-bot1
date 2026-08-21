@@ -30,7 +30,9 @@ export function DeckCard({
       aria-pressed={isSelected}
       aria-label={isSelected ? `Карта выбрана, позиция ${selectionOrder}` : "Выбрать карту"}
     >
-      <span className={styles.pattern} aria-hidden="true" />
+      <span className={styles.pattern} aria-hidden="true">
+        <img className={styles.backImage} src="/cards/card-back.webp" alt="" loading="lazy" />
+      </span>
       {isSelected && selectionOrder !== null && (
         <span className={styles.badge}>{selectionOrder}</span>
       )}

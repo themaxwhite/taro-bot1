@@ -2,93 +2,42 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-}
-
-.position {
-  font-size: 12px;
-  color: var(--color-text-muted);
-  text-align: center;
+  gap: 4px;
 }
 
 .card {
   position: relative;
   width: 100%;
-  aspect-ratio: 2 / 3.1;
-  border-radius: 12px;
+  aspect-ratio: 2 / 3;
+  border-radius: 10px;
   overflow: hidden;
-  background: linear-gradient(165deg, #123b37 0%, #071a18 70%);
-  border: 1px solid rgba(232, 196, 119, 0.35);
   box-shadow: 0 14px 26px -14px rgba(201, 154, 61, 0.4);
-  display: flex;
-  flex-direction: column;
+  transition: transform 0.2s ease;
 }
 
-.illustration {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 10px;
-}
-
-.reversed .illustration {
+.card.reversed {
   transform: rotate(180deg);
 }
 
-.label {
-  padding: 8px 6px 10px;
-  text-align: center;
-  border-top: 1px solid rgba(232, 196, 119, 0.25);
+.image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
-.name {
-  display: block;
-  font-size: 12.5px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
+.position {
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-align: center;
 }
 
 .orientation {
-  display: block;
   font-size: 10.5px;
   color: var(--color-accent);
-  margin-top: 2px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-}
-
-.corner {
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  border: 1.5px solid rgba(232, 196, 119, 0.5);
-}
-
-.corner[data-pos="tl"] {
-  top: 6px;
-  left: 6px;
-  border-right: none;
-  border-bottom: none;
-}
-
-.corner[data-pos="tr"] {
-  top: 6px;
-  right: 6px;
-  border-left: none;
-  border-bottom: none;
-}
-
-.corner[data-pos="bl"] {
-  bottom: 6px;
-  left: 6px;
-  border-right: none;
-  border-top: none;
-}
-
-.corner[data-pos="br"] {
-  bottom: 6px;
-  right: 6px;
-  border-left: none;
-  border-top: none;
+  text-align: center;
 }

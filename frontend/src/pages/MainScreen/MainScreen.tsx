@@ -11,18 +11,27 @@ interface MainScreenProps {
   onSelectSpread: (id: SpreadType["id"]) => void;
   onOpenHistory: () => void;
   onOpenProfile: () => void;
+  soundEnabled: boolean;
+  onToggleSound: () => void;
 }
 
 export function MainScreen({
   onSelectSpread,
   onOpenHistory,
   onOpenProfile,
+  soundEnabled,
+  onToggleSound,
 }: MainScreenProps) {
   const { firstName } = useTelegramUser();
 
   return (
     <div className={styles.screen}>
-      <TopBar onHistoryClick={onOpenHistory} onProfileClick={onOpenProfile} />
+      <TopBar
+        onHistoryClick={onOpenHistory}
+        onProfileClick={onOpenProfile}
+        soundEnabled={soundEnabled}
+        onToggleSound={onToggleSound}
+      />
       <Greeting firstName={firstName} />
       <DailyWish />
       <DailyCardBanner onClick={() => onSelectSpread("daily-card")} />
