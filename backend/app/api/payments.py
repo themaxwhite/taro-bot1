@@ -9,7 +9,12 @@ from app.api.deps import get_current_user
 from app.config import settings
 from app.db import get_db
 from app.models import Purchase, SpreadRecord, User
-from app.telegram.bot_api import TelegramApiError, answer_pre_checkout_query, create_invoice_link
+from app.telegram.bot_api import (
+    TelegramApiError,
+    answer_pre_checkout_query,
+    create_invoice_link,
+    send_app_launch_message,
+)
 
 router = APIRouter(prefix="/api", tags=["payments"])
 
@@ -137,6 +142,15 @@ async def telegram_webhook(request: Request, db: Session = Depends(get_db)) -> d
             purchase.status = "paid"
             purchase.telegram_payment_charge_id = successful_payment.get("telegram_payment_charge_id")
             db.commit()
+        return {"ok": True}
+
+    if message.get("text", "").startswith("/start") and settings.mini_app_url:
+        await send_app_launch_message(
+            chat_id=message["chat"]["id"],
+            text="Gilt Moon — расклады таро с AI-толкованием и картой дня.",
+            button_text="🔮 Начать расклад",
+            app_url=settings.mini_app_url,
+        )
         return {"ok": True}
 
     return {"ok": True}

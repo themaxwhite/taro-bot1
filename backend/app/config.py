@@ -39,6 +39,12 @@ class Settings(BaseSettings):
     # enabled; left optional so the rest of the app works without it.
     telegram_webhook_secret: str | None = None
 
+    # The Mini App's own URL (your Cloudflare Pages / Vercel domain).
+    # Used by the /start bot handler (app/api/payments.py) to send a
+    # "launch app" button — this is independent of BotFather's chat menu
+    # button, which sometimes needs a manual re-save to pick up changes.
+    mini_app_url: str | None = None
+
     @property
     def cors_origins(self) -> list[str]:
         return [origin.strip() for origin in self.frontend_origins.split(",") if origin.strip()]
