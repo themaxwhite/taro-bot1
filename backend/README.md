@@ -104,8 +104,8 @@ Telegram-пользователю. Для `"daily-card"` повторный вы
 ### `GET /api/daily-message`
 Одна мотивирующая фраза дня, кэшируется на календарные сутки (UTC) в таблице
 `daily_messages` — одна и та же для всех пользователей, генерируется через
-Anthropic API (если задан `ANTHROPIC_API_KEY`), иначе берётся из статичного
-списка в `app/ai/fallback.py`.
+Gemini или Anthropic API (если задан `GEMINI_API_KEY` или `ANTHROPIC_API_KEY`),
+иначе берётся из статичного списка в `app/ai/fallback.py`.
 
 ### `POST /api/spreads/{id}/interpret`
 Платное подробное AI-толкование конкретного расклада (с учётом вопроса

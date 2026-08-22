@@ -22,9 +22,12 @@ class Settings(BaseSettings):
     # URL in production if you need concurrent writers or a managed DB.
     database_url: str = "sqlite:///./tarot.db"
 
-    # Anthropic API key for the AI interpretation feature and the daily
-    # motivating message (app/ai/client.py). Both features degrade to a
-    # static fallback when this isn't set, so it's optional for local dev.
+    # API keys for the AI interpretation feature and the daily motivating
+    # message (app/ai/client.py). Gemini is tried first (its free tier
+    # needs no billing account); Anthropic is used if only that's set.
+    # Both features degrade to a static fallback when neither is set, so
+    # it's optional for local dev.
+    gemini_api_key: str | None = None
     anthropic_api_key: str | None = None
 
     # Prices in Telegram Stars (XTR) — Stars are Telegram's own in-app
