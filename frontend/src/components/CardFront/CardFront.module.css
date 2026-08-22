@@ -13,6 +13,11 @@
   overflow: hidden;
   box-shadow: 0 14px 26px -14px rgba(156, 122, 63, 0.4);
   transition: transform 0.2s ease;
+  padding: 0;
+  border: none;
+  background: none;
+  touch-action: manipulation;
+  cursor: pointer;
 }
 
 .card.reversed {
@@ -40,4 +45,45 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
   text-align: center;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 32px;
+  background: rgba(10, 8, 6, 0.85);
+  backdrop-filter: blur(2px);
+  cursor: pointer;
+}
+
+.overlayCard {
+  width: min(78vw, 320px);
+  aspect-ratio: 2 / 3;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 24px 48px -20px rgba(0, 0, 0, 0.6);
+}
+
+.overlayCard.reversed {
+  transform: rotate(180deg);
+}
+
+.overlayImage {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.overlayLabel {
+  font-size: 14px;
+  color: var(--color-text-inverse, #fff);
+  text-align: center;
+  max-width: 80vw;
 }

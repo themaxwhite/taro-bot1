@@ -6,6 +6,7 @@ class SpreadId(str, Enum):
     DAILY_CARD = "daily-card"
     LOVE = "love"
     FUTURE = "future"
+    CELTIC_CROSS = "celtic-cross"
 
 
 @dataclass(frozen=True)
@@ -38,5 +39,22 @@ SPREADS: dict[SpreadId, SpreadConfig] = {
         title="Будущее",
         card_count=3,
         position_labels=("Текущая ситуация", "Скрытый фактор", "Развитие"),
+    ),
+    SpreadId.CELTIC_CROSS: SpreadConfig(
+        id=SpreadId.CELTIC_CROSS,
+        title="Кельтский крест",
+        card_count=10,
+        position_labels=(
+            "Текущая ситуация",
+            "Вызов",
+            "Основа",
+            "Прошлое",
+            "Возможный исход",
+            "Ближайшее будущее",
+            "Ваше отношение",
+            "Внешнее влияние",
+            "Надежды и страхи",
+            "Итог",
+        ),
     ),
 }
