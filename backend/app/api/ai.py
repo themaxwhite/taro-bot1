@@ -12,6 +12,7 @@ from app.api.deps import get_current_user
 from app.config import settings
 from app.db import get_db
 from app.models import DailyMessage, Purchase, SpreadRecord, User
+from app.spreads import SpreadId
 
 router = APIRouter(prefix="/api", tags=["ai"])
 
@@ -70,7 +71,11 @@ async def interpret_spread(
     if record.interpretation:
         return InterpretationResponse(interpretation=record.interpretation)
 
-    if not settings.skip_payment_check:
+    # "Карта дня" gets its full interpretation for free — it's the one
+    # spread meant as a lightweight daily hook, unlike the paid multi-card
+    # readings. Everything else still requires a confirmed Purchase.
+    is_daily_card = record.spread_id == SpreadId.DAILY_CARD.value
+    if not is_daily_card and not settings.skip_payment_check:
         paid = db.execute(
             select(func.count())
             .select_from(Purchase)

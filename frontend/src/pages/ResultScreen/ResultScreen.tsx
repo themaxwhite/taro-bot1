@@ -52,11 +52,15 @@ export function ResultScreen({ spreadId, question, onBack, onDone }: ResultScree
   // толкование" be tested outside real Telegram (payWithStars requires
   // window.Telegram.WebApp). Backend must also have SKIP_PAYMENT_CHECK=true.
   const skipPayment = import.meta.env.VITE_SKIP_PAYMENT === "true";
+  // "Карта дня" interpretation is free — mirrors the backend's own check
+  // in api/ai.py::interpret_spread (is_daily_card), so we don't even try
+  // to open a real Stars invoice for it.
+  const isDailyCard = spreadId === "daily-card";
 
   async function handleUnlockInterpretation(recordId: number) {
     setInterpretState({ status: "paying" });
     try {
-      if (!skipPayment) {
+      if (!skipPayment && !isDailyCard) {
         await payWithStars("interpretation", recordId);
       }
       const text = await fetchInterpretation(recordId);
@@ -132,7 +136,13 @@ export function ResultScreen({ spreadId, question, onBack, onDone }: ResultScree
                 disabled={interpretState.status === "paying"}
                 onClick={() => handleUnlockInterpretation(state.data.id)}
               >
-                {interpretState.status === "paying" ? "Оплата…" : "🔮 Подробное толкование — ⭐"}
+                {interpretState.status === "paying"
+                  ? isDailyCard
+                    ? "Открываем…"
+                    : "Оплата…"
+                  : isDailyCard
+                    ? "🔮 Подробное толкование"
+                    : "🔮 Подробное толкование — ⭐"}
               </button>
             )}
             {interpretState.status === "error" && (
