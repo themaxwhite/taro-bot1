@@ -12,9 +12,9 @@
     var(--color-accent-strong),
     var(--color-teal-strong) 90%
   );
-  color: #06211f;
+  color: var(--color-on-accent);
   text-align: left;
-  box-shadow: 0 12px 24px -12px rgba(201, 154, 61, 0.5);
+  box-shadow: 0 12px 24px -12px rgba(156, 122, 63, 0.5);
   touch-action: manipulation;
   width: calc(100% - 32px);
 }
@@ -37,8 +37,9 @@
 }
 
 .heading {
-  font-size: 20px;
+  font-size: 19px;
   font-weight: 700;
+  font-family: var(--font-display);
 }
 
 .hint {

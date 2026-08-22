@@ -6,9 +6,10 @@
 }
 
 .title {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  font-family: var(--font-display);
+  letter-spacing: 0.04em;
 }
 
 .backButton,
@@ -19,7 +20,7 @@
 
 .backButton {
   border-radius: 50%;
-  border: none;
+  border: 1px solid var(--color-border);
   background: var(--color-bg-elevated);
   color: var(--color-text);
   font-size: 18px;

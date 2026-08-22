@@ -11,7 +11,7 @@
   aspect-ratio: 2 / 3;
   border-radius: 10px;
   overflow: hidden;
-  box-shadow: 0 14px 26px -14px rgba(201, 154, 61, 0.4);
+  box-shadow: 0 14px 26px -14px rgba(156, 122, 63, 0.4);
   transition: transform 0.2s ease;
 }
 

@@ -4,16 +4,17 @@
   align-items: center;
   justify-content: space-between;
   padding: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-bg-elevated);
   color: var(--color-text);
   text-align: left;
   touch-action: manipulation;
+  box-shadow: 0 2px 8px -4px rgba(58, 47, 34, 0.12);
 }
 
 .card:active {
-  background: #0f3330;
+  background: var(--color-bg-elevated-active);
 }
 
 .info {
@@ -26,6 +27,7 @@
 .title {
   font-size: 16px;
   font-weight: 600;
+  font-family: var(--font-display);
 }
 
 .description {

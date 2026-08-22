@@ -30,7 +30,7 @@
   border: none;
   border-radius: var(--radius-md);
   background: var(--color-accent-strong);
-  color: #06211f;
+  color: var(--color-on-accent);
   font-size: 16px;
   font-weight: 600;
   touch-action: manipulation;

@@ -1,13 +1,21 @@
 :root {
-  color-scheme: light dark;
-  --color-bg: #06211f;
-  --color-bg-elevated: #0d2f2b;
-  --color-accent: #e8c477;
-  --color-accent-strong: #c99a3d;
-  --color-teal: #2bbfae;
-  --color-teal-strong: #1a8f80;
-  --color-text: #f7f2e2;
-  --color-text-muted: #8fb0ac;
+  color-scheme: light;
+  /* Warm parchment palette matched to the Tarot Aurum card illustrations —
+     cream page, bronze-gold linework, muted sage accents, warm dark ink. */
+  --color-bg: #f6efe0;
+  --color-bg-elevated: #fffdf6;
+  --color-bg-elevated-active: #ece0c8;
+  --color-accent: #b8935a;
+  --color-accent-strong: #9c7a3f;
+  --color-teal: #8fae9d;
+  --color-teal-strong: #5f8672;
+  --color-text: #362b1f;
+  --color-text-muted: #8a7a63;
+  /* Dark ink used as text/icon color on top of gold or gradient fills,
+     where the light palette's own text color wouldn't have contrast. */
+  --color-on-accent: #2a2015;
+  --color-border: rgba(184, 147, 90, 0.35);
+  --font-display: "Playfair Display", Georgia, serif;
   --radius-lg: 20px;
   --radius-md: 14px;
   --safe-top: env(safe-area-inset-top, 0px);
@@ -36,6 +44,13 @@ body {
   /* Guard against any accidental horizontal overflow on mobile */
   overflow-x: hidden;
   width: 100%;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  letter-spacing: 0.01em;
 }
 
 #root {

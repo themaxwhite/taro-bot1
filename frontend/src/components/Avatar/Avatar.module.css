@@ -12,5 +12,6 @@
 .initial {
   font-size: 32px;
   font-weight: 700;
-  color: #06211f;
+  font-family: var(--font-display);
+  color: var(--color-on-accent);
 }
