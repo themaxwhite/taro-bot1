@@ -18,7 +18,10 @@ from app.config import settings
 logger = logging.getLogger(__name__)
 
 _API_URL = "https://api.anthropic.com/v1/messages"
-_MODEL = "claude-sonnet-4-6"
+# "claude-sonnet-4-6" (the id this used to hardcode) isn't a real model —
+# every call silently 404'd and fell back to static content. claude-opus-5
+# is the current default per Anthropic's Claude API guidance.
+_MODEL = "claude-opus-5"
 
 
 def is_configured() -> bool:
@@ -41,6 +44,10 @@ async def generate_text(system_prompt: str, user_prompt: str, max_tokens: int = 
                 headers={
                     "x-api-key": settings.anthropic_api_key,
                     "anthropic-version": "2023-06-01",
+                    # Lets the API transparently retry on a fallback model if
+                    # claude-opus-5's safety classifier declines the request,
+                    # instead of us immediately dropping to static content.
+                    "anthropic-beta": "server-side-fallback-2026-07-01",
                     "content-type": "application/json",
                 },
                 json={
@@ -48,6 +55,7 @@ async def generate_text(system_prompt: str, user_prompt: str, max_tokens: int = 
                     "max_tokens": max_tokens,
                     "system": system_prompt,
                     "messages": [{"role": "user", "content": user_prompt}],
+                    "fallbacks": "default",
                 },
             )
         response.raise_for_status()
