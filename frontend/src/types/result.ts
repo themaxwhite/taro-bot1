@@ -14,6 +14,7 @@ export interface DrawnCard {
   name: string;
   arcana: Arcana;
   is_reversed: boolean;
+  meaning: string;
 }
 
 /** Mirrors backend/app/tarot/schemas.py::DrawSpreadResponse. */

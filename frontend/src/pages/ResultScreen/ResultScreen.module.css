@@ -40,6 +40,34 @@
   padding: 8px 16px 16px;
 }
 
+.meaningsList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 16px 16px;
+}
+
+.meaningItem {
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-elevated);
+  border: 1px solid rgba(232, 196, 119, 0.15);
+}
+
+.meaningTitle {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.meaningText {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--color-text);
+}
+
 .paywallSection {
   display: flex;
   flex-direction: column;

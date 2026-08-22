@@ -20,6 +20,10 @@ class DrawnCard(BaseModel):
     name: str
     arcana: Arcana
     is_reversed: bool
+    # Short, free, static meaning for this card in its drawn orientation
+    # (see app/tarot/meanings.py) — shown immediately so the user has
+    # some context without paying for the full AI interpretation.
+    meaning: str
 
 
 class DrawSpreadResponse(BaseModel):

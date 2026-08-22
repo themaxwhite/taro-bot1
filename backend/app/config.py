@@ -45,6 +45,12 @@ class Settings(BaseSettings):
     # button, which sometimes needs a manual re-save to pick up changes.
     mini_app_url: str | None = None
 
+    # DEV ONLY — lets /api/spreads/{id}/interpret skip the Purchase check
+    # so the paid AI interpretation can be tested without wiring up Stars
+    # payments. Must be False (the default) in any real deployment; see
+    # app/api/ai.py::interpret_spread. Set SKIP_PAYMENT_CHECK=true to flip.
+    skip_payment_check: bool = False
+
     @property
     def cors_origins(self) -> list[str]:
         return [origin.strip() for origin in self.frontend_origins.split(",") if origin.strip()]

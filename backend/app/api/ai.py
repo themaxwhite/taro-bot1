@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.ai.client import generate_text
 from app.ai.fallback import daily_message_for, fallback_interpretation
 from app.api.deps import get_current_user
+from app.config import settings
 from app.db import get_db
 from app.models import DailyMessage, Purchase, SpreadRecord, User
 
@@ -69,17 +70,18 @@ async def interpret_spread(
     if record.interpretation:
         return InterpretationResponse(interpretation=record.interpretation)
 
-    paid = db.execute(
-        select(func.count())
-        .select_from(Purchase)
-        .where(
-            Purchase.spread_record_id == spread_record_id,
-            Purchase.product == "interpretation",
-            Purchase.status == "paid",
-        )
-    ).scalar_one()
-    if not paid:
-        raise HTTPException(status_code=402, detail="Оплата не найдена для этого расклада")
+    if not settings.skip_payment_check:
+        paid = db.execute(
+            select(func.count())
+            .select_from(Purchase)
+            .where(
+                Purchase.spread_record_id == spread_record_id,
+                Purchase.product == "interpretation",
+                Purchase.status == "paid",
+            )
+        ).scalar_one()
+        if not paid:
+            raise HTTPException(status_code=402, detail="Оплата не найдена для этого расклада")
 
     cards = json.loads(record.cards_json)
     card_lines = "\n".join(

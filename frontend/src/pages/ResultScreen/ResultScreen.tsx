@@ -48,10 +48,17 @@ export function ResultScreen({ spreadId, question, onBack, onDone }: ResultScree
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [spreadId]);
 
+  // DEV ONLY — see VITE_SKIP_PAYMENT in .env.example. Lets "Подробное
+  // толкование" be tested outside real Telegram (payWithStars requires
+  // window.Telegram.WebApp). Backend must also have SKIP_PAYMENT_CHECK=true.
+  const skipPayment = import.meta.env.VITE_SKIP_PAYMENT === "true";
+
   async function handleUnlockInterpretation(recordId: number) {
     setInterpretState({ status: "paying" });
     try {
-      await payWithStars("interpretation", recordId);
+      if (!skipPayment) {
+        await payWithStars("interpretation", recordId);
+      }
       const text = await fetchInterpretation(recordId);
       setInterpretation(text);
       setInterpretState({ status: "idle" });
@@ -100,6 +107,18 @@ export function ResultScreen({ spreadId, question, onBack, onDone }: ResultScree
           <div className={styles.cardsRow}>
             {state.data.cards.map((card) => (
               <CardFront key={card.position} card={card} />
+            ))}
+          </div>
+
+          <div className={styles.meaningsList}>
+            {state.data.cards.map((card) => (
+              <div key={card.position} className={styles.meaningItem}>
+                <p className={styles.meaningTitle}>
+                  {card.position_label}: {card.name}
+                  {card.is_reversed ? " (перевёрнутая)" : ""}
+                </p>
+                <p className={styles.meaningText}>{card.meaning}</p>
+              </div>
             ))}
           </div>
 
