@@ -57,6 +57,12 @@ class Settings(BaseSettings):
     # button, which sometimes needs a manual re-save to pick up changes.
     mini_app_url: str | None = None
 
+    # UTC hour the daily "карта дня" reminder goes out at (see
+    # app/notifications.py). 7 UTC ≈ 10:00 in Moscow — a single fixed
+    # hour is a simplification (Russia spans many time zones), fine for
+    # a first cut.
+    daily_notification_hour_utc: int = 7
+
     # DEV ONLY — lets the paid features (spread interpretation, extra
     # card) skip the subscription-quota check, so they can be tested
     # without wiring up ЮKassa. Must be False (the default) in any real

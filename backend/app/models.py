@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime as dt
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
@@ -31,6 +31,11 @@ class User(Base):
     # relationships, ...). Optional context fed into the AI interpretation
     # prompt so readings can lean into what the person actually asked for.
     interests: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # Opt-in for the daily "карта дня" reminder (see app/notifications.py).
+    # `last_notified_date` ("YYYY-MM-DD") guards against sending twice if
+    # the scheduler job runs more than once on the same day.
+    notifications_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    last_notified_date: Mapped[str | None] = mapped_column(String(10), nullable=True)
     created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow)
 
     spreads: Mapped[list["SpreadRecord"]] = relationship(back_populates="user", cascade="all, delete-orphan")

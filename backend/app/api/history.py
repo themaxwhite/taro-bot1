@@ -89,15 +89,29 @@ class UpdateInterestsRequest(BaseModel):
     interests: str = Field(default="", max_length=500)
 
 
+class UpdateNotificationsRequest(BaseModel):
+    enabled: bool
+
+
 class ProfileResponse(BaseModel):
     first_name: str
     username: str | None
     interests: str | None
+    notifications_enabled: bool
+
+
+def _profile_response(user: User) -> ProfileResponse:
+    return ProfileResponse(
+        first_name=user.first_name,
+        username=user.username,
+        interests=user.interests,
+        notifications_enabled=user.notifications_enabled,
+    )
 
 
 @router.get("/profile", response_model=ProfileResponse)
 def get_profile(user: User = Depends(get_current_user)) -> ProfileResponse:
-    return ProfileResponse(first_name=user.first_name, username=user.username, interests=user.interests)
+    return _profile_response(user)
 
 
 @router.patch("/profile/interests", response_model=ProfileResponse)
@@ -114,4 +128,17 @@ def update_interests(
     user.interests = body.interests.strip() or None
     db.commit()
     db.refresh(user)
-    return ProfileResponse(first_name=user.first_name, username=user.username, interests=user.interests)
+    return _profile_response(user)
+
+
+@router.patch("/profile/notifications", response_model=ProfileResponse)
+def update_notifications(
+    body: UpdateNotificationsRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ProfileResponse:
+    """Opts the user in/out of the daily "карта дня" reminder (app/notifications.py)."""
+    user.notifications_enabled = body.enabled
+    db.commit()
+    db.refresh(user)
+    return _profile_response(user)

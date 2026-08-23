@@ -63,21 +63,43 @@ interface ProfileDTO {
   first_name: string;
   username: string | null;
   interests: string | null;
+  notifications_enabled: boolean;
 }
 
-export async function fetchInterests(): Promise<string> {
+export interface Profile {
+  interests: string;
+  notificationsEnabled: boolean;
+}
+
+export async function fetchProfile(): Promise<Profile> {
   const response = await authedFetch("/api/profile");
   const data = (await response.json()) as ProfileDTO;
-  return data.interests ?? "";
+  return { interests: data.interests ?? "", notificationsEnabled: data.notifications_enabled };
+}
+
+async function authedPatch(path: string, body: unknown): Promise<void> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Telegram-Init-Data": window.Telegram?.WebApp?.initData ?? "",
+      },
+      body: JSON.stringify(body),
+    });
+  } catch {
+    throw new SpreadsApiError("Не удалось связаться с сервером. Проверьте подключение.");
+  }
+  if (!response.ok) {
+    throw new SpreadsApiError(`Сервер вернул ошибку (${response.status}).`);
+  }
 }
 
 export async function updateInterests(interests: string): Promise<void> {
-  await fetch(`${API_BASE_URL}/api/profile/interests`, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Telegram-Init-Data": window.Telegram?.WebApp?.initData ?? "",
-    },
-    body: JSON.stringify({ interests }),
-  });
+  await authedPatch("/api/profile/interests", { interests });
+}
+
+export async function updateNotifications(enabled: boolean): Promise<void> {
+  await authedPatch("/api/profile/notifications", { enabled });
 }

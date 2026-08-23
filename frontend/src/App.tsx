@@ -5,10 +5,11 @@ import { ResultScreen } from "./pages/ResultScreen/ResultScreen";
 import { HistoryScreen } from "./pages/HistoryScreen/HistoryScreen";
 import { ProfileScreen } from "./pages/ProfileScreen/ProfileScreen";
 import { SubscriptionScreen } from "./pages/SubscriptionScreen/SubscriptionScreen";
+import { TermsScreen } from "./pages/TermsScreen/TermsScreen";
 import { useAmbientSound } from "./hooks/useAmbientSound";
 import type { SpreadId } from "./types/tarot";
 
-// Six screens now — still no router (e.g. react-router). All
+// Seven screens now — still no router (e.g. react-router). All
 // navigation is a simple back-to-main flow with no deep history stack,
 // so a router would add complexity without real benefit yet. Revisit
 // once nested navigation (e.g. history item -> detail) is needed.
@@ -18,7 +19,8 @@ type Screen =
   | { name: "result"; spreadId: SpreadId; question: string }
   | { name: "history" }
   | { name: "profile" }
-  | { name: "subscription" };
+  | { name: "subscription" }
+  | { name: "terms" };
 
 function App() {
   const [screen, setScreen] = useState<Screen>({ name: "main" });
@@ -62,11 +64,21 @@ function App() {
   }
 
   if (screen.name === "profile") {
-    return <ProfileScreen onBack={goHome} onOpenSubscription={() => setScreen({ name: "subscription" })} />;
+    return (
+      <ProfileScreen
+        onBack={goHome}
+        onOpenSubscription={() => setScreen({ name: "subscription" })}
+        onOpenTerms={() => setScreen({ name: "terms" })}
+      />
+    );
   }
 
   if (screen.name === "subscription") {
     return <SubscriptionScreen onBack={goHome} />;
+  }
+
+  if (screen.name === "terms") {
+    return <TermsScreen onBack={goHome} />;
   }
 
   return (

@@ -2,23 +2,19 @@ import { useEffect, useState } from "react";
 import { useTelegramUser } from "../../hooks/useTelegramUser";
 import type { ProfileStats } from "../../types/history";
 import type { SubscriptionStatus } from "../../types/subscription";
-import { fetchProfileStats, fetchInterests, updateInterests } from "../../services/historyApi";
+import { fetchProfileStats, fetchProfile, updateInterests, updateNotifications } from "../../services/historyApi";
 import { getSubscriptionStatus } from "../../services/subscriptionsApi";
 import { ScreenHeader } from "../../components/ScreenHeader/ScreenHeader";
 import { Avatar } from "../../components/Avatar/Avatar";
 import { StatRow } from "../../components/StatRow/StatRow";
+import { Switch } from "../../components/Switch/Switch";
 import styles from "./ProfileScreen.module.css";
 
 interface ProfileScreenProps {
   onBack: () => void;
   onOpenSubscription: () => void;
+  onOpenTerms: () => void;
 }
-
-const SETTINGS_ITEMS = [
-  { icon: "🔔", label: "Уведомления" },
-  { icon: "🌐", label: "Язык" },
-  { icon: "📄", label: "Условия использования" },
-];
 
 function subscriptionLabel(sub: SubscriptionStatus | null): string {
   if (sub === null || sub.status !== "active") return "Нет активной подписки";
@@ -27,12 +23,14 @@ function subscriptionLabel(sub: SubscriptionStatus | null): string {
   return `${title} — осталось ${(sub.quotaTotal ?? 0) - (sub.quotaUsed ?? 0)} из ${sub.quotaTotal}`;
 }
 
-export function ProfileScreen({ onBack, onOpenSubscription }: ProfileScreenProps) {
+export function ProfileScreen({ onBack, onOpenSubscription, onOpenTerms }: ProfileScreenProps) {
   const { firstName, username, photoUrl } = useTelegramUser();
   const [stats, setStats] = useState<ProfileStats | null>(null);
   const [interests, setInterests] = useState("");
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
   const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [notificationsBusy, setNotificationsBusy] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -43,9 +41,12 @@ export function ProfileScreen({ onBack, onOpenSubscription }: ProfileScreenProps
       .catch(() => {
         // Non-critical for this screen — StatRow just falls back to "—".
       });
-    fetchInterests()
-      .then((value) => {
-        if (!cancelled) setInterests(value);
+    fetchProfile()
+      .then((data) => {
+        if (!cancelled) {
+          setInterests(data.interests);
+          setNotificationsEnabled(data.notificationsEnabled);
+        }
       })
       .catch(() => {});
     getSubscriptionStatus()
@@ -68,6 +69,19 @@ export function ProfileScreen({ onBack, onOpenSubscription }: ProfileScreenProps
       setTimeout(() => setSaveState("idle"), 1500);
     } catch {
       setSaveState("idle");
+    }
+  }
+
+  async function handleToggleNotifications(next: boolean) {
+    const previous = notificationsEnabled;
+    setNotificationsEnabled(next); // optimistic — a toggle that lags feels broken
+    setNotificationsBusy(true);
+    try {
+      await updateNotifications(next);
+    } catch {
+      setNotificationsEnabled(previous);
+    } finally {
+      setNotificationsBusy(false);
     }
   }
 
@@ -121,17 +135,27 @@ export function ProfileScreen({ onBack, onOpenSubscription }: ProfileScreenProps
       </div>
 
       <div className={styles.settingsList}>
-        {SETTINGS_ITEMS.map((item) => (
-          <button key={item.label} type="button" className={styles.settingsItem}>
-            <span className={styles.settingsIcon} aria-hidden="true">
-              {item.icon}
-            </span>
-            <span className={styles.settingsLabel}>{item.label}</span>
-            <span className={styles.chevron} aria-hidden="true">
-              ›
-            </span>
-          </button>
-        ))}
+        <div className={styles.settingsItem}>
+          <span className={styles.settingsIcon} aria-hidden="true">
+            🔔
+          </span>
+          <span className={styles.settingsLabel}>Напоминание о карте дня</span>
+          <Switch
+            checked={notificationsEnabled}
+            onChange={handleToggleNotifications}
+            disabled={notificationsBusy}
+            ariaLabel="Напоминание о карте дня"
+          />
+        </div>
+        <button type="button" className={styles.settingsItem} onClick={onOpenTerms}>
+          <span className={styles.settingsIcon} aria-hidden="true">
+            📄
+          </span>
+          <span className={styles.settingsLabel}>Условия использования</span>
+          <span className={styles.chevron} aria-hidden="true">
+            ›
+          </span>
+        </button>
       </div>
     </div>
   );

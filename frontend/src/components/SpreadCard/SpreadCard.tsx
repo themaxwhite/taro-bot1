@@ -17,7 +17,7 @@ export function SpreadCard({ spread, onSelect }: SpreadCardProps) {
         <span className={styles.title}>{spread.title}</span>
         <span className={styles.description}>{spread.description}</span>
       </div>
-      <span className={styles.count}>{spread.cardCount} 🂠</span>
+      <span className={styles.count}>{spread.cardCount} 🎴</span>
     </button>
   );
 }
