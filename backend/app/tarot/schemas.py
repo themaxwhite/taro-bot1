@@ -1,3 +1,5 @@
+import datetime as dt
+
 from pydantic import BaseModel, Field
 
 from app.spreads import SpreadId
@@ -30,3 +32,7 @@ class DrawSpreadResponse(BaseModel):
     id: int = Field(..., description="SpreadRecord id — used to request an interpretation or an extra card")
     spread_id: SpreadId
     cards: list[DrawnCard]
+    # Only set for spread_id="daily-card": when the 24-hour cooldown
+    # since this card was drawn ends and a new one becomes available.
+    # Null for every other spread type, which has no cooldown.
+    next_available_at: dt.datetime | None = None

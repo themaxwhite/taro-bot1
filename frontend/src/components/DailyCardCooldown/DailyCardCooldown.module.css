@@ -1,0 +1,16 @@
+.cooldown {
+  margin: 4px 16px 0;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  font-size: 13px;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.time {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--color-accent-strong);
+}

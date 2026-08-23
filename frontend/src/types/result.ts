@@ -22,4 +22,6 @@ export interface DrawSpreadResponse {
   id: number;
   spread_id: SpreadId;
   cards: DrawnCard[];
+  /** ISO 8601 date string, only set for spread_id === "daily-card". */
+  next_available_at: string | null;
 }

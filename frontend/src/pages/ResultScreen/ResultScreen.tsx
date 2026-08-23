@@ -5,6 +5,7 @@ import { drawSpread, SpreadsApiError } from "../../services/spreadsApi";
 import { fetchInterpretation, drawExtraCard } from "../../services/aiApi";
 import { ScreenHeader } from "../../components/ScreenHeader/ScreenHeader";
 import { CardFront } from "../../components/CardFront/CardFront";
+import { DailyCardCooldown } from "../../components/DailyCardCooldown/DailyCardCooldown";
 import { Spinner } from "../../components/Spinner/Spinner";
 import styles from "./ResultScreen.module.css";
 
@@ -115,6 +116,8 @@ export function ResultScreen({ spreadId, question, onBack, onDone, onNeedSubscri
               </div>
             ))}
           </div>
+
+          {state.data.next_available_at && <DailyCardCooldown nextAvailableAt={state.data.next_available_at} />}
 
           <div className={styles.paywallSection}>
             {interpretation ? (

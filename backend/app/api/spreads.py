@@ -2,6 +2,7 @@ import datetime as dt
 import json
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
@@ -15,23 +16,39 @@ from app.tarot.schemas import DrawnCard, DrawSpreadRequest, DrawSpreadResponse
 router = APIRouter(prefix="/api/spreads", tags=["spreads"])
 
 
-def _todays_daily_card(db: Session, user_id: int) -> SpreadRecord | None:
+DAILY_CARD_COOLDOWN = dt.timedelta(hours=24)
+
+
+def _as_utc(naive: dt.datetime) -> dt.datetime:
     """
-    "Карта дня" should be the same card for the whole day, not a fresh
-    random draw on every request — so before drawing, check whether this
-    user already has a daily-card record created today (UTC).
+    The rest of the app stores naive UTC datetimes (see models.py), which
+    Pydantic serializes to JSON with no timezone suffix — `new Date(...)`
+    on the frontend then parses that string as *local* time, silently
+    shifting a countdown target by the browser's UTC offset. Label it as
+    UTC before it leaves the process so the ISO string carries `+00:00`.
     """
-    start_of_day = dt.datetime.combine(dt.datetime.utcnow().date(), dt.time.min)
+    return naive.replace(tzinfo=dt.timezone.utc)
+
+
+def _current_daily_card(db: Session, user_id: int) -> SpreadRecord | None:
+    """
+    "Карта дня" stays the same for a rolling 24 hours from when it was
+    drawn (not a calendar-day reset) — so before drawing, check whether
+    this user's most recent daily-card record is still within its
+    cooldown window.
+    """
     stmt = (
         select(SpreadRecord)
         .where(
             SpreadRecord.user_id == user_id,
             SpreadRecord.spread_id == SpreadId.DAILY_CARD.value,
-            SpreadRecord.created_at >= start_of_day,
         )
         .order_by(SpreadRecord.created_at.desc())
     )
-    return db.execute(stmt).scalars().first()
+    latest = db.execute(stmt).scalars().first()
+    if latest is not None and dt.datetime.utcnow() - latest.created_at < DAILY_CARD_COOLDOWN:
+        return latest
+    return None
 
 
 @router.post("/draw", response_model=DrawSpreadResponse)
@@ -46,10 +63,15 @@ def draw_spread(
         raise HTTPException(status_code=400, detail="Unknown spread_id")
 
     if request.spread_id == SpreadId.DAILY_CARD:
-        existing = _todays_daily_card(db, user.telegram_id)
+        existing = _current_daily_card(db, user.telegram_id)
         if existing is not None:
             cards = [DrawnCard.model_validate(c) for c in json.loads(existing.cards_json)]
-            return DrawSpreadResponse(id=existing.id, spread_id=request.spread_id, cards=cards)
+            return DrawSpreadResponse(
+                id=existing.id,
+                spread_id=request.spread_id,
+                cards=cards,
+                next_available_at=_as_utc(existing.created_at + DAILY_CARD_COOLDOWN),
+            )
 
     cards = tarot_engine.draw(request.spread_id)
 
@@ -64,7 +86,10 @@ def draw_spread(
     db.commit()
     db.refresh(record)
 
-    return DrawSpreadResponse(id=record.id, spread_id=request.spread_id, cards=cards)
+    next_available_at = (
+        _as_utc(record.created_at + DAILY_CARD_COOLDOWN) if request.spread_id == SpreadId.DAILY_CARD else None
+    )
+    return DrawSpreadResponse(id=record.id, spread_id=request.spread_id, cards=cards, next_available_at=next_available_at)
 
 
 @router.post("/{spread_record_id}/draw-extra", response_model=DrawSpreadResponse)
