@@ -17,6 +17,26 @@
   transform: scale(0.94);
 }
 
+/* One-time entrance when the deck is dealt into the grid (see Deck.tsx
+   / DeckCard.tsx): .dealPending is the static hidden/offset starting
+   point, .dealing overrides .card's own transition with a slower,
+   springier one just long enough to animate to the resting look. Both
+   classes are removed afterward (see DeckCard.tsx's "done" state) so
+   :active/.selected go back to .card's snappy 0.15s timing rather than
+   this sticking around forever.
+   */
+.dealPending {
+  opacity: 0;
+  transform: translateY(20px) scale(0.82) rotate(-4deg);
+}
+
+.dealing {
+  opacity: 1;
+  transition:
+    opacity 0.32s ease-out,
+    transform 0.36s cubic-bezier(0.2, 0.8, 0.3, 1.05);
+}
+
 .pattern {
   position: absolute;
   inset: 3px;

@@ -3,7 +3,7 @@
  * randomness and orientation are decided by the backend (Tarot Engine) —
  * this type only describes what the UI needs to render a choice.
  */
-export type SpreadId = "daily-card" | "love" | "future" | "celtic-cross" | "yes-no";
+export type SpreadId = "daily-card" | "love" | "future" | "celtic-cross" | "yes-no" | "horseshoe";
 
 export interface SpreadType {
   id: SpreadId;
@@ -42,5 +42,11 @@ export const SPREAD_TYPES: SpreadType[] = [
     title: "Кельтский крест",
     description: "Классический глубокий расклад на любой вопрос — 10 карт",
     cardCount: 10,
+  },
+  {
+    id: "horseshoe",
+    title: "Подкова",
+    description: "Классический расклад на удачу и путь к решению — 7 карт",
+    cardCount: 7,
   },
 ];
