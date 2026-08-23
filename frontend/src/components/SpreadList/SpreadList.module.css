@@ -4,13 +4,14 @@
 
 .heading {
   margin: 0 0 12px;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--color-text-muted);
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--color-text);
 }
 
 .list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
 }

@@ -24,6 +24,10 @@ export function MainScreen({
   onToggleSound,
 }: MainScreenProps) {
   const { firstName } = useTelegramUser();
+  // "Карта дня" already has its own banner right above this grid —
+  // listing it a second time here was redundant and just pushed
+  // everything else further down the page.
+  const gridSpreads = SPREAD_TYPES.filter((spread) => spread.id !== "daily-card");
 
   return (
     <div className={styles.screen}>
@@ -37,7 +41,7 @@ export function MainScreen({
       <Greeting firstName={firstName} />
       <DailyWish />
       <DailyCardBanner onClick={() => onSelectSpread("daily-card")} />
-      <SpreadList spreads={SPREAD_TYPES} onSelect={onSelectSpread} />
+      <SpreadList spreads={gridSpreads} onSelect={onSelectSpread} />
     </div>
   );
 }
