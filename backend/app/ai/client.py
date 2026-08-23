@@ -39,7 +39,14 @@ async def generate_text(system_prompt: str, user_prompt: str, max_tokens: int = 
     malformed response — all treated the same: caller falls back).
     """
     if settings.gemini_api_key:
-        return await _generate_via_gemini(system_prompt, user_prompt, max_tokens)
+        result = await _generate_via_gemini(system_prompt, user_prompt, max_tokens)
+        if result is not None:
+            return result
+        # Gemini failed (outage, rate limit, ...) — try Anthropic before
+        # giving up, instead of dropping straight to static fallback text.
+        if settings.anthropic_api_key:
+            return await _generate_via_anthropic(system_prompt, user_prompt, max_tokens)
+        return None
     if settings.anthropic_api_key:
         return await _generate_via_anthropic(system_prompt, user_prompt, max_tokens)
     return None

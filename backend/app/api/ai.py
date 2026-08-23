@@ -117,6 +117,12 @@ async def interpret_spread(
     )
     text = generated or fallback_interpretation([c["name"] for c in cards], record.spread_title)
 
-    record.interpretation = text
-    db.commit()
+    # Only persist a real AI result. Caching the static fallback would
+    # permanently strand a paid interpretation behind generic text after a
+    # transient provider outage — leaving it uncached means the next open
+    # (this is a paid feature, so re-calling costs nothing extra) retries
+    # generation instead of repeating the same stale placeholder forever.
+    if generated:
+        record.interpretation = text
+        db.commit()
     return InterpretationResponse(interpretation=text)
