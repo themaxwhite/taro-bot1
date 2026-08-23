@@ -2,6 +2,7 @@ import datetime as dt
 import json
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -49,6 +50,27 @@ def _current_daily_card(db: Session, user_id: int) -> SpreadRecord | None:
     if latest is not None and dt.datetime.utcnow() - latest.created_at < DAILY_CARD_COOLDOWN:
         return latest
     return None
+
+
+class DailyCardStatusResponse(BaseModel):
+    next_available_at: dt.datetime | None
+
+
+@router.get("/daily-card/status", response_model=DailyCardStatusResponse)
+def get_daily_card_status(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> DailyCardStatusResponse:
+    """
+    Read-only check for MainScreen's banner — unlike POST /draw, this
+    never creates a record, so it can't accidentally reveal today's card
+    before the user actually taps through the deck-selection ritual.
+    Returns null until they've drawn at least once today (or in the last
+    24h, technically — see _current_daily_card).
+    """
+    existing = _current_daily_card(db, user.telegram_id)
+    next_available_at = _as_utc(existing.created_at + DAILY_CARD_COOLDOWN) if existing else None
+    return DailyCardStatusResponse(next_available_at=next_available_at)
 
 
 @router.post("/draw", response_model=DrawSpreadResponse)

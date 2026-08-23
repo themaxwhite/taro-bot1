@@ -48,3 +48,23 @@ export async function drawSpread(spreadId: SpreadId, question?: string): Promise
 
   return (await response.json()) as DrawSpreadResponse;
 }
+
+/**
+ * Read-only check for whether today's "карта дня" was already drawn —
+ * unlike drawSpread(), this never creates one, so MainScreen can show
+ * the cooldown above the banner without spoiling the deck-selection
+ * ritual for a card that hasn't been picked yet.
+ */
+export async function getDailyCardStatus(): Promise<string | null> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/api/spreads/daily-card/status`, {
+      headers: { "X-Telegram-Init-Data": window.Telegram?.WebApp?.initData ?? "" },
+    });
+  } catch {
+    return null; // best-effort — the banner just falls back to its normal look
+  }
+  if (!response.ok) return null;
+  const data = (await response.json()) as { next_available_at: string | null };
+  return data.next_available_at;
+}

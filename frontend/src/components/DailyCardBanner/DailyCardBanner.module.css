@@ -1,5 +1,5 @@
 .banner {
-  width: 100%;
+  width: calc(100% - 32px);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -8,19 +8,42 @@
   border: none;
   border-radius: var(--radius-lg);
   background: linear-gradient(
-    135deg,
-    var(--color-accent-strong),
-    var(--color-teal-strong) 90%
+    115deg,
+    #d9a441 0%,
+    #b3382a 24%,
+    #e8c268 48%,
+    #8f2f22 72%,
+    #d9a441 100%
   );
-  color: var(--color-on-accent);
+  background-size: 260% 260%;
+  animation: banner-shimmer 9s ease-in-out infinite;
+  color: #fdf6ea;
   text-align: left;
-  box-shadow: 0 12px 24px -12px rgba(156, 122, 63, 0.5);
+  box-shadow: 0 14px 26px -12px rgba(140, 51, 34, 0.45);
   touch-action: manipulation;
-  width: calc(100% - 32px);
 }
 
 .banner:active {
   transform: scale(0.98);
+}
+
+@keyframes banner-shimmer {
+  0% {
+    background-position: 0% 45%;
+  }
+  50% {
+    background-position: 100% 55%;
+  }
+  100% {
+    background-position: 0% 45%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .banner {
+    animation: none;
+    background-position: 30% 50%;
+  }
 }
 
 .text {
@@ -29,25 +52,34 @@
   gap: 2px;
 }
 
+/* Text sits on a gradient that shifts between gold and red — a flat
+   ink color risked blending into the lighter gold stops, so it's a
+   warm off-white everywhere with a soft dark shadow for separation. */
 .eyebrow {
   font-size: 12px;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  opacity: 0.8;
+  letter-spacing: 0.08em;
+  color: #fff4de;
+  text-shadow: 0 1px 3px rgba(50, 20, 10, 0.4);
 }
 
 .heading {
-  font-size: 19px;
+  font-size: 20px;
   font-weight: 700;
   font-family: var(--font-display);
+  color: #fffaf0;
+  text-shadow: 0 1px 4px rgba(50, 20, 10, 0.45);
 }
 
 .hint {
   font-size: 13px;
-  opacity: 0.85;
+  color: #fbe8cc;
+  text-shadow: 0 1px 3px rgba(50, 20, 10, 0.4);
 }
 
 .cardGlyph {
   font-size: 40px;
   flex-shrink: 0;
+  filter: drop-shadow(0 2px 4px rgba(50, 20, 10, 0.35));
 }

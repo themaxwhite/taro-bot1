@@ -1,9 +1,12 @@
+import { useEffect, useState } from "react";
 import { useTelegramUser } from "../../hooks/useTelegramUser";
 import { SPREAD_TYPES, type SpreadType } from "../../types/tarot";
+import { getDailyCardStatus } from "../../services/spreadsApi";
 import { TopBar } from "../../components/TopBar/TopBar";
 import { Greeting } from "../../components/Greeting/Greeting";
 import { DailyWish } from "../../components/DailyWish/DailyWish";
 import { DailyCardBanner } from "../../components/DailyCardBanner/DailyCardBanner";
+import { DailyCardCooldown } from "../../components/DailyCardCooldown/DailyCardCooldown";
 import { SpreadList } from "../../components/SpreadList/SpreadList";
 import { MysticalBackground } from "../../components/MysticalBackground/MysticalBackground";
 import styles from "./MainScreen.module.css";
@@ -29,6 +32,20 @@ export function MainScreen({
   // everything else further down the page.
   const gridSpreads = SPREAD_TYPES.filter((spread) => spread.id !== "daily-card");
 
+  // Only set once today's card has actually been drawn — this is a
+  // read-only status check (see services/spreadsApi.ts), so it never
+  // spoils the banner for someone who hasn't drawn yet today.
+  const [dailyCardCooldown, setDailyCardCooldown] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    getDailyCardStatus().then((nextAvailableAt) => {
+      if (!cancelled) setDailyCardCooldown(nextAvailableAt);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <div className={styles.screen}>
       <MysticalBackground />
@@ -40,6 +57,7 @@ export function MainScreen({
       />
       <Greeting firstName={firstName} />
       <DailyWish />
+      {dailyCardCooldown && <DailyCardCooldown nextAvailableAt={dailyCardCooldown} />}
       <DailyCardBanner onClick={() => onSelectSpread("daily-card")} />
       <SpreadList spreads={gridSpreads} onSelect={onSelectSpread} />
     </div>
