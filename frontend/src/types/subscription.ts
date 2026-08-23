@@ -31,9 +31,14 @@ export const TIERS: TierOption[] = [
   },
 ];
 
-/** Mirrors backend/app/api/subscriptions.py::SubscriptionStatusResponse. */
+/**
+ * Mirrors backend/app/api/subscriptions.py::SubscriptionStatusResponse.
+ * `tier` is a plain string, not `SubscriptionTierId` — it can also be
+ * "admin" (see ADMIN_PROMO_CODE), which isn't one of the purchasable
+ * tiers shown in the picker.
+ */
 export interface SubscriptionStatus {
-  tier: SubscriptionTierId | null;
+  tier: string | null;
   status: "active" | "expired" | null;
   quotaTotal: number | null;
   quotaUsed: number | null;

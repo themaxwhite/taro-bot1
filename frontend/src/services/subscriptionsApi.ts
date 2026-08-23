@@ -29,7 +29,7 @@ async function api(path: string, init?: RequestInit): Promise<Response> {
 }
 
 interface StatusResponseBody {
-  tier: SubscriptionTierId | null;
+  tier: string | null;
   status: "active" | "expired" | null;
   quota_total: number | null;
   quota_used: number | null;
@@ -46,6 +46,13 @@ export async function getSubscriptionStatus(): Promise<SubscriptionStatus> {
     quotaUsed: data.quota_used,
     periodEnd: data.period_end,
   };
+}
+
+export async function redeemPromoCode(code: string): Promise<void> {
+  await api("/api/subscriptions/redeem-promo", {
+    method: "POST",
+    body: JSON.stringify({ code }),
+  });
 }
 
 export async function createSubscriptionPayment(

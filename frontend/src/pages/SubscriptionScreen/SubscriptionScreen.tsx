@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { TIERS, type SubscriptionStatus, type SubscriptionTierId } from "../../types/subscription";
-import { getSubscriptionStatus, subscribeToTier } from "../../services/subscriptionsApi";
+import { getSubscriptionStatus, subscribeToTier, redeemPromoCode } from "../../services/subscriptionsApi";
 import { SpreadsApiError } from "../../services/spreadsApi";
 import { ScreenHeader } from "../../components/ScreenHeader/ScreenHeader";
 import { Spinner } from "../../components/Spinner/Spinner";
@@ -17,13 +17,21 @@ type LoadState =
 
 type BuyState = { status: "idle" } | { status: "paying"; tier: SubscriptionTierId } | { status: "error"; message: string };
 
+type PromoState = { status: "idle" } | { status: "checking" } | { status: "error"; message: string };
+
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
+}
+
+function tierTitle(tier: string): string {
+  return TIERS.find((t) => t.id === tier)?.title ?? (tier === "admin" ? "Админ-доступ" : tier);
 }
 
 export function SubscriptionScreen({ onBack }: SubscriptionScreenProps) {
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [buyState, setBuyState] = useState<BuyState>({ status: "idle" });
+  const [promoCode, setPromoCode] = useState("");
+  const [promoState, setPromoState] = useState<PromoState>({ status: "idle" });
 
   function load() {
     setState({ status: "loading" });
@@ -49,6 +57,19 @@ export function SubscriptionScreen({ onBack }: SubscriptionScreenProps) {
     }
   }
 
+  async function handleRedeemPromo() {
+    setPromoState({ status: "checking" });
+    try {
+      await redeemPromoCode(promoCode.trim());
+      setPromoCode("");
+      setPromoState({ status: "idle" });
+      load();
+    } catch (error) {
+      const message = error instanceof SpreadsApiError ? error.message : "Не удалось активировать промокод.";
+      setPromoState({ status: "error", message });
+    }
+  }
+
   const active = state.status === "ready" ? state.subscription : null;
   const isActiveTier = (tier: SubscriptionTierId) => active?.status === "active" && active.tier === tier;
 
@@ -67,7 +88,7 @@ export function SubscriptionScreen({ onBack }: SubscriptionScreenProps) {
       {active?.status === "active" && (
         <div className={styles.currentCard}>
           <span className={styles.currentLabel}>Текущий тариф</span>
-          <span className={styles.currentTitle}>{TIERS.find((t) => t.id === active.tier)?.title}</span>
+          <span className={styles.currentTitle}>{tierTitle(active.tier ?? "")}</span>
           <span className={styles.currentQuota}>
             Осталось {(active.quotaTotal ?? 0) - (active.quotaUsed ?? 0)} из {active.quotaTotal} в этом месяце
           </span>
@@ -104,6 +125,34 @@ export function SubscriptionScreen({ onBack }: SubscriptionScreenProps) {
       )}
 
       {buyState.status === "error" && <p className={styles.error}>{buyState.message}</p>}
+
+      {state.status !== "loading" && (
+        <div className={styles.promoSection}>
+          <label className={styles.promoLabel} htmlFor="promo-code">
+            Есть промокод?
+          </label>
+          <div className={styles.promoRow}>
+            <input
+              id="promo-code"
+              className={styles.promoInput}
+              value={promoCode}
+              onChange={(e) => setPromoCode(e.target.value)}
+              placeholder="Введите код"
+              autoCapitalize="off"
+              autoCorrect="off"
+            />
+            <button
+              type="button"
+              className={styles.promoButton}
+              disabled={!promoCode.trim() || promoState.status === "checking"}
+              onClick={handleRedeemPromo}
+            >
+              {promoState.status === "checking" ? "…" : "Активировать"}
+            </button>
+          </div>
+          {promoState.status === "error" && <p className={styles.error}>{promoState.message}</p>}
+        </div>
+      )}
     </div>
   );
 }

@@ -38,6 +38,13 @@ class Settings(BaseSettings):
     yookassa_shop_id: str | None = None
     yookassa_secret_key: str | None = None
 
+    # A single testing/admin code that grants full subscription access
+    # without going through ЮKassa (POST /api/subscriptions/redeem-promo)
+    # — meant for the app owner to test paid features in real Telegram
+    # before a merchant account exists. Unset disables redemption
+    # entirely (any code is rejected).
+    admin_promo_code: str | None = None
+
     # Must match the secret configured on `setWebhook` so the Telegram
     # webhook (app/api/payments.py) can reject requests that don't
     # actually come from Telegram. Required in production; left optional

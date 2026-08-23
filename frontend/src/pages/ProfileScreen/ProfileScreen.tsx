@@ -22,6 +22,7 @@ const SETTINGS_ITEMS = [
 
 function subscriptionLabel(sub: SubscriptionStatus | null): string {
   if (sub === null || sub.status !== "active") return "Нет активной подписки";
+  if (sub.tier === "admin") return "Админ-доступ активен";
   const title = sub.tier === "plus" ? "Плюс" : "Базовый";
   return `${title} — осталось ${(sub.quotaTotal ?? 0) - (sub.quotaUsed ?? 0)} из ${sub.quotaTotal}`;
 }

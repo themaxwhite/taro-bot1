@@ -35,6 +35,14 @@ class SubscriptionStatusResponse(BaseModel):
     period_end: dt.datetime | None
 
 
+class RedeemPromoRequest(BaseModel):
+    code: str
+
+
+class RedeemPromoResponse(BaseModel):
+    ok: bool
+
+
 @router.post("/create-payment", response_model=CreatePaymentResponse)
 async def create_subscription_payment(
     body: CreatePaymentRequest,
@@ -114,22 +122,44 @@ async def subscription_webhook(request: Request, db: Session = Depends(get_db)) 
     if payment.get("status") == "succeeded":
         record.status = "succeeded"
         tier = TIERS[SubscriptionTier(record.tier)]
-        sub = db.get(Subscription, record.user_id)
-        now = dt.datetime.utcnow()
-        if sub is None:
-            sub = Subscription(user_id=record.user_id)
-            db.add(sub)
-        sub.tier = tier.id.value
-        sub.status = "active"
-        sub.quota_total = tier.monthly_quota
-        sub.quota_used = 0
-        sub.period_end = now + dt.timedelta(days=30)
-        db.commit()
+        _activate_subscription(db, record.user_id, tier=tier.id.value, quota_total=tier.monthly_quota, days=30)
     elif payment.get("status") in ("canceled", "expired"):
         record.status = "canceled"
         db.commit()
 
     return {"ok": True}
+
+
+@router.post("/redeem-promo", response_model=RedeemPromoResponse)
+def redeem_promo(
+    body: RedeemPromoRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> RedeemPromoResponse:
+    """
+    A single admin/testing code (ADMIN_PROMO_CODE) that grants full
+    access without going through ЮKassa — meant for the app's own owner
+    to test paid features inside real Telegram before a merchant account
+    exists. Not a general discount-code system.
+    """
+    if not settings.admin_promo_code or body.code.strip() != settings.admin_promo_code:
+        raise HTTPException(status_code=400, detail="Неверный промокод")
+
+    _activate_subscription(db, user.telegram_id, tier="admin", quota_total=999_999, days=365)
+    return RedeemPromoResponse(ok=True)
+
+
+def _activate_subscription(db: Session, user_id: int, *, tier: str, quota_total: int, days: int) -> None:
+    sub = db.get(Subscription, user_id)
+    if sub is None:
+        sub = Subscription(user_id=user_id)
+        db.add(sub)
+    sub.tier = tier
+    sub.status = "active"
+    sub.quota_total = quota_total
+    sub.quota_used = 0
+    sub.period_end = dt.datetime.utcnow() + dt.timedelta(days=days)
+    db.commit()
 
 
 def _expire_if_due(db: Session, sub: Subscription) -> None:
