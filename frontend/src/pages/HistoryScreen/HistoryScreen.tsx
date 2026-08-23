@@ -9,6 +9,7 @@ import styles from "./HistoryScreen.module.css";
 
 interface HistoryScreenProps {
   onBack: () => void;
+  onOpenEntry: (entry: HistoryEntry) => void;
 }
 
 type LoadState =
@@ -16,7 +17,7 @@ type LoadState =
   | { status: "error"; message: string }
   | { status: "success"; entries: HistoryEntry[] };
 
-export function HistoryScreen({ onBack }: HistoryScreenProps) {
+export function HistoryScreen({ onBack, onOpenEntry }: HistoryScreenProps) {
   const [state, setState] = useState<LoadState>({ status: "loading" });
 
   useEffect(() => {
@@ -63,7 +64,7 @@ export function HistoryScreen({ onBack }: HistoryScreenProps) {
       {state.status === "success" && state.entries.length > 0 && (
         <div className={styles.list}>
           {state.entries.map((entry) => (
-            <HistoryListItem key={entry.id} entry={entry} />
+            <HistoryListItem key={entry.id} entry={entry} onClick={() => onOpenEntry(entry)} />
           ))}
         </div>
       )}

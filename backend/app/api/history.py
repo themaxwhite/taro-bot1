@@ -23,6 +23,8 @@ def _record_to_entry(record: SpreadRecord) -> HistoryEntry:
         spread_title=record.spread_title,
         completed_at=record.created_at,
         cards=cards,
+        question=record.question,
+        interpretation=record.interpretation,
     )
 
 

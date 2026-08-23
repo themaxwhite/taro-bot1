@@ -13,6 +13,8 @@ interface HistoryEntryDTO {
   spread_title: string;
   completed_at: string;
   cards: HistoryEntry["cards"];
+  question: string | null;
+  interpretation: string | null;
 }
 
 interface ProfileStatsDTO {
@@ -50,6 +52,8 @@ export async function fetchHistory(): Promise<HistoryEntry[]> {
     spreadTitle: entry.spread_title,
     completedAt: entry.completed_at,
     cards: entry.cards,
+    question: entry.question,
+    interpretation: entry.interpretation,
   }));
 }
 

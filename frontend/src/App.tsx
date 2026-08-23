@@ -3,21 +3,25 @@ import { MainScreen } from "./pages/MainScreen/MainScreen";
 import { SpreadScreen } from "./pages/SpreadScreen/SpreadScreen";
 import { ResultScreen } from "./pages/ResultScreen/ResultScreen";
 import { HistoryScreen } from "./pages/HistoryScreen/HistoryScreen";
+import { HistoryDetailScreen } from "./pages/HistoryDetailScreen/HistoryDetailScreen";
 import { ProfileScreen } from "./pages/ProfileScreen/ProfileScreen";
 import { SubscriptionScreen } from "./pages/SubscriptionScreen/SubscriptionScreen";
 import { TermsScreen } from "./pages/TermsScreen/TermsScreen";
 import { useAmbientSound } from "./hooks/useAmbientSound";
 import type { SpreadId } from "./types/tarot";
+import type { HistoryEntry } from "./types/history";
 
-// Seven screens now — still no router (e.g. react-router). All
-// navigation is a simple back-to-main flow with no deep history stack,
-// so a router would add complexity without real benefit yet. Revisit
-// once nested navigation (e.g. history item -> detail) is needed.
+// Eight screens now — still no router (e.g. react-router). Navigation
+// is mostly a flat back-to-main flow with no deep stack; historyDetail
+// is the one nested exception (back goes to history, not main) since
+// it's reached from a list and returning to that list is the obvious
+// expectation. Revisit with a real router if more nesting shows up.
 type Screen =
   | { name: "main" }
   | { name: "spread"; spreadId: SpreadId }
   | { name: "result"; spreadId: SpreadId; question: string }
   | { name: "history" }
+  | { name: "historyDetail"; entry: HistoryEntry }
   | { name: "profile" }
   | { name: "subscription" }
   | { name: "terms" };
@@ -60,7 +64,17 @@ function App() {
   }
 
   if (screen.name === "history") {
-    return <HistoryScreen onBack={goHome} />;
+    return <HistoryScreen onBack={goHome} onOpenEntry={(entry) => setScreen({ name: "historyDetail", entry })} />;
+  }
+
+  if (screen.name === "historyDetail") {
+    return (
+      <HistoryDetailScreen
+        entry={screen.entry}
+        onBack={() => setScreen({ name: "history" })}
+        onNeedSubscription={() => setScreen({ name: "subscription" })}
+      />
+    );
   }
 
   if (screen.name === "profile") {

@@ -14,6 +14,8 @@ export interface HistoryEntry {
   /** ISO 8601 date string */
   completedAt: string;
   cards: DrawnCard[];
+  question: string | null;
+  interpretation: string | null;
 }
 
 /** Mirrors backend/app/history/schemas.py::ProfileStats. */

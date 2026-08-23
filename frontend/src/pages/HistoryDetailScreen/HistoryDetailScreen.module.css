@@ -1,0 +1,7 @@
+.question {
+  margin: 0;
+  padding: 8px 16px 0;
+  font-size: 13.5px;
+  font-style: italic;
+  color: var(--color-text-muted);
+}

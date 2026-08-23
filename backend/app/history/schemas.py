@@ -12,6 +12,8 @@ class HistoryEntry(BaseModel):
     spread_title: str
     completed_at: dt.datetime
     cards: list[DrawnCard]
+    question: str | None
+    interpretation: str | None
 
 
 class ProfileStats(BaseModel):
