@@ -63,22 +63,39 @@ export async function fetchProfileStats(): Promise<ProfileStats> {
   return { totalSpreads: data.total_spreads, daysStreak: data.days_streak };
 }
 
+export type Gender = "male" | "female";
+export type ZodiacSign =
+  | "aries" | "taurus" | "gemini" | "cancer" | "leo" | "virgo"
+  | "libra" | "scorpio" | "sagittarius" | "capricorn" | "aquarius" | "pisces";
+
 interface ProfileDTO {
   first_name: string;
   username: string | null;
   interests: string | null;
   notifications_enabled: boolean;
+  gender: Gender | null;
+  zodiac_sign: ZodiacSign | null;
 }
 
 export interface Profile {
   interests: string;
   notificationsEnabled: boolean;
+  gender: Gender | null;
+  zodiacSign: ZodiacSign | null;
+}
+
+function toProfile(data: ProfileDTO): Profile {
+  return {
+    interests: data.interests ?? "",
+    notificationsEnabled: data.notifications_enabled,
+    gender: data.gender,
+    zodiacSign: data.zodiac_sign,
+  };
 }
 
 export async function fetchProfile(): Promise<Profile> {
   const response = await authedFetch("/api/profile");
-  const data = (await response.json()) as ProfileDTO;
-  return { interests: data.interests ?? "", notificationsEnabled: data.notifications_enabled };
+  return toProfile((await response.json()) as ProfileDTO);
 }
 
 async function authedPatch(path: string, body: unknown): Promise<void> {
@@ -106,4 +123,8 @@ export async function updateInterests(interests: string): Promise<void> {
 
 export async function updateNotifications(enabled: boolean): Promise<void> {
   await authedPatch("/api/profile/notifications", { enabled });
+}
+
+export async function completeOnboarding(gender: Gender, zodiacSign: ZodiacSign): Promise<void> {
+  await authedPatch("/api/profile/onboarding", { gender, zodiac_sign: zodiacSign });
 }

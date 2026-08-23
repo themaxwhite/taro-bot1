@@ -1,0 +1,160 @@
+.screen {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  width: 100%;
+  padding: calc(24px + var(--safe-top)) 20px calc(24px + var(--safe-bottom));
+}
+
+.progress {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-border);
+  transition: background-color 0.2s ease;
+}
+
+.dotActive {
+  background: var(--color-accent);
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 360px;
+  margin-top: 12vh;
+  animation: step-in 0.35s ease both;
+}
+
+@keyframes step-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.glyph {
+  font-size: 40px;
+  margin-bottom: 12px;
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: 23px;
+  text-align: center;
+  margin: 0 0 8px;
+  text-wrap: balance;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: var(--color-text-muted);
+  text-align: center;
+  margin: 0 0 28px;
+  max-width: 30ch;
+}
+
+.genderRow {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+
+.genderCard {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px 12px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-elevated);
+  color: var(--color-text);
+  font-size: 14.5px;
+  font-weight: 600;
+  touch-action: manipulation;
+}
+
+.genderCard:active {
+  background: var(--color-bg-elevated-active);
+}
+
+.genderIcon {
+  font-size: 30px;
+  color: var(--color-accent-strong);
+}
+
+.zodiacGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  width: 100%;
+}
+
+.zodiacCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 6px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-elevated);
+  color: var(--color-text);
+  touch-action: manipulation;
+}
+
+.zodiacSelected {
+  border-color: var(--color-accent);
+  background: var(--color-bg-elevated-active);
+  box-shadow: 0 0 0 1px var(--color-accent);
+}
+
+.zodiacSymbol {
+  font-size: 22px;
+  color: var(--color-accent-strong);
+}
+
+.zodiacTitle {
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.error {
+  margin: 16px 0 0;
+  font-size: 13px;
+  color: #a14338;
+  text-align: center;
+}
+
+.continueButton {
+  width: 100%;
+  margin-top: 24px;
+  padding: 14px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-size: 15px;
+  font-weight: 600;
+  touch-action: manipulation;
+}
+
+.continueButton:disabled {
+  opacity: 0.5;
+}

@@ -1,5 +1,6 @@
 import datetime as dt
 import json
+from typing import Literal
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
@@ -95,11 +96,25 @@ class UpdateNotificationsRequest(BaseModel):
     enabled: bool
 
 
+Gender = Literal["male", "female"]
+ZodiacSign = Literal[
+    "aries", "taurus", "gemini", "cancer", "leo", "virgo",
+    "libra", "scorpio", "sagittarius", "capricorn", "aquarius", "pisces",
+]
+
+
+class CompleteOnboardingRequest(BaseModel):
+    gender: Gender
+    zodiac_sign: ZodiacSign
+
+
 class ProfileResponse(BaseModel):
     first_name: str
     username: str | None
     interests: str | None
     notifications_enabled: bool
+    gender: str | None
+    zodiac_sign: str | None
 
 
 def _profile_response(user: User) -> ProfileResponse:
@@ -108,6 +123,8 @@ def _profile_response(user: User) -> ProfileResponse:
         username=user.username,
         interests=user.interests,
         notifications_enabled=user.notifications_enabled,
+        gender=user.gender,
+        zodiac_sign=user.zodiac_sign,
     )
 
 
@@ -141,6 +158,24 @@ def update_notifications(
 ) -> ProfileResponse:
     """Opts the user in/out of the daily "карта дня" reminder (app/notifications.py)."""
     user.notifications_enabled = body.enabled
+    db.commit()
+    db.refresh(user)
+    return _profile_response(user)
+
+
+@router.patch("/profile/onboarding", response_model=ProfileResponse)
+def complete_onboarding(
+    body: CompleteOnboardingRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ProfileResponse:
+    """
+    The one-time gender + zodiac sign step shown before the main menu
+    (see frontend/src/pages/OnboardingScreen). Safe to call again later
+    — there's no "locked after first save" behavior, unlike referred_by.
+    """
+    user.gender = body.gender
+    user.zodiac_sign = body.zodiac_sign
     db.commit()
     db.refresh(user)
     return _profile_response(user)

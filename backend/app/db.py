@@ -55,6 +55,8 @@ _ADDED_COLUMNS = [
     ("users", "last_notified_date", "VARCHAR(10)"),
     ("users", "referred_by", "INTEGER"),
     ("users", "referral_bonus_quota", "INTEGER DEFAULT 0"),
+    ("users", "gender", "VARCHAR(16)"),
+    ("users", "zodiac_sign", "VARCHAR(16)"),
 ]
 
 

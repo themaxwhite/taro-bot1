@@ -43,6 +43,13 @@ class User(Base):
     # require_quota() before it even looks at a paid subscription.
     referred_by: Mapped[int | None] = mapped_column(ForeignKey("users.telegram_id"), nullable=True)
     referral_bonus_quota: Mapped[int] = mapped_column(Integer, default=0)
+    # One-time onboarding (gender + zodiac sign), collected before the
+    # user ever sees the main menu (see api/history.py::complete_onboarding).
+    # Both null until it's done; the frontend gates on that, not on a
+    # separate "completed" flag, since there's nothing meaningful to show
+    # with only one of the two set.
+    gender: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    zodiac_sign: Mapped[str | None] = mapped_column(String(16), nullable=True)
     created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow)
 
     spreads: Mapped[list["SpreadRecord"]] = relationship(back_populates="user", cascade="all, delete-orphan")

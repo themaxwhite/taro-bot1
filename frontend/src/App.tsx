@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { MainScreen } from "./pages/MainScreen/MainScreen";
 import { SpreadScreen } from "./pages/SpreadScreen/SpreadScreen";
 import { ResultScreen } from "./pages/ResultScreen/ResultScreen";
@@ -8,10 +8,14 @@ import { ProfileScreen } from "./pages/ProfileScreen/ProfileScreen";
 import { SubscriptionScreen } from "./pages/SubscriptionScreen/SubscriptionScreen";
 import { TermsScreen } from "./pages/TermsScreen/TermsScreen";
 import { ReferralScreen } from "./pages/ReferralScreen/ReferralScreen";
+import { OnboardingScreen } from "./pages/OnboardingScreen/OnboardingScreen";
+import { Spinner } from "./components/Spinner/Spinner";
 import { useAmbientSound } from "./hooks/useAmbientSound";
 import { useReferralCapture } from "./hooks/useReferralCapture";
+import { fetchProfile } from "./services/historyApi";
 import type { SpreadId } from "./types/tarot";
 import type { HistoryEntry } from "./types/history";
+import styles from "./App.module.css";
 
 // Nine screens now — still no router (e.g. react-router). Navigation
 // is mostly a flat back-to-main flow with no deep stack; historyDetail
@@ -29,6 +33,8 @@ type Screen =
   | { name: "terms" }
   | { name: "referral" };
 
+type OnboardingStatus = "checking" | "needed" | "done";
+
 function App() {
   const [screen, setScreen] = useState<Screen>({ name: "main" });
   const goHome = () => setScreen({ name: "main" });
@@ -38,6 +44,36 @@ function App() {
   const ambientSound = useAmbientSound();
   // Fires once per app open, regardless of which screen renders first.
   useReferralCapture();
+
+  // Gender + zodiac sign gate the main menu on a brand-new profile —
+  // checked once per app open. Defaults to "done" on a fetch failure
+  // rather than getting stuck showing a spinner forever.
+  const [onboarding, setOnboarding] = useState<OnboardingStatus>("checking");
+  useEffect(() => {
+    let cancelled = false;
+    fetchProfile()
+      .then((profile) => {
+        if (!cancelled) setOnboarding(profile.gender && profile.zodiacSign ? "done" : "needed");
+      })
+      .catch(() => {
+        if (!cancelled) setOnboarding("done");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (onboarding === "checking") {
+    return (
+      <div className={styles.loading}>
+        <Spinner />
+      </div>
+    );
+  }
+
+  if (onboarding === "needed") {
+    return <OnboardingScreen onComplete={() => setOnboarding("done")} />;
+  }
 
   if (screen.name === "spread") {
     return (

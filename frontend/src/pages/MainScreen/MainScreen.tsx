@@ -5,6 +5,7 @@ import { Greeting } from "../../components/Greeting/Greeting";
 import { DailyWish } from "../../components/DailyWish/DailyWish";
 import { DailyCardBanner } from "../../components/DailyCardBanner/DailyCardBanner";
 import { SpreadList } from "../../components/SpreadList/SpreadList";
+import { MysticalBackground } from "../../components/MysticalBackground/MysticalBackground";
 import styles from "./MainScreen.module.css";
 
 interface MainScreenProps {
@@ -26,6 +27,7 @@ export function MainScreen({
 
   return (
     <div className={styles.screen}>
+      <MysticalBackground />
       <TopBar
         onHistoryClick={onOpenHistory}
         onProfileClick={onOpenProfile}
