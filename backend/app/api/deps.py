@@ -1,6 +1,7 @@
 import logging
 
 from fastapi import Depends, Header, HTTPException
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -70,9 +71,22 @@ def get_current_user(
     if user is None:
         user = User(telegram_id=user_id, first_name=first_name, username=username)
         db.add(user)
+        try:
+            db.commit()
+        except IntegrityError:
+            # A brand-new user's first Mini App open fires several
+            # requests in parallel (daily message, profile stats,
+            # interests, ...) — two of them can both find no row here and
+            # race to insert it. The loser falls back to updating the
+            # winner's row instead of crashing.
+            db.rollback()
+            user = db.get(User, user_id)
+            user.first_name = first_name
+            user.username = username
+            db.commit()
     else:
         user.first_name = first_name
         user.username = username
-    db.commit()
+        db.commit()
     db.refresh(user)
     return user
