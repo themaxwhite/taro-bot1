@@ -1,6 +1,6 @@
 from collections.abc import Generator
 
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.config import settings
@@ -43,23 +43,34 @@ def init_db() -> None:
 
 # (table, column, DDL type) for columns added to a model after it first
 # shipped — create_all() only creates missing *tables*, never adds
-# columns to one that already exists, so a production `users` row would
+# columns to one that already exists, so a production row would
 # otherwise be missing these forever. Add an entry here (never remove
 # one) whenever a nullable/defaulted column is added to an existing
-# model; a real schema change still needs a real migration tool.
+# model; a real schema change still needs a real migration tool. The
+# DDL type must be valid on both SQLite and Postgres (the two dialects
+# this has actually run against) — stick to BOOLEAN/INTEGER/VARCHAR(n)
+# with a DEFAULT literal, nothing dialect-specific.
 _ADDED_COLUMNS = [
-    ("users", "notifications_enabled", "BOOLEAN DEFAULT 0"),
+    ("users", "notifications_enabled", "BOOLEAN DEFAULT FALSE"),
     ("users", "last_notified_date", "VARCHAR(10)"),
+    ("users", "referred_by", "INTEGER"),
+    ("users", "referral_bonus_quota", "INTEGER DEFAULT 0"),
 ]
 
 
 def _add_missing_columns() -> None:
-    if not settings.database_url.startswith("sqlite"):
-        return  # Postgres etc. — use a real migration tool instead.
-
+    """
+    Cross-dialect version of "ALTER TABLE ADD COLUMN IF NOT EXISTS" — via
+    SQLAlchemy's inspector rather than a dialect-specific PRAGMA/catalog
+    query, since this now runs against both SQLite (local dev) and
+    Postgres (production, since the SQLite-on-an-ephemeral-disk incident).
+    """
+    inspector = inspect(engine)
     with engine.connect() as conn:
         for table, column, ddl_type in _ADDED_COLUMNS:
-            existing = {row[1] for row in conn.execute(text(f"PRAGMA table_info({table})"))}
+            if not inspector.has_table(table):
+                continue  # created fresh by create_all() with every current column — nothing to backfill
+            existing = {col["name"] for col in inspector.get_columns(table)}
             if column not in existing:
                 conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {ddl_type}"))
         conn.commit()

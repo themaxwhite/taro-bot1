@@ -7,11 +7,13 @@ import { HistoryDetailScreen } from "./pages/HistoryDetailScreen/HistoryDetailSc
 import { ProfileScreen } from "./pages/ProfileScreen/ProfileScreen";
 import { SubscriptionScreen } from "./pages/SubscriptionScreen/SubscriptionScreen";
 import { TermsScreen } from "./pages/TermsScreen/TermsScreen";
+import { ReferralScreen } from "./pages/ReferralScreen/ReferralScreen";
 import { useAmbientSound } from "./hooks/useAmbientSound";
+import { useReferralCapture } from "./hooks/useReferralCapture";
 import type { SpreadId } from "./types/tarot";
 import type { HistoryEntry } from "./types/history";
 
-// Eight screens now — still no router (e.g. react-router). Navigation
+// Nine screens now — still no router (e.g. react-router). Navigation
 // is mostly a flat back-to-main flow with no deep stack; historyDetail
 // is the one nested exception (back goes to history, not main) since
 // it's reached from a list and returning to that list is the obvious
@@ -24,7 +26,8 @@ type Screen =
   | { name: "historyDetail"; entry: HistoryEntry }
   | { name: "profile" }
   | { name: "subscription" }
-  | { name: "terms" };
+  | { name: "terms" }
+  | { name: "referral" };
 
 function App() {
   const [screen, setScreen] = useState<Screen>({ name: "main" });
@@ -33,6 +36,8 @@ function App() {
   // isn't torn down and recreated every time the user navigates away
   // from and back to the main screen — it just keeps playing.
   const ambientSound = useAmbientSound();
+  // Fires once per app open, regardless of which screen renders first.
+  useReferralCapture();
 
   if (screen.name === "spread") {
     return (
@@ -83,6 +88,7 @@ function App() {
         onBack={goHome}
         onOpenSubscription={() => setScreen({ name: "subscription" })}
         onOpenTerms={() => setScreen({ name: "terms" })}
+        onOpenReferral={() => setScreen({ name: "referral" })}
       />
     );
   }
@@ -93,6 +99,10 @@ function App() {
 
   if (screen.name === "terms") {
     return <TermsScreen onBack={goHome} />;
+  }
+
+  if (screen.name === "referral") {
+    return <ReferralScreen onBack={goHome} />;
   }
 
   return (

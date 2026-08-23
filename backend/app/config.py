@@ -59,6 +59,15 @@ class Settings(BaseSettings):
     # button, which sometimes needs a manual re-save to pick up changes.
     mini_app_url: str | None = None
 
+    # Bot username and Mini App short name from BotFather (no @, no
+    # slashes — e.g. "mytarolo1gbot" and "mytarolog") — used to build the
+    # https://t.me/<bot>/<app>?startapp=ref_<id> referral link
+    # (app/api/referral.py). This is the only link shape that actually
+    # sets Telegram.WebApp.initDataUnsafe.start_param on open; the plain
+    # mini_app_url above would just load a normal page.
+    telegram_bot_username: str | None = None
+    telegram_app_name: str | None = None
+
     # UTC hour the daily "карта дня" reminder goes out at (see
     # app/notifications.py). 7 UTC ≈ 10:00 in Moscow — a single fixed
     # hour is a simplification (Russia spans many time zones), fine for

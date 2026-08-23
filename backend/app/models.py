@@ -36,6 +36,13 @@ class User(Base):
     # the scheduler job runs more than once on the same day.
     notifications_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     last_notified_date: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    # Referral program (see app/api/referral.py). `referred_by` is set once,
+    # the first time this user is ever seen with a valid ref_<id> start
+    # param — never overwritten afterwards. `referral_bonus_quota` is a
+    # pool of free unlocks earned by referring others, spent by
+    # require_quota() before it even looks at a paid subscription.
+    referred_by: Mapped[int | None] = mapped_column(ForeignKey("users.telegram_id"), nullable=True)
+    referral_bonus_quota: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow)
 
     spreads: Mapped[list["SpreadRecord"]] = relationship(back_populates="user", cascade="all, delete-orphan")

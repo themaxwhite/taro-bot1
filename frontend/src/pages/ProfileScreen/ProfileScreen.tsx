@@ -14,6 +14,7 @@ interface ProfileScreenProps {
   onBack: () => void;
   onOpenSubscription: () => void;
   onOpenTerms: () => void;
+  onOpenReferral: () => void;
 }
 
 function subscriptionLabel(sub: SubscriptionStatus | null): string {
@@ -23,7 +24,7 @@ function subscriptionLabel(sub: SubscriptionStatus | null): string {
   return `${title} — осталось ${(sub.quotaTotal ?? 0) - (sub.quotaUsed ?? 0)} из ${sub.quotaTotal}`;
 }
 
-export function ProfileScreen({ onBack, onOpenSubscription, onOpenTerms }: ProfileScreenProps) {
+export function ProfileScreen({ onBack, onOpenSubscription, onOpenTerms, onOpenReferral }: ProfileScreenProps) {
   const { firstName, username, photoUrl } = useTelegramUser();
   const [stats, setStats] = useState<ProfileStats | null>(null);
   const [interests, setInterests] = useState("");
@@ -108,6 +109,15 @@ export function ProfileScreen({ onBack, onOpenSubscription, onOpenTerms }: Profi
             ⭐
           </span>
           <span className={styles.settingsLabel}>{subscriptionLabel(subscription)}</span>
+          <span className={styles.chevron} aria-hidden="true">
+            ›
+          </span>
+        </button>
+        <button type="button" className={styles.settingsItem} onClick={onOpenReferral}>
+          <span className={styles.settingsIcon} aria-hidden="true">
+            🎁
+          </span>
+          <span className={styles.settingsLabel}>Пригласить друзей</span>
           <span className={styles.chevron} aria-hidden="true">
             ›
           </span>

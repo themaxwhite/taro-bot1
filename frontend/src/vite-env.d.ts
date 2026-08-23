@@ -22,6 +22,9 @@ interface TelegramWebApp {
   initData: string;
   initDataUnsafe: {
     user?: TelegramWebAppUser;
+    // Set from a https://t.me/<bot>/<app>?startapp=<value> link — used
+    // by the referral program (see hooks/useReferralCapture.ts).
+    start_param?: string;
   };
   colorScheme: "light" | "dark";
   viewportHeight: number;
@@ -30,6 +33,7 @@ interface TelegramWebApp {
   setHeaderColor: (color: string) => void;
   setBackgroundColor: (color: string) => void;
   openLink: (url: string, options?: { try_instant_view?: boolean }) => void;
+  openTelegramLink: (url: string) => void;
   safeAreaInset?: {
     top: number;
     bottom: number;

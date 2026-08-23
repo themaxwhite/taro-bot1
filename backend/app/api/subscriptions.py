@@ -170,12 +170,19 @@ def _expire_if_due(db: Session, sub: Subscription) -> None:
 
 def require_quota(db: Session, user: User) -> None:
     """
-    Raises 402 unless the user has an active subscription with quota
-    left, otherwise consumes one unit of quota. Shared by the two paid
-    features (spread interpretation, extra card) — each "unlock" costs
-    one unit regardless of which feature it is.
+    Raises 402 unless the user has quota left, otherwise consumes one
+    unit. Shared by the two paid features (spread interpretation, extra
+    card) — each "unlock" costs one unit regardless of which feature it
+    is. Referral bonus quota (app/api/referral.py) is spent first, ahead
+    of a paid subscription, so inviting friends is worth something even
+    without one.
     """
     if settings.skip_payment_check:
+        return
+
+    if user.referral_bonus_quota > 0:
+        user.referral_bonus_quota -= 1
+        db.commit()
         return
 
     sub = db.get(Subscription, user.telegram_id)
