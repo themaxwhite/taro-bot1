@@ -11,6 +11,7 @@ from app.db import get_db
 from app.models import Subscription, SubscriptionPayment, User
 from app.subscriptions import TIERS, SubscriptionTier
 from app.yookassa.client import YooKassaError, create_payment, get_payment
+from app.yookassa.client import is_configured as is_yookassa_configured
 
 logger = logging.getLogger(__name__)
 
@@ -40,8 +41,8 @@ async def create_subscription_payment(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> CreatePaymentResponse:
-    if not settings.mini_app_url:
-        raise HTTPException(status_code=500, detail="MINI_APP_URL не настроен на сервере")
+    if not is_yookassa_configured() or not settings.mini_app_url:
+        raise HTTPException(status_code=503, detail="Оплата подписки временно недоступна. Попробуйте позже.")
 
     tier = TIERS[body.tier]
     try:
@@ -51,8 +52,9 @@ async def create_subscription_payment(
             return_url=settings.mini_app_url,
             metadata={"user_id": user.telegram_id, "tier": tier.id.value},
         )
-    except YooKassaError as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except YooKassaError:
+        logger.exception("Failed to create ЮKassa payment")
+        raise HTTPException(status_code=503, detail="Оплата подписки временно недоступна. Попробуйте позже.") from None
 
     db.add(
         SubscriptionPayment(
