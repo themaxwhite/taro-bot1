@@ -70,24 +70,33 @@ FRONTEND_ORIGINS=https://your-app.vercel.app
    - **Web App URL** = адрес фронтенда с Vercel/Netlify (обязательно HTTPS — без этого Mini App не откроется)
 3. (Опционально) `/setmenubutton` → указать тот же URL, чтобы кнопка запуска была видна в меню чата с ботом
 
-### 3.1 Включаем оплату Telegram Stars (для «Подробного толкования» и «Ещё карты»)
+### 3.1 Регистрируем webhook для бота (нужен для `/start`)
 
-Stars — встроенная валюта Telegram, отдельный платёжный провайдер не нужен,
-но webhook должен реально получать апдейты о платежах:
+```bash
+curl -X POST "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook" \
+  -d "url=https://<твой-backend-домен>/api/telegram/webhook" \
+  -d "secret_token=<придумай случайную строку>"
+```
+Ту же случайную строку пропиши в `TELEGRAM_WEBHOOK_SECRET` на backend.
+Проверить регистрацию: `https://api.telegram.org/bot<TOKEN>/getWebhookInfo`.
 
-1. Зарегистрируй webhook (один раз, после деплоя backend):
-   ```bash
-   curl -X POST "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook" \
-     -d "url=https://<твой-backend-домен>/api/telegram/webhook" \
-     -d "secret_token=<придумай случайную строку>"
-   ```
-   Ту же случайную строку пропиши в `TELEGRAM_WEBHOOK_SECRET` на backend.
-2. Проверить, что вебхук зарегистрирован: `https://api.telegram.org/bot<TOKEN>/getWebhookInfo`
-3. Учти: Stars-платежи в Mini App работают только внутри настоящего Telegram
-   (не в обычном браузере) — `Telegram.WebApp.openInvoice` там просто
-   недоступен. Тестировать оплату можно только через реального бота.
-4. Цены (`PRICE_INTERPRETATION_STARS`, `PRICE_EXTRA_CARD_STARS`) задаются в
-   `.env` backend — по умолчанию 50 и 30 ⭐ соответственно.
+### 3.2 Подключаем ЮKassa (подписка «Базовый»/«Плюс»)
+
+Платёж — редирект на страницу ЮKassa, а не встроенный Telegram-инвойс,
+так что это работает и в браузере, и в Mini App:
+
+1. Зарегистрируй бизнес (ИП/самозанятый/ООО) на `yookassa.ru` и создай
+   магазин — без этого API ключей не выдадут. Для тестов ЮKassa также
+   даёт тестовый магазин с тестовыми картами, см. их документацию.
+2. В личном кабинете магазина возьми **shopId** и **секретный ключ** →
+   пропиши в `YOOKASSA_SHOP_ID` / `YOOKASSA_SECRET_KEY` на backend.
+3. Там же, в настройках магазина → HTTP-уведомления, укажи URL вебхука:
+   `https://<твой-backend-домен>/api/subscriptions/webhook` и включи
+   события `payment.succeeded` и `payment.canceled`.
+4. `MINI_APP_URL` (уже настроен для `/start`, см. шаг 3.1) используется
+   и как `return_url` — куда ЮKassa вернёт пользователя после оплаты.
+5. Тарифы (`Базовый` — 10 разблокировок/199₽, `Плюс` — 30/399₽) заданы в
+   `backend/app/subscriptions.py` — поменяй числа там, если нужно другое.
 
 ---
 
@@ -105,7 +114,9 @@ Stars — встроенная валюта Telegram, отдельный пла�
 - [x] Валидация Telegram `initData` — готово
 - [x] Персистентность истории (SQLite) — история/профиль читают реальные данные, не моки
 - [x] AI-толкование расклада, дневное пожелание — готово (нужен `GEMINI_API_KEY` или `ANTHROPIC_API_KEY`, иначе статичный fallback)
-- [x] Оплата Stars за толкование и доп. карту — готово на backend+frontend
+- [x] Подписка на ЮKassa (тарифы «Базовый»/«Плюс», квота на толкование и
+      доп. карту) — готово на backend+frontend, нужны только реальные
+      `YOOKASSA_SHOP_ID`/`YOOKASSA_SECRET_KEY`
 - [ ] Backend задеплоен на хостинг — сделать по разделу 1
 - [ ] Frontend задеплоен на хостинг — сделать по разделу 2
 - [ ] Бот зарегистрирован в BotFather с HTTPS Web App URL — сделать по разделу 3
@@ -113,5 +124,6 @@ Stars — встроенная валюта Telegram, отдельный пла�
 - [ ] На хостинге backend подключён persistent volume под `tarot.db`, либо
       `DATABASE_URL` указывает на управляемый Postgres — иначе история
       обнулится при следующем деплое (см. `backend/README.md`)
-- [ ] Webhook `setWebhook` зарегистрирован для платежей (раздел 3.1) —
-      без этого оплата Stars списывается, но фича не разблокируется
+- [ ] Webhook `setWebhook` зарегистрирован для бота (раздел 3.1)
+- [ ] ЮKassa зарегистрирована, ключи и webhook подключены (раздел 3.2) —
+      без этого оплата подписки недоступна (чёткая ошибка, не сбой)

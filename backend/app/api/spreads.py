@@ -2,12 +2,12 @@ import datetime as dt
 import json
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
+from app.api.subscriptions import require_quota
 from app.db import get_db
-from app.models import Purchase, SpreadRecord, User
+from app.models import SpreadRecord, User
 from app.spreads import SPREADS, SpreadId
 from app.tarot.engine import tarot_engine
 from app.tarot.schemas import DrawnCard, DrawSpreadRequest, DrawSpreadResponse
@@ -75,29 +75,16 @@ def draw_extra_card(
 ) -> DrawSpreadResponse:
     """
     Pulls one additional card onto an existing spread — the paid
-    "вытянуть ещё карту" feature. Requires at least one paid `Purchase`
-    of product "extra_card" for this spread that hasn't been consumed by
-    an earlier extra draw yet (each Stars payment unlocks exactly one
-    extra card).
+    "вытянуть ещё карту" feature. Each call consumes one unit of the
+    user's subscription quota (see api/subscriptions.py::require_quota).
     """
     record = db.get(SpreadRecord, spread_record_id)
     if record is None or record.user_id != user.telegram_id:
         raise HTTPException(status_code=404, detail="Spread not found")
 
-    cards = [DrawnCard.model_validate(c) for c in json.loads(record.cards_json)]
+    require_quota(db, user)
 
-    paid_extra_purchases = db.execute(
-        select(func.count())
-        .select_from(Purchase)
-        .where(
-            Purchase.spread_record_id == spread_record_id,
-            Purchase.product == "extra_card",
-            Purchase.status == "paid",
-        )
-    ).scalar_one()
-    already_drawn_extra = len(cards) - SPREADS[SpreadId(record.spread_id)].card_count
-    if already_drawn_extra >= paid_extra_purchases:
-        raise HTTPException(status_code=402, detail="Оплата не найдена для дополнительной карты")
+    cards = [DrawnCard.model_validate(c) for c in json.loads(record.cards_json)]
 
     extra = tarot_engine.draw_one_more(
         position=len(cards),

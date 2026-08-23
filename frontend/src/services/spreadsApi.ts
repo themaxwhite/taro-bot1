@@ -4,7 +4,14 @@ import type { DrawSpreadResponse } from "../types/result";
 const API_BASE_URL: string =
   import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 
-export class SpreadsApiError extends Error {}
+export class SpreadsApiError extends Error {
+  status?: number;
+
+  constructor(message: string, status?: number) {
+    super(message);
+    this.status = status;
+  }
+}
 
 /**
  * Calls the backend Tarot Engine to draw cards for the given spread.

@@ -76,6 +76,10 @@
   padding: 0 16px 24px;
 }
 
+.subscriptionRow {
+  padding-top: 20px;
+}
+
 .settingsItem {
   display: flex;
   align-items: center;

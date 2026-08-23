@@ -29,7 +29,7 @@ interface TelegramWebApp {
   expand: () => void;
   setHeaderColor: (color: string) => void;
   setBackgroundColor: (color: string) => void;
-  openInvoice: (url: string, callback: (status: string) => void) => void;
+  openLink: (url: string, options?: { try_instant_view?: boolean }) => void;
   safeAreaInset?: {
     top: number;
     bottom: number;

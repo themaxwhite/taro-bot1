@@ -30,16 +30,18 @@ class Settings(BaseSettings):
     gemini_api_key: str | None = None
     anthropic_api_key: str | None = None
 
-    # Prices in Telegram Stars (XTR) — Stars are Telegram's own in-app
-    # currency, so no external payment-provider account is needed. See
-    # app/api/payments.py and DEPLOYMENT.md for the BotFather setup.
-    price_interpretation_stars: int = 50
-    price_extra_card_stars: int = 30
+    # ЮKassa (YooKassa) credentials — shopId + secret key from your
+    # merchant dashboard (requires a registered business; see
+    # DEPLOYMENT.md). Subscription purchases are unavailable (a clear
+    # error, not a crash) when either is unset, same pattern as the AI
+    # keys above.
+    yookassa_shop_id: str | None = None
+    yookassa_secret_key: str | None = None
 
-    # Must match the secret configured on `setWebhook` so the payments
+    # Must match the secret configured on `setWebhook` so the Telegram
     # webhook (app/api/payments.py) can reject requests that don't
-    # actually come from Telegram. Required in production if payments are
-    # enabled; left optional so the rest of the app works without it.
+    # actually come from Telegram. Required in production; left optional
+    # so the rest of the app works without it.
     telegram_webhook_secret: str | None = None
 
     # The Mini App's own URL (your Cloudflare Pages / Vercel domain).
@@ -48,10 +50,11 @@ class Settings(BaseSettings):
     # button, which sometimes needs a manual re-save to pick up changes.
     mini_app_url: str | None = None
 
-    # DEV ONLY — lets /api/spreads/{id}/interpret skip the Purchase check
-    # so the paid AI interpretation can be tested without wiring up Stars
-    # payments. Must be False (the default) in any real deployment; see
-    # app/api/ai.py::interpret_spread. Set SKIP_PAYMENT_CHECK=true to flip.
+    # DEV ONLY — lets the paid features (spread interpretation, extra
+    # card) skip the subscription-quota check, so they can be tested
+    # without wiring up ЮKassa. Must be False (the default) in any real
+    # deployment; see app/api/subscriptions.py::require_quota. Set
+    # SKIP_PAYMENT_CHECK=true to flip.
     skip_payment_check: bool = False
 
     @property

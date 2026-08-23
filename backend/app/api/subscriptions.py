@@ -1,0 +1,160 @@
+import datetime as dt
+import logging
+
+from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
+from app.api.deps import get_current_user
+from app.config import settings
+from app.db import get_db
+from app.models import Subscription, SubscriptionPayment, User
+from app.subscriptions import TIERS, SubscriptionTier
+from app.yookassa.client import YooKassaError, create_payment, get_payment
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter(prefix="/api/subscriptions", tags=["subscriptions"])
+
+
+class CreatePaymentRequest(BaseModel):
+    tier: SubscriptionTier
+
+
+class CreatePaymentResponse(BaseModel):
+    confirmation_url: str
+    payment_id: str
+
+
+class SubscriptionStatusResponse(BaseModel):
+    tier: str | None
+    status: str | None
+    quota_total: int | None
+    quota_used: int | None
+    period_end: dt.datetime | None
+
+
+@router.post("/create-payment", response_model=CreatePaymentResponse)
+async def create_subscription_payment(
+    body: CreatePaymentRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> CreatePaymentResponse:
+    if not settings.mini_app_url:
+        raise HTTPException(status_code=500, detail="MINI_APP_URL не настроен на сервере")
+
+    tier = TIERS[body.tier]
+    try:
+        payment = await create_payment(
+            amount_rub=tier.price_rub,
+            description=f"Подписка «{tier.title}» — Tarot Aurum",
+            return_url=settings.mini_app_url,
+            metadata={"user_id": user.telegram_id, "tier": tier.id.value},
+        )
+    except YooKassaError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    db.add(
+        SubscriptionPayment(
+            yookassa_payment_id=payment["id"],
+            user_id=user.telegram_id,
+            tier=tier.id.value,
+            amount_rub=tier.price_rub,
+            status="pending",
+        )
+    )
+    db.commit()
+
+    return CreatePaymentResponse(
+        confirmation_url=payment["confirmation"]["confirmation_url"],
+        payment_id=payment["id"],
+    )
+
+
+@router.get("/status", response_model=SubscriptionStatusResponse)
+def get_subscription_status(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> SubscriptionStatusResponse:
+    sub = db.get(Subscription, user.telegram_id)
+    if sub is None:
+        return SubscriptionStatusResponse(tier=None, status=None, quota_total=None, quota_used=None, period_end=None)
+    _expire_if_due(db, sub)
+    return SubscriptionStatusResponse(
+        tier=sub.tier, status=sub.status, quota_total=sub.quota_total, quota_used=sub.quota_used, period_end=sub.period_end
+    )
+
+
+@router.post("/webhook")
+async def subscription_webhook(request: Request, db: Session = Depends(get_db)) -> dict:
+    """
+    ЮKassa calls this on payment status changes (configure the URL once
+    in the merchant dashboard — see DEPLOYMENT.md). The notification body
+    itself is never trusted for the payment status: ЮKassa doesn't sign
+    webhook payloads, so this only uses the body to learn *which* payment
+    to re-check, then asks the ЮKassa API directly for the real status.
+    """
+    body = await request.json()
+    payment_id = (body.get("object") or {}).get("id")
+    if not payment_id:
+        return {"ok": True}
+
+    record = db.query(SubscriptionPayment).filter_by(yookassa_payment_id=payment_id).one_or_none()
+    if record is None or record.status != "pending":
+        return {"ok": True}
+
+    try:
+        payment = await get_payment(payment_id)
+    except YooKassaError:
+        logger.exception("Failed to verify ЮKassa payment %s", payment_id)
+        return {"ok": True}
+
+    if payment.get("status") == "succeeded":
+        record.status = "succeeded"
+        tier = TIERS[SubscriptionTier(record.tier)]
+        sub = db.get(Subscription, record.user_id)
+        now = dt.datetime.utcnow()
+        if sub is None:
+            sub = Subscription(user_id=record.user_id)
+            db.add(sub)
+        sub.tier = tier.id.value
+        sub.status = "active"
+        sub.quota_total = tier.monthly_quota
+        sub.quota_used = 0
+        sub.period_end = now + dt.timedelta(days=30)
+        db.commit()
+    elif payment.get("status") in ("canceled", "expired"):
+        record.status = "canceled"
+        db.commit()
+
+    return {"ok": True}
+
+
+def _expire_if_due(db: Session, sub: Subscription) -> None:
+    if sub.status == "active" and sub.period_end < dt.datetime.utcnow():
+        sub.status = "expired"
+        db.commit()
+
+
+def require_quota(db: Session, user: User) -> None:
+    """
+    Raises 402 unless the user has an active subscription with quota
+    left, otherwise consumes one unit of quota. Shared by the two paid
+    features (spread interpretation, extra card) — each "unlock" costs
+    one unit regardless of which feature it is.
+    """
+    if settings.skip_payment_check:
+        return
+
+    sub = db.get(Subscription, user.telegram_id)
+    if sub is None:
+        raise HTTPException(status_code=402, detail="Нужна подписка, чтобы открыть эту функцию.")
+
+    _expire_if_due(db, sub)
+    if sub.status != "active":
+        raise HTTPException(status_code=402, detail="Подписка истекла. Оформите новую, чтобы продолжить.")
+    if sub.quota_used >= sub.quota_total:
+        raise HTTPException(status_code=402, detail="Лимит подписки на этот месяц исчерпан.")
+
+    sub.quota_used += 1
+    db.commit()

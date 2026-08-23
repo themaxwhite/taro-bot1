@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { SPREAD_TYPES, type SpreadId } from "../../types/tarot";
 import type { DrawSpreadResponse } from "../../types/result";
 import { drawSpread, SpreadsApiError } from "../../services/spreadsApi";
-import { fetchInterpretation, drawExtraCard, payWithStars } from "../../services/aiApi";
+import { fetchInterpretation, drawExtraCard } from "../../services/aiApi";
 import { ScreenHeader } from "../../components/ScreenHeader/ScreenHeader";
 import { CardFront } from "../../components/CardFront/CardFront";
 import { Spinner } from "../../components/Spinner/Spinner";
@@ -13,6 +13,7 @@ interface ResultScreenProps {
   question: string;
   onBack: () => void;
   onDone: () => void;
+  onNeedSubscription: () => void;
 }
 
 type LoadState =
@@ -20,16 +21,16 @@ type LoadState =
   | { status: "error"; message: string }
   | { status: "success"; data: DrawSpreadResponse };
 
-type PaywallState =
+type ActionState =
   | { status: "idle" }
-  | { status: "paying" }
-  | { status: "error"; message: string };
+  | { status: "working" }
+  | { status: "error"; message: string; needsSubscription: boolean };
 
-export function ResultScreen({ spreadId, question, onBack, onDone }: ResultScreenProps) {
+export function ResultScreen({ spreadId, question, onBack, onDone, onNeedSubscription }: ResultScreenProps) {
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [interpretation, setInterpretation] = useState<string | null>(null);
-  const [interpretState, setInterpretState] = useState<PaywallState>({ status: "idle" });
-  const [extraCardState, setExtraCardState] = useState<PaywallState>({ status: "idle" });
+  const [interpretState, setInterpretState] = useState<ActionState>({ status: "idle" });
+  const [extraCardState, setExtraCardState] = useState<ActionState>({ status: "idle" });
   const spread = SPREAD_TYPES.find((s) => s.id === spreadId);
 
   function load() {
@@ -48,41 +49,30 @@ export function ResultScreen({ spreadId, question, onBack, onDone }: ResultScree
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [spreadId]);
 
-  // DEV ONLY — see VITE_SKIP_PAYMENT in .env.example. Lets "Подробное
-  // толкование" be tested outside real Telegram (payWithStars requires
-  // window.Telegram.WebApp). Backend must also have SKIP_PAYMENT_CHECK=true.
-  const skipPayment = import.meta.env.VITE_SKIP_PAYMENT === "true";
-  // "Карта дня" interpretation is free — mirrors the backend's own check
-  // in api/ai.py::interpret_spread (is_daily_card), so we don't even try
-  // to open a real Stars invoice for it.
-  const isDailyCard = spreadId === "daily-card";
-
   async function handleUnlockInterpretation(recordId: number) {
-    setInterpretState({ status: "paying" });
+    setInterpretState({ status: "working" });
     try {
-      if (!skipPayment && !isDailyCard) {
-        await payWithStars("interpretation", recordId);
-      }
       const text = await fetchInterpretation(recordId);
       setInterpretation(text);
       setInterpretState({ status: "idle" });
     } catch (error) {
       const message = error instanceof SpreadsApiError ? error.message : "Не удалось получить толкование.";
-      setInterpretState({ status: "error", message });
+      const needsSubscription = error instanceof SpreadsApiError && error.status === 402;
+      setInterpretState({ status: "error", message, needsSubscription });
     }
   }
 
   async function handleDrawExtraCard(recordId: number) {
-    setExtraCardState({ status: "paying" });
+    setExtraCardState({ status: "working" });
     try {
-      await payWithStars("extra_card", recordId);
       const data = await drawExtraCard(recordId);
       setState({ status: "success", data });
       setInterpretation(null); // the old interpretation no longer covers the full spread
       setExtraCardState({ status: "idle" });
     } catch (error) {
       const message = error instanceof SpreadsApiError ? error.message : "Не удалось вытянуть карту.";
-      setExtraCardState({ status: "error", message });
+      const needsSubscription = error instanceof SpreadsApiError && error.status === 402;
+      setExtraCardState({ status: "error", message, needsSubscription });
     }
   }
 
@@ -133,32 +123,40 @@ export function ResultScreen({ spreadId, question, onBack, onDone }: ResultScree
               <button
                 type="button"
                 className={styles.unlockButton}
-                disabled={interpretState.status === "paying"}
+                disabled={interpretState.status === "working"}
                 onClick={() => handleUnlockInterpretation(state.data.id)}
               >
-                {interpretState.status === "paying"
-                  ? isDailyCard
-                    ? "Открываем…"
-                    : "Оплата…"
-                  : isDailyCard
-                    ? "🔮 Подробное толкование"
-                    : "🔮 Подробное толкование — ⭐"}
+                {interpretState.status === "working" ? "Открываем…" : "🔮 Подробное толкование"}
               </button>
             )}
             {interpretState.status === "error" && (
-              <p className={styles.paywallError}>{interpretState.message}</p>
+              <>
+                <p className={styles.paywallError}>{interpretState.message}</p>
+                {interpretState.needsSubscription && (
+                  <button type="button" className={styles.unlockButtonSecondary} onClick={onNeedSubscription}>
+                    Оформить подписку
+                  </button>
+                )}
+              </>
             )}
 
             <button
               type="button"
               className={styles.unlockButtonSecondary}
-              disabled={extraCardState.status === "paying"}
+              disabled={extraCardState.status === "working"}
               onClick={() => handleDrawExtraCard(state.data.id)}
             >
-              {extraCardState.status === "paying" ? "Оплата…" : "🃏 Вытянуть ещё карту — ⭐"}
+              {extraCardState.status === "working" ? "Тянем карту…" : "🃏 Вытянуть ещё карту"}
             </button>
             {extraCardState.status === "error" && (
-              <p className={styles.paywallError}>{extraCardState.message}</p>
+              <>
+                <p className={styles.paywallError}>{extraCardState.message}</p>
+                {extraCardState.needsSubscription && (
+                  <button type="button" className={styles.unlockButtonSecondary} onClick={onNeedSubscription}>
+                    Оформить подписку
+                  </button>
+                )}
+              </>
             )}
           </div>
 

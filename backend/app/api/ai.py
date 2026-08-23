@@ -3,15 +3,14 @@ import json
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.ai.client import generate_text
 from app.ai.fallback import daily_message_for, fallback_interpretation
 from app.api.deps import get_current_user
-from app.config import settings
+from app.api.subscriptions import require_quota
 from app.db import get_db
-from app.models import DailyMessage, Purchase, SpreadRecord, User
+from app.models import DailyMessage, SpreadRecord, User
 from app.spreads import SpreadId
 
 router = APIRouter(prefix="/api", tags=["ai"])
@@ -59,10 +58,10 @@ async def interpret_spread(
 ) -> InterpretationResponse:
     """
     Generates (or returns the already-generated) AI interpretation for a
-    spread. This is the paid "подробное толкование" feature — requires a
-    confirmed `Purchase` for this spread (see api/payments.py). Once
+    spread. This is the paid "подробное толкование" feature — requires an
+    active subscription with quota left (see api/subscriptions.py). Once
     generated, the text is cached on the record so re-opening it later
-    (e.g. from History) doesn't re-bill or re-call the AI.
+    (e.g. from History) doesn't re-consume quota or re-call the AI.
     """
     record = db.get(SpreadRecord, spread_record_id)
     if record is None or record.user_id != user.telegram_id:
@@ -73,20 +72,10 @@ async def interpret_spread(
 
     # "Карта дня" gets its full interpretation for free — it's the one
     # spread meant as a lightweight daily hook, unlike the paid multi-card
-    # readings. Everything else still requires a confirmed Purchase.
+    # readings. Everything else consumes one unit of subscription quota.
     is_daily_card = record.spread_id == SpreadId.DAILY_CARD.value
-    if not is_daily_card and not settings.skip_payment_check:
-        paid = db.execute(
-            select(func.count())
-            .select_from(Purchase)
-            .where(
-                Purchase.spread_record_id == spread_record_id,
-                Purchase.product == "interpretation",
-                Purchase.status == "paid",
-            )
-        ).scalar_one()
-        if not paid:
-            raise HTTPException(status_code=402, detail="Оплата не найдена для этого расклада")
+    if not is_daily_card:
+        require_quota(db, user)
 
     cards = json.loads(record.cards_json)
     card_lines = "\n".join(

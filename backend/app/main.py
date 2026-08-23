@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import ai, health, history, payments, spreads
+from app.api import ai, health, history, payments, spreads, subscriptions
 from app.config import settings
 from app.db import init_db
 
@@ -28,3 +28,4 @@ app.include_router(spreads.router)
 app.include_router(history.router)
 app.include_router(ai.router)
 app.include_router(payments.router)
+app.include_router(subscriptions.router)

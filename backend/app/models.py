@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime as dt
 
-from sqlalchemy import DateTime, ForeignKey, String
+from sqlalchemy import DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
@@ -74,21 +74,41 @@ class DailyMessage(Base):
     text: Mapped[str] = mapped_column(String(500))
 
 
-class Purchase(Base):
+class Subscription(Base):
     """
-    A Telegram Stars purchase. Created in "pending" status when an invoice
-    link is issued; flipped to "paid" by the Telegram webhook once
-    `successful_payment` comes in (see app/api/payments.py). The paid
-    feature itself checks this table before doing any billable work.
+    A user's current monthly subscription — one row per user, overwritten
+    on each successful renewal/upgrade. `quota_used` resets to 0 and
+    `quota_total`/`period_end` are refreshed whenever a SubscriptionPayment
+    settles (see app/api/subscriptions.py). Gates the paid features
+    (spread interpretation, extra card) instead of the old per-action
+    Telegram Stars purchase.
     """
 
-    __tablename__ = "purchases"
+    __tablename__ = "subscriptions"
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.telegram_id"), primary_key=True)
+    tier: Mapped[str] = mapped_column(String(16))  # "basic" | "plus"
+    status: Mapped[str] = mapped_column(String(16), default="active")  # active | expired
+    quota_total: Mapped[int] = mapped_column(Integer)
+    quota_used: Mapped[int] = mapped_column(Integer, default=0)
+    period_end: Mapped[dt.datetime] = mapped_column(DateTime)
+    updated_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow, onupdate=dt.datetime.utcnow)
+
+
+class SubscriptionPayment(Base):
+    """
+    One ЮKassa payment attempt for a subscription. Created in "pending"
+    status when a payment is initiated; flipped to "succeeded" once the
+    webhook re-verifies the payment directly against the ЮKassa API (see
+    app/yookassa/client.py — the webhook body itself is never trusted).
+    """
+
+    __tablename__ = "subscription_payments"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    payload: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    yookassa_payment_id: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.telegram_id"))
-    product: Mapped[str] = mapped_column(String(32))  # "interpretation" | "extra_card"
-    spread_record_id: Mapped[int] = mapped_column(ForeignKey("spread_records.id"))
-    status: Mapped[str] = mapped_column(String(16), default="pending")  # pending | paid
-    telegram_payment_charge_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    tier: Mapped[str] = mapped_column(String(16))  # "basic" | "plus"
+    amount_rub: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(16), default="pending")  # pending | succeeded | canceled
     created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow)
