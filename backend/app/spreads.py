@@ -7,6 +7,7 @@ class SpreadId(str, Enum):
     LOVE = "love"
     FUTURE = "future"
     CELTIC_CROSS = "celtic-cross"
+    YES_NO = "yes-no"
 
 
 @dataclass(frozen=True)
@@ -56,5 +57,11 @@ SPREADS: dict[SpreadId, SpreadConfig] = {
             "Надежды и страхи",
             "Итог",
         ),
+    ),
+    SpreadId.YES_NO: SpreadConfig(
+        id=SpreadId.YES_NO,
+        title="Да или нет",
+        card_count=1,
+        position_labels=("Ответ",),
     ),
 }

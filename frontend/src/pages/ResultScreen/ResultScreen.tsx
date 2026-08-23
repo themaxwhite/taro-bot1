@@ -106,6 +106,10 @@ export function ResultScreen({ spreadId, question, onBack, onDone, onNeedSubscri
             ))}
           </div>
 
+          {spreadId === "yes-no" && (
+            <p className={styles.yesNoAnswer}>{state.data.cards[0].is_reversed ? "Скорее нет" : "Скорее да"}</p>
+          )}
+
           <div className={styles.meaningsList}>
             {state.data.cards.map((card) => (
               <div key={card.position} className={styles.meaningItem}>

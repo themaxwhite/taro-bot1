@@ -40,6 +40,38 @@
   padding: 8px 16px 16px;
 }
 
+.yesNoAnswer {
+  margin: 0 16px 4px;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-teal) 100%);
+  color: var(--color-on-accent);
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 700;
+  text-align: center;
+  opacity: 0;
+  animation: yesNoReveal 0.4s ease 1.15s forwards;
+}
+
+@keyframes yesNoReveal {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .yesNoAnswer {
+    animation: none;
+    opacity: 1;
+  }
+}
+
 .meaningsList {
   display: flex;
   flex-direction: column;
