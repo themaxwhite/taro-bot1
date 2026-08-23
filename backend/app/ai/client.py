@@ -1,13 +1,16 @@
 """
 Minimal API clients for the two AI-generated features (daily motivating
-message, spread interpretation). Deliberately not using either vendor's
+message, spread interpretation). Deliberately not using any vendor's
 SDK to keep the dependency list small — these are single JSON POSTs.
 
-Gemini is tried first (its free tier needs no billing account, unlike
-Anthropic's pay-as-you-go credits), then Anthropic if only that's
-configured. Both call sites handle `None`/exceptions by falling back to
-static content (see app/ai/fallback.py) — an LLM outage should never
-break the main app flow, just make it a bit less personalized for a day.
+Tried in order, each only if the previous one is unconfigured or fails:
+Gemini (free tier, no billing account needed) -> Groq (also free, and
+on entirely separate infrastructure/quota from Google, so a Gemini
+rate limit — the reason this was added, see git log — doesn't take
+this down too) -> Anthropic (configured last since it's pay-as-you-go,
+not free). All three degrade to `None` on any failure; callers fall
+back to static content (see app/ai/fallback.py) — an LLM outage should
+never break the main app flow, just make it a bit less personalized.
 """
 
 import logging
@@ -21,6 +24,9 @@ logger = logging.getLogger(__name__)
 _GEMINI_MODEL = "gemini-flash-latest"
 _GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{_GEMINI_MODEL}:generateContent"
 
+_GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
+_GROQ_MODEL = "llama-3.3-70b-versatile"
+
 _ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
 # "claude-sonnet-4-6" (the id this used to hardcode) isn't a real model —
 # every call silently 404'd and fell back to static content. claude-opus-5
@@ -29,26 +35,27 @@ _ANTHROPIC_MODEL = "claude-opus-5"
 
 
 def is_configured() -> bool:
-    return bool(settings.gemini_api_key or settings.anthropic_api_key)
+    return bool(settings.gemini_api_key or settings.groq_api_key or settings.anthropic_api_key)
 
 
 async def generate_text(system_prompt: str, user_prompt: str, max_tokens: int = 400) -> str | None:
     """
     Returns the model's plain-text reply, or None if no API key is
-    configured or the call fails for any reason (network, rate limit,
-    malformed response — all treated the same: caller falls back).
+    configured or every configured provider failed (network, rate
+    limit, malformed response — all treated the same: try the next
+    provider, or fall back to static content if none are left).
     """
-    if settings.gemini_api_key:
-        result = await _generate_via_gemini(system_prompt, user_prompt, max_tokens)
+    providers = [
+        (settings.gemini_api_key, _generate_via_gemini),
+        (settings.groq_api_key, _generate_via_groq),
+        (settings.anthropic_api_key, _generate_via_anthropic),
+    ]
+    for api_key, call in providers:
+        if not api_key:
+            continue
+        result = await call(system_prompt, user_prompt, max_tokens)
         if result is not None:
             return result
-        # Gemini failed (outage, rate limit, ...) — try Anthropic before
-        # giving up, instead of dropping straight to static fallback text.
-        if settings.anthropic_api_key:
-            return await _generate_via_anthropic(system_prompt, user_prompt, max_tokens)
-        return None
-    if settings.anthropic_api_key:
-        return await _generate_via_anthropic(system_prompt, user_prompt, max_tokens)
     return None
 
 
@@ -74,6 +81,33 @@ async def _generate_via_gemini(system_prompt: str, user_prompt: str, max_tokens:
         return text or None
     except Exception:  # noqa: BLE001 — any failure here should degrade, not 500 the request
         logger.exception("Gemini API call failed")
+        return None
+
+
+async def _generate_via_groq(system_prompt: str, user_prompt: str, max_tokens: int) -> str | None:
+    try:
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            response = await client.post(
+                _GROQ_API_URL,
+                headers={
+                    "Authorization": f"Bearer {settings.groq_api_key}",
+                    "content-type": "application/json",
+                },
+                json={
+                    "model": _GROQ_MODEL,
+                    "max_tokens": max_tokens,
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                },
+            )
+        response.raise_for_status()
+        data = response.json()
+        text = data["choices"][0]["message"]["content"].strip()
+        return text or None
+    except Exception:  # noqa: BLE001 — any failure here should degrade, not 500 the request
+        logger.exception("Groq API call failed")
         return None
 
 
