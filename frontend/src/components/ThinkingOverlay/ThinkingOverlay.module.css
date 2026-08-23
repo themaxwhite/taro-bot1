@@ -1,0 +1,44 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 32px;
+  background: rgba(10, 8, 6, 0.72);
+  backdrop-filter: blur(3px);
+}
+
+.glyph {
+  font-size: 40px;
+  animation: pulse 1.8s ease-in-out infinite;
+}
+
+.text {
+  margin: 4px 0 0;
+  font-family: var(--font-display);
+  font-size: 17px;
+  color: #fff;
+  text-align: center;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glyph {
+    animation: none;
+  }
+}

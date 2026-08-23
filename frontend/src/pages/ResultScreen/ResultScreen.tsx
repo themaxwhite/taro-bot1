@@ -6,6 +6,7 @@ import { fetchInterpretation, drawExtraCard } from "../../services/aiApi";
 import { ScreenHeader } from "../../components/ScreenHeader/ScreenHeader";
 import { CardFront } from "../../components/CardFront/CardFront";
 import { DailyCardCooldown } from "../../components/DailyCardCooldown/DailyCardCooldown";
+import { ThinkingOverlay } from "../../components/ThinkingOverlay/ThinkingOverlay";
 import { Spinner } from "../../components/Spinner/Spinner";
 import styles from "./ResultScreen.module.css";
 
@@ -129,7 +130,7 @@ export function ResultScreen({ spreadId, question, onBack, onDone, onNeedSubscri
                 disabled={interpretState.status === "working"}
                 onClick={() => handleUnlockInterpretation(state.data.id)}
               >
-                {interpretState.status === "working" ? "Открываем…" : "🔮 Подробное толкование"}
+                🔮 Подробное толкование
               </button>
             )}
             {interpretState.status === "error" && (
@@ -170,6 +171,8 @@ export function ResultScreen({ spreadId, question, onBack, onDone, onNeedSubscri
           </div>
         </>
       )}
+
+      {interpretState.status === "working" && <ThinkingOverlay />}
     </div>
   );
 }

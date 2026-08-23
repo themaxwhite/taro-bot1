@@ -4,6 +4,7 @@ import { fetchInterpretation } from "../../services/aiApi";
 import { SpreadsApiError } from "../../services/spreadsApi";
 import { ScreenHeader } from "../../components/ScreenHeader/ScreenHeader";
 import { CardFront } from "../../components/CardFront/CardFront";
+import { ThinkingOverlay } from "../../components/ThinkingOverlay/ThinkingOverlay";
 import resultStyles from "../ResultScreen/ResultScreen.module.css";
 import styles from "./HistoryDetailScreen.module.css";
 
@@ -72,7 +73,7 @@ export function HistoryDetailScreen({ entry, onBack, onNeedSubscription }: Histo
             disabled={interpretState.status === "working"}
             onClick={handleUnlock}
           >
-            {interpretState.status === "working" ? "Открываем…" : "🔮 Подробное толкование"}
+            🔮 Подробное толкование
           </button>
         )}
         {interpretState.status === "error" && (
@@ -86,6 +87,8 @@ export function HistoryDetailScreen({ entry, onBack, onNeedSubscription }: Histo
           </>
         )}
       </div>
+
+      {interpretState.status === "working" && <ThinkingOverlay />}
     </div>
   );
 }
