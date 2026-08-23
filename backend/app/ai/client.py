@@ -25,7 +25,15 @@ _GEMINI_MODEL = "gemini-flash-latest"
 _GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{_GEMINI_MODEL}:generateContent"
 
 _GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
-_GROQ_MODEL = "llama-3.3-70b-versatile"
+# Groq's lineup changes over time — verified live against the account's
+# actual key (GET /v1/models) rather than trusting docs/memory, since
+# "llama-3.3-70b-versatile" (an earlier obvious choice) no longer
+# exists on it. gpt-oss is a *reasoning* model — it can burn the whole
+# max_tokens budget on hidden "thinking" and return empty content
+# (confirmed: happened at the default reasoning effort) unless
+# reasoning_effort is turned down.
+_GROQ_MODEL = "openai/gpt-oss-120b"
+_GROQ_REASONING_EFFORT = "low"
 
 _ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
 # "claude-sonnet-4-6" (the id this used to hardcode) isn't a real model —
@@ -96,6 +104,7 @@ async def _generate_via_groq(system_prompt: str, user_prompt: str, max_tokens: i
                 json={
                     "model": _GROQ_MODEL,
                     "max_tokens": max_tokens,
+                    "reasoning_effort": _GROQ_REASONING_EFFORT,
                     "messages": [
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_prompt},
