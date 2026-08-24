@@ -39,6 +39,7 @@ def init_db() -> None:
 
     Base.metadata.create_all(bind=engine)
     _add_missing_columns()
+    _widen_id_columns()
 
 
 # (table, column, DDL type) for columns added to a model after it first
@@ -75,4 +76,36 @@ def _add_missing_columns() -> None:
             existing = {col["name"] for col in inspector.get_columns(table)}
             if column not in existing:
                 conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {ddl_type}"))
+        conn.commit()
+
+
+# (table, column) pairs that must be BIGINT — plain INTEGER (Postgres'
+# 32-bit default) overflows for newer Telegram user ids, which now
+# regularly exceed 2^31-1. SQLite has no fixed-width INTEGER (any
+# declared integer type stores up to a full 64-bit signed value), and
+# doesn't support ALTER COLUMN at all, so this only ever runs against
+# Postgres.
+_BIGINT_COLUMNS = [
+    ("users", "telegram_id"),
+    ("users", "referred_by"),
+    ("spread_records", "user_id"),
+    ("subscriptions", "user_id"),
+    ("subscription_payments", "user_id"),
+]
+
+
+def _widen_id_columns() -> None:
+    """Widens id columns created as INTEGER (before this fix) to BIGINT."""
+    if engine.dialect.name != "postgresql":
+        return
+    inspector = inspect(engine)
+    with engine.connect() as conn:
+        for table, column in _BIGINT_COLUMNS:
+            if not inspector.has_table(table):
+                continue
+            columns = {col["name"]: col for col in inspector.get_columns(table)}
+            col_info = columns.get(column)
+            if col_info is None or str(col_info["type"]).upper() == "BIGINT":
+                continue
+            conn.execute(text(f"ALTER TABLE {table} ALTER COLUMN {column} TYPE BIGINT"))
         conn.commit()
