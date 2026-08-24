@@ -15,6 +15,7 @@ const SPREAD_GLYPHS: Record<SpreadType["id"], string> = {
   future: "🔭",
   "celtic-cross": "🃏",
   horseshoe: "🍀",
+  compatibility: "💑",
 };
 
 function cardsWord(n: number): string {

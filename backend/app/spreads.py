@@ -9,6 +9,7 @@ class SpreadId(str, Enum):
     CELTIC_CROSS = "celtic-cross"
     YES_NO = "yes-no"
     HORSESHOE = "horseshoe"
+    COMPATIBILITY = "compatibility"
 
 
 @dataclass(frozen=True)
@@ -77,6 +78,18 @@ SPREADS: dict[SpreadId, SpreadConfig] = {
             "Окружение",
             "Совет",
             "Итог",
+        ),
+    ),
+    SpreadId.COMPATIBILITY: SpreadConfig(
+        id=SpreadId.COMPATIBILITY,
+        title="Совместимость",
+        card_count=5,
+        position_labels=(
+            "Ты",
+            "Партнёр",
+            "Что вас связывает",
+            "Трудности",
+            "Потенциал отношений",
         ),
     ),
 }
