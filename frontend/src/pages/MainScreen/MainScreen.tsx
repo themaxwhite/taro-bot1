@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 import { useTelegramUser } from "../../hooks/useTelegramUser";
 import { SPREAD_TYPES, type SpreadType } from "../../types/tarot";
 import { getDailyCardStatus } from "../../services/spreadsApi";
+import { fetchProfile, type Gender } from "../../services/historyApi";
 import { TopBar } from "../../components/TopBar/TopBar";
 import { Greeting } from "../../components/Greeting/Greeting";
 import { DailyWish } from "../../components/DailyWish/DailyWish";
 import { DailyCardBanner } from "../../components/DailyCardBanner/DailyCardBanner";
 import { DailyCardCooldown } from "../../components/DailyCardCooldown/DailyCardCooldown";
+import { LoveNudgeBanner } from "../../components/LoveNudgeBanner/LoveNudgeBanner";
 import { SpreadList } from "../../components/SpreadList/SpreadList";
 import { MysticalBackground } from "../../components/MysticalBackground/MysticalBackground";
 import styles from "./MainScreen.module.css";
@@ -46,6 +48,22 @@ export function MainScreen({
     };
   }, []);
 
+  // Only used to pick the right pronoun in LoveNudgeBanner — stays null
+  // (banner just doesn't render) if the fetch fails or gender was
+  // somehow never set.
+  const [gender, setGender] = useState<Gender | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetchProfile()
+      .then((profile) => {
+        if (!cancelled) setGender(profile.gender);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <div className={styles.screen}>
       <MysticalBackground />
@@ -59,6 +77,7 @@ export function MainScreen({
       <DailyWish />
       {dailyCardCooldown && <DailyCardCooldown nextAvailableAt={dailyCardCooldown} />}
       <DailyCardBanner onClick={() => onSelectSpread("daily-card")} />
+      <LoveNudgeBanner gender={gender} onSelectSpread={onSelectSpread} />
       <SpreadList spreads={gridSpreads} onSelect={onSelectSpread} />
     </div>
   );

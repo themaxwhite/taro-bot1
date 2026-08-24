@@ -1,0 +1,78 @@
+.banner {
+  position: relative;
+  display: flex;
+  margin: 0 16px 20px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-teal);
+  background: var(--color-bg-elevated);
+  overflow: hidden;
+  animation: nudge-in 0.35s ease;
+}
+
+@keyframes nudge-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .banner {
+    animation: none;
+  }
+}
+
+.content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px 34px 12px 14px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  touch-action: manipulation;
+}
+
+.content:active {
+  background: var(--color-bg-elevated-active);
+}
+
+.icon {
+  font-size: 19px;
+  flex-shrink: 0;
+}
+
+.text {
+  font-size: 13.5px;
+  line-height: 1.35;
+  color: var(--color-text);
+}
+
+.dismiss {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
+}
+
+.dismiss:active {
+  background: var(--color-bg-elevated-active);
+}
