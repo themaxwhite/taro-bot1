@@ -5,22 +5,97 @@ interface TermsScreenProps {
   onBack: () => void;
 }
 
-// Placeholder — real Terms of Use / Privacy Policy text goes here before
-// launch. Not something to generate automatically: it's a legal
-// document and needs to accurately describe what this specific app
-// actually does with user data (Telegram profile, spread history, AI
-// providers, ЮKassa payments).
+// Operator/contact details (full legal name, taxpayer status, address,
+// email/phone) are deliberately left out below — the app owner hasn't
+// registered/decided on those yet (individual vs самозанятый/ИП/ООО
+// affects the exact wording). This must be filled in — see the
+// "Оператор и контакты" section — before real ЮKassa payments go live;
+// everything else here accurately describes what this app actually
+// does with data (see backend/app/models.py, app/ai/client.py,
+// app/yookassa/client.py).
 export function TermsScreen({ onBack }: TermsScreenProps) {
   return (
     <div className={styles.screen}>
       <ScreenHeader title="Условия использования" onBack={onBack} />
       <div className={styles.content}>
-        <p className={styles.placeholder}>
-          Здесь появится полный текст условий использования и политики
-          конфиденциальности Tarot Aurum.
+        <p className={styles.updated}>Действует с 24 августа 2026 г.</p>
+
+        <h2 className={styles.heading}>1. Общие условия</h2>
+        <p className={styles.paragraph}>
+          Tarot Aurum — мини-приложение в Telegram с раскладами таро и их толкованием при
+          помощи искусственного интеллекта. Расклады и толкования созданы в развлекательных
+          целях и для самоанализа: они не являются медицинской, юридической, финансовой или
+          психологической консультацией и не заменяют обращение к специалисту.
         </p>
-        <p className={styles.hint}>
-          Пока страница пустая — актуальный текст ещё не подготовлен.
+        <p className={styles.paragraph}>
+          Сервис предназначен для пользователей 16 лет и старше. Используя Tarot Aurum, вы
+          подтверждаете, что достигли этого возраста.
+        </p>
+        <p className={styles.paragraph}>
+          Часть функций (подробное толкование расклада, дополнительная карта) доступна по
+          платной подписке, которая оформляется и оплачивается через платёжный сервис ЮKassa.
+          Стоимость и состав тарифов указаны в приложении на момент оформления подписки.
+        </p>
+
+        <h2 className={styles.heading}>2. Какие данные мы обрабатываем</h2>
+        <ul className={styles.list}>
+          <li>данные Telegram: идентификатор пользователя, имя, имя пользователя (username);</li>
+          <li>данные профиля: пол, знак зодиака, указанные вами темы интересов;</li>
+          <li>содержание раскладов: выпавшие карты, заданные вопросы и полученные толкования;</li>
+          <li>
+            сведения об оплате: статус и сумма подписки, идентификатор платежа ЮKassa — сами
+            данные карты нам не передаются и не хранятся, их обрабатывает только ЮKassa;
+          </li>
+          <li>
+            техническую информацию, которую в обычном порядке получает любой веб-сервис при
+            обращении к нему (например, IP-адрес).
+          </li>
+        </ul>
+        <p className={styles.paragraph}>
+          Не указывайте в вопросах к раскладам сведения о здоровье, интимной жизни,
+          политических, религиозных или иных убеждениях и другие чувствительные данные.
+        </p>
+
+        <h2 className={styles.heading}>3. Цели и основания обработки</h2>
+        <p className={styles.paragraph}>
+          Данные обрабатываются для предоставления функций Сервиса (расклады, AI-толкование,
+          история, реферальная программа, напоминание о карте дня), обработки платежей,
+          персонализации толкований и поддержки пользователей. Основания обработки — исполнение
+          договора с пользователем и согласие, которое даётся при использовании Сервиса.
+        </p>
+
+        <h2 className={styles.heading}>4. Получатели и передача данных</h2>
+        <p className={styles.paragraph}>
+          Для генерации толкований выпавшие карты и введённый вами текст вопроса/интересов (без
+          имени и идентификатора Telegram) передаются одному из внешних AI-провайдеров — Google
+          (Gemini), Groq или Anthropic — которые могут обрабатывать данные на серверах за
+          пределами Российской Федерации.
+        </p>
+        <p className={styles.paragraph}>
+          Для обработки подписки сумма и тип тарифа передаются платёжному сервису ЮKassa. Сервис
+          также размещён на инфраструктуре хостинг-провайдера за пределами Российской Федерации.
+          Персональные данные не продаются и не передаются третьим лицам для их собственной
+          рекламы.
+        </p>
+
+        <h2 className={styles.heading}>5. Сроки хранения</h2>
+        <p className={styles.paragraph}>
+          Данные хранятся, пока вы пользуетесь Сервисом, и удаляются по вашему запросу, если
+          законом не установлен иной обязательный срок хранения (например, для сведений об
+          оплате).
+        </p>
+
+        <h2 className={styles.heading}>6. Права пользователя</h2>
+        <p className={styles.paragraph}>
+          Вы вправе запросить сведения об обработке ваших данных, потребовать их уточнения или
+          удаления и отозвать согласие на обработку. Отзыв согласия, необходимого для передачи
+          данных AI-провайдерам, делает расклады и их толкование недоступными.
+        </p>
+
+        <h2 className={styles.heading}>7. Оператор и контакты</h2>
+        <p className={styles.paragraph}>
+          Реквизиты оператора персональных данных и контакты для обращений будут опубликованы
+          здесь до начала приёма платежей.
         </p>
       </div>
     </div>
