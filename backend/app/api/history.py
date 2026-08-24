@@ -7,10 +7,11 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.api.ai import FOLLOW_UP_QUESTIONS
 from app.api.deps import get_current_user
 from app.config import settings
 from app.db import get_db
-from app.history.schemas import HistoryEntry, ProfileStats
+from app.history.schemas import FollowUpEntry, HistoryEntry, ProfileStats
 from app.models import SpreadRecord, User
 from app.tarot.schemas import DrawnCard
 
@@ -19,6 +20,14 @@ router = APIRouter(prefix="/api", tags=["history"])
 
 def _record_to_entry(record: SpreadRecord) -> HistoryEntry:
     cards = [DrawnCard.model_validate(c) for c in json.loads(record.cards_json)]
+    follow_ups = [
+        FollowUpEntry(
+            question_key=fu.question_key,
+            question_label=FOLLOW_UP_QUESTIONS.get(fu.question_key, fu.question_key),
+            answer=fu.answer,
+        )
+        for fu in sorted(record.follow_ups, key=lambda fu: fu.created_at)
+    ]
     return HistoryEntry(
         id=record.id,
         spread_id=record.spread_id,
@@ -27,6 +36,7 @@ def _record_to_entry(record: SpreadRecord) -> HistoryEntry:
         cards=cards,
         question=record.question,
         interpretation=record.interpretation,
+        follow_ups=follow_ups,
     )
 
 

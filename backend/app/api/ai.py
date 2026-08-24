@@ -3,6 +3,7 @@ import json
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.ai.client import generate_text
@@ -10,10 +11,22 @@ from app.ai.fallback import daily_message_for, fallback_interpretation
 from app.api.deps import get_current_user
 from app.api.subscriptions import require_quota
 from app.db import get_db
-from app.models import DailyMessage, SpreadRecord, User
+from app.models import DailyMessage, SpreadFollowUp, SpreadRecord, User
 from app.spreads import SpreadId
 
 router = APIRouter(prefix="/api", tags=["ai"])
+
+# Preset follow-up questions offered under an already-unlocked
+# interpretation (see ask_follow_up below). Keys are stable identifiers
+# stored on SpreadFollowUp rows — never repurpose one for a different
+# question. IMPORTANT: keep these labels in sync with
+# frontend/src/components/FollowUpQuestions/FollowUpQuestions.tsx.
+FOLLOW_UP_QUESTIONS: dict[str, str] = {
+    "risks": "Какие риски?",
+    "future": "Что в будущем?",
+    "potential": "Есть ли перспектива?",
+    "advice": "Что делать?",
+}
 
 
 class DailyMessageResponse(BaseModel):
@@ -22,6 +35,16 @@ class DailyMessageResponse(BaseModel):
 
 class InterpretationResponse(BaseModel):
     interpretation: str
+
+
+class FollowUpRequest(BaseModel):
+    question_key: str
+
+
+class FollowUpResponse(BaseModel):
+    question_key: str
+    question_label: str
+    answer: str
 
 
 @router.get("/daily-message", response_model=DailyMessageResponse)
@@ -114,3 +137,88 @@ async def interpret_spread(
         record.interpretation = text
         db.commit()
     return InterpretationResponse(interpretation=text)
+
+
+@router.post("/spreads/{spread_record_id}/follow-up", response_model=FollowUpResponse)
+async def ask_follow_up(
+    spread_record_id: int,
+    body: FollowUpRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> FollowUpResponse:
+    """
+    Answers one preset follow-up question ("Какие риски?", ...) in the
+    context of the spread's already-unlocked interpretation. Each
+    distinct question is billed once per spread via require_quota() —
+    always, with no "Карта дня is free" exception like interpret_spread
+    has, since this sits *after* that free hook as its own paid step —
+    and cached afterward so re-opening the spread later doesn't re-bill
+    or re-call the AI for the same question.
+    """
+    question_label = FOLLOW_UP_QUESTIONS.get(body.question_key)
+    if question_label is None:
+        raise HTTPException(status_code=400, detail="Unknown question")
+
+    record = db.get(SpreadRecord, spread_record_id)
+    if record is None or record.user_id != user.telegram_id:
+        raise HTTPException(status_code=404, detail="Spread not found")
+    # Not requiring record.interpretation to be set: the frontend only
+    # ever shows these questions once an interpretation has been shown
+    # to the user, but that text isn't persisted here when it was itself
+    # a fallback (AI unavailable — see interpret_spread's "only persist
+    # a real AI result" comment). Hard-requiring the DB value would 400
+    # with a confusing "unlock the interpretation first" error in that
+    # case, right after the user did exactly that. record.interpretation
+    # is used below as optional context, not a precondition.
+
+    existing = db.execute(
+        select(SpreadFollowUp).where(
+            SpreadFollowUp.spread_record_id == spread_record_id,
+            SpreadFollowUp.question_key == body.question_key,
+        )
+    ).scalar_one_or_none()
+    if existing is not None:
+        return FollowUpResponse(question_key=body.question_key, question_label=question_label, answer=existing.answer)
+
+    require_quota(db, user)
+
+    cards = json.loads(record.cards_json)
+    card_lines = "\n".join(
+        f"- {c['position_label']}: {c['name']}"
+        f"{' (перевёрнутая)' if c['is_reversed'] else ''}"
+        for c in cards
+    )
+    interpretation_line = (
+        f"Толкование расклада: {record.interpretation}\n\n" if record.interpretation else ""
+    )
+
+    generated = await generate_text(
+        system_prompt=(
+            "Ты — тёплый и внятный толкователь таро, отвечающий на один "
+            "уточняющий вопрос по уже сделанному раскладу. Дай связный "
+            "ответ на русском языке, 60-100 слов, обычным текстом без "
+            "заголовков и списков, опираясь на карты расклада (и уже данное "
+            "толкование, если оно приведено). Не давай медицинских, "
+            "юридических или финансовых советов, не утверждай ничего как "
+            "гарантированный факт о будущем. Закончи текст полным "
+            "завершающим предложением."
+        ),
+        user_prompt=(
+            f"Расклад «{record.spread_title}»:\n{card_lines}\n\n"
+            f"{interpretation_line}"
+            f"Уточняющий вопрос: {question_label}"
+        ),
+        max_tokens=250,
+    )
+    answer = generated or (
+        "Ответ на уточняющий вопрос сейчас недоступен (не настроен ключ AI-сервиса "
+        "на сервере) — опирайтесь на уже данное толкование расклада."
+    )
+
+    # Same rationale as interpret_spread: only persist a real AI result,
+    # so a transient provider outage doesn't permanently strand this
+    # question behind generic fallback text.
+    if generated:
+        db.add(SpreadFollowUp(spread_record_id=spread_record_id, question_key=body.question_key, answer=answer))
+        db.commit()
+    return FollowUpResponse(question_key=body.question_key, question_label=question_label, answer=answer)

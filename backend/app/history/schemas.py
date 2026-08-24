@@ -6,6 +6,12 @@ from app.spreads import SpreadId
 from app.tarot.schemas import DrawnCard
 
 
+class FollowUpEntry(BaseModel):
+    question_key: str
+    question_label: str
+    answer: str
+
+
 class HistoryEntry(BaseModel):
     id: int
     spread_id: SpreadId
@@ -14,6 +20,7 @@ class HistoryEntry(BaseModel):
     cards: list[DrawnCard]
     question: str | None
     interpretation: str | None
+    follow_ups: list[FollowUpEntry]
 
 
 class ProfileStats(BaseModel):

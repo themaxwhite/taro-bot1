@@ -5,6 +5,7 @@ import { SpreadsApiError } from "../../services/spreadsApi";
 import { ScreenHeader } from "../../components/ScreenHeader/ScreenHeader";
 import { CardFront } from "../../components/CardFront/CardFront";
 import { ThinkingOverlay } from "../../components/ThinkingOverlay/ThinkingOverlay";
+import { FollowUpQuestions } from "../../components/FollowUpQuestions/FollowUpQuestions";
 import resultStyles from "../ResultScreen/ResultScreen.module.css";
 import styles from "./HistoryDetailScreen.module.css";
 
@@ -65,7 +66,14 @@ export function HistoryDetailScreen({ entry, onBack, onNeedSubscription }: Histo
 
       <div className={resultStyles.paywallSection}>
         {interpretation ? (
-          <div className={resultStyles.interpretation}>{interpretation}</div>
+          <>
+            <div className={resultStyles.interpretation}>{interpretation}</div>
+            <FollowUpQuestions
+              spreadRecordId={entry.id}
+              initialAnswers={entry.followUps}
+              onNeedSubscription={onNeedSubscription}
+            />
+          </>
         ) : (
           <button
             type="button"

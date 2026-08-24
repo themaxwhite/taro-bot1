@@ -7,6 +7,12 @@ import type { DrawnCard } from "./result";
  * (name, orientation) happens on the backend, this type only describes
  * what the frontend needs to render a history item.
  */
+export interface HistoryFollowUp {
+  questionKey: string;
+  questionLabel: string;
+  answer: string;
+}
+
 export interface HistoryEntry {
   id: number;
   spreadId: SpreadId;
@@ -16,6 +22,7 @@ export interface HistoryEntry {
   cards: DrawnCard[];
   question: string | null;
   interpretation: string | null;
+  followUps: HistoryFollowUp[];
 }
 
 /** Mirrors backend/app/history/schemas.py::ProfileStats. */

@@ -7,6 +7,12 @@ const API_BASE_URL: string =
 // Raw wire shapes — the backend (FastAPI/pydantic) returns snake_case
 // field names as-is; these interfaces describe that JSON before it gets
 // mapped into the camelCase types the rest of the frontend uses.
+interface FollowUpDTO {
+  question_key: string;
+  question_label: string;
+  answer: string;
+}
+
 interface HistoryEntryDTO {
   id: number;
   spread_id: HistoryEntry["spreadId"];
@@ -15,6 +21,7 @@ interface HistoryEntryDTO {
   cards: HistoryEntry["cards"];
   question: string | null;
   interpretation: string | null;
+  follow_ups: FollowUpDTO[];
 }
 
 interface ProfileStatsDTO {
@@ -54,6 +61,11 @@ export async function fetchHistory(): Promise<HistoryEntry[]> {
     cards: entry.cards,
     question: entry.question,
     interpretation: entry.interpretation,
+    followUps: entry.follow_ups.map((fu) => ({
+      questionKey: fu.question_key,
+      questionLabel: fu.question_label,
+      answer: fu.answer,
+    })),
   }));
 }
 

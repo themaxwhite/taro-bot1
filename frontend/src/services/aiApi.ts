@@ -47,3 +47,24 @@ export async function drawExtraCard(spreadRecordId: number): Promise<DrawSpreadR
   const response = await api(`/api/spreads/${spreadRecordId}/draw-extra`, { method: "POST" });
   return (await response.json()) as DrawSpreadResponse;
 }
+
+export interface FollowUpAnswer {
+  questionKey: string;
+  questionLabel: string;
+  answer: string;
+}
+
+interface FollowUpDTO {
+  question_key: string;
+  question_label: string;
+  answer: string;
+}
+
+export async function fetchFollowUpAnswer(spreadRecordId: number, questionKey: string): Promise<FollowUpAnswer> {
+  const response = await api(`/api/spreads/${spreadRecordId}/follow-up`, {
+    method: "POST",
+    body: JSON.stringify({ question_key: questionKey }),
+  });
+  const data = (await response.json()) as FollowUpDTO;
+  return { questionKey: data.question_key, questionLabel: data.question_label, answer: data.answer };
+}

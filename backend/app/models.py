@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime as dt
 
-from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Integer, String
+from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
@@ -79,6 +79,7 @@ class SpreadRecord(Base):
     created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow)
 
     user: Mapped[User] = relationship(back_populates="spreads")
+    follow_ups: Mapped[list["SpreadFollowUp"]] = relationship(back_populates="record", cascade="all, delete-orphan")
 
 
 class DailyMessage(Base):
@@ -93,6 +94,28 @@ class DailyMessage(Base):
 
     date: Mapped[str] = mapped_column(String(10), primary_key=True)  # "YYYY-MM-DD"
     text: Mapped[str] = mapped_column(String(500))
+
+
+class SpreadFollowUp(Base):
+    """
+    One paid follow-up question ("Какие риски?", "Что в будущем?", ...)
+    answered in the context of an already-interpreted spread. Each
+    (spread_record_id, question_key) pair is generated — and billed via
+    require_quota() — at most once; re-opening the same spread later
+    (e.g. from History) just returns the cached answer for free, same
+    caching rationale as SpreadRecord.interpretation.
+    """
+
+    __tablename__ = "spread_follow_ups"
+    __table_args__ = (UniqueConstraint("spread_record_id", "question_key"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    spread_record_id: Mapped[int] = mapped_column(ForeignKey("spread_records.id"))
+    question_key: Mapped[str] = mapped_column(String(32))
+    answer: Mapped[str] = mapped_column(String)
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow)
+
+    record: Mapped[SpreadRecord] = relationship(back_populates="follow_ups")
 
 
 class Subscription(Base):

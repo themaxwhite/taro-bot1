@@ -9,6 +9,7 @@ import { DailyCardCooldown } from "../../components/DailyCardCooldown/DailyCardC
 import { ThinkingOverlay } from "../../components/ThinkingOverlay/ThinkingOverlay";
 import { Spinner } from "../../components/Spinner/Spinner";
 import { MysticalBackground } from "../../components/MysticalBackground/MysticalBackground";
+import { FollowUpQuestions } from "../../components/FollowUpQuestions/FollowUpQuestions";
 import styles from "./ResultScreen.module.css";
 
 interface ResultScreenProps {
@@ -128,7 +129,10 @@ export function ResultScreen({ spreadId, question, onBack, onDone, onNeedSubscri
 
           <div className={styles.paywallSection}>
             {interpretation ? (
-              <div className={styles.interpretation}>{interpretation}</div>
+              <>
+                <div className={styles.interpretation}>{interpretation}</div>
+                <FollowUpQuestions spreadRecordId={state.data.id} onNeedSubscription={onNeedSubscription} />
+              </>
             ) : (
               <button
                 type="button"
