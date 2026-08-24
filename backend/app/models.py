@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime as dt
 
-from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
@@ -24,9 +24,7 @@ class User(Base):
 
     __tablename__ = "users"
 
-    # BigInteger: plain 32-bit INTEGER overflows for newer Telegram
-    # accounts, whose numeric ids now regularly exceed 2^31-1.
-    telegram_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    telegram_id: Mapped[int] = mapped_column(primary_key=True)
     first_name: Mapped[str] = mapped_column(String(255))
     username: Mapped[str | None] = mapped_column(String(255), nullable=True)
     # Free-form, comma-separated topics the user cares about (career,
@@ -43,7 +41,7 @@ class User(Base):
     # param — never overwritten afterwards. `referral_bonus_quota` is a
     # pool of free unlocks earned by referring others, spent by
     # require_quota() before it even looks at a paid subscription.
-    referred_by: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("users.telegram_id"), nullable=True)
+    referred_by: Mapped[int | None] = mapped_column(ForeignKey("users.telegram_id"), nullable=True)
     referral_bonus_quota: Mapped[int] = mapped_column(Integer, default=0)
     # One-time onboarding (gender + zodiac sign), collected before the
     # user ever sees the main menu (see api/history.py::complete_onboarding).
@@ -67,7 +65,7 @@ class SpreadRecord(Base):
     __tablename__ = "spread_records"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.telegram_id"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.telegram_id"))
     spread_id: Mapped[str] = mapped_column(String(64))
     spread_title: Mapped[str] = mapped_column(String(255))
     cards_json: Mapped[str] = mapped_column(String)
@@ -107,7 +105,7 @@ class Subscription(Base):
 
     __tablename__ = "subscriptions"
 
-    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.telegram_id"), primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.telegram_id"), primary_key=True)
     tier: Mapped[str] = mapped_column(String(16))  # "basic" | "plus"
     status: Mapped[str] = mapped_column(String(16), default="active")  # active | expired
     quota_total: Mapped[int] = mapped_column(Integer)
@@ -128,7 +126,7 @@ class SubscriptionPayment(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     yookassa_payment_id: Mapped[str] = mapped_column(String(64), unique=True, index=True)
-    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.telegram_id"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.telegram_id"))
     tier: Mapped[str] = mapped_column(String(16))  # "basic" | "plus"
     amount_rub: Mapped[int] = mapped_column(Integer)
     status: Mapped[str] = mapped_column(String(16), default="pending")  # pending | succeeded | canceled
