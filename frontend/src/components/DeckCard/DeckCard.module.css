@@ -61,7 +61,11 @@
   border-color: var(--color-accent);
 }
 
-.disabled {
+/* :not(.dealPending) so a still-hidden (opacity: 0, pre-deal) card
+   stays hidden — otherwise this rule's equal specificity plus later
+   source order would win the cascade and show the card at 35% opacity
+   in its off-place "pending" pose instead of fully invisible. */
+.disabled:not(.dealPending) {
   opacity: 0.35;
 }
 

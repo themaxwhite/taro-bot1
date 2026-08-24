@@ -5,8 +5,8 @@ interface DeckCardProps {
   isSelected: boolean;
   selectionOrder: number | null;
   disabled: boolean;
-  /** Stagger delay (ms) for this card's one-time deal-in animation, or 0 to skip it. */
-  dealDelayMs: number;
+  /** Stagger delay (ms) for this card's one-time deal-in animation, or null to skip it (0 is a legitimate delay — the first card — so it can't double as the skip sentinel). */
+  dealDelayMs: number | null;
   onClick: () => void;
 }
 
@@ -21,10 +21,10 @@ export function DeckCard({
   dealDelayMs,
   onClick,
 }: DeckCardProps) {
-  const [entrance, setEntrance] = useState<Entrance>(dealDelayMs === 0 ? "done" : "pending");
+  const [entrance, setEntrance] = useState<Entrance>(dealDelayMs === null ? "done" : "pending");
 
   useEffect(() => {
-    if (dealDelayMs === 0) return;
+    if (dealDelayMs === null) return;
     const dealTimer = setTimeout(() => setEntrance("dealing"), dealDelayMs);
     // Once the entrance transition has actually finished, drop the
     // .dealing/.dealt classes entirely — they override .card's own

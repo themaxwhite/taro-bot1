@@ -13,6 +13,13 @@
   opacity: 0.55;
 }
 
+/* Halves the glyph count for "subtle" density by hiding every other
+   position — nth-child(even) alone (left: 15/40/63/85/35/90%) still
+   spans the full width, unlike just using the first 6 positions. */
+.subtle .item:nth-child(odd) {
+  display: none;
+}
+
 .item {
   position: absolute;
   bottom: 0;

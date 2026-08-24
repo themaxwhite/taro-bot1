@@ -87,7 +87,7 @@ export function Deck({ totalCards, requiredCount, onSelectionComplete }: DeckPro
               isSelected={selectionOrder !== -1}
               selectionOrder={selectionOrder === -1 ? null : selectionOrder + 1}
               disabled={interactionsLocked || selected.length >= requiredCount}
-              dealDelayMs={phase === "dealing" ? index * DEAL_STAGGER_MS : 0}
+              dealDelayMs={phase === "dealing" ? index * DEAL_STAGGER_MS : null}
               onClick={() => toggleCard(index)}
             />
           );

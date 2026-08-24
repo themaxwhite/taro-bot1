@@ -42,7 +42,13 @@ interface MysticalBackgroundProps {
 // its negative z-index keeps it behind that ancestor's real content
 // instead of behind the whole page.
 export function MysticalBackground({ density = "full" }: MysticalBackgroundProps) {
-  const icons = density === "subtle" ? ICONS : ICONS.concat(ICONS);
+  // Always render all 12 positions (matching the 12 nth-child left%
+  // rules below, which span the full width) — "subtle" mode culls half
+  // of them via CSS (.subtle .item:nth-child(odd)) rather than slicing
+  // the array in JS. Slicing to the first 6 items here used to leave
+  // "subtle" screens with icons only in the left ~63% of the viewport,
+  // since nth-child(1..6)'s left% values don't reach the right edge.
+  const icons = ICONS.concat(ICONS);
   return (
     <div
       className={density === "subtle" ? `${styles.background} ${styles.subtle}` : styles.background}

@@ -35,8 +35,16 @@ function dayOfYear(date: Date): number {
   return Math.floor((date.getTime() - start.getTime()) / 86_400_000);
 }
 
+// Local calendar day, matching dayOfYear's local-time basis — using
+// toISOString() (UTC) here instead would let the "shown today" key and
+// the nudge-of-the-day roll over at different moments for any viewer
+// not in UTC (e.g. Moscow, UTC+3): the dismissed banner could reappear
+// the same local day, or stay suppressed into the next one.
 function todayKey(date: Date): string {
-  return date.toISOString().slice(0, 10);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 export function LoveNudgeBanner({ gender, onSelectSpread }: LoveNudgeBannerProps) {

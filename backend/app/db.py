@@ -117,7 +117,6 @@ def _widen_id_columns() -> None:
         return
     inspector = inspect(engine)
     with engine.connect() as conn:
-        conn.execute(text(f"SET lock_timeout = '{_LOCK_TIMEOUT}'"))
         for table, column in _BIGINT_COLUMNS:
             if not inspector.has_table(table):
                 continue
@@ -126,6 +125,18 @@ def _widen_id_columns() -> None:
             if col_info is None or str(col_info["type"]).upper() == "BIGINT":
                 continue
             try:
+                # SET LOCAL (not plain SET) scopes the timeout to just
+                # this one ALTER's transaction, so it's re-armed fresh
+                # every iteration and can never leak: a plain SET here
+                # would (a) get wiped by conn.rollback() below if THIS
+                # column's lock wait times out, leaving every later
+                # column in the loop unprotected again — silently
+                # reproducing the exact startup hang this was written to
+                # prevent — and (b) on success, persist on the pooled
+                # connection past this function, so a later, unrelated
+                # request that happens to reuse it could unexpectedly
+                # fail if a normal write needs to wait >5s for a lock.
+                conn.execute(text(f"SET LOCAL lock_timeout = '{_LOCK_TIMEOUT}'"))
                 conn.execute(text(f"ALTER TABLE {table} ALTER COLUMN {column} TYPE BIGINT"))
                 conn.commit()
             except OperationalError:
