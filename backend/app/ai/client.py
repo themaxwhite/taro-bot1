@@ -79,7 +79,15 @@ async def _generate_via_gemini(system_prompt: str, user_prompt: str, max_tokens:
                 json={
                     "systemInstruction": {"parts": {"text": system_prompt}},
                     "contents": [{"role": "user", "parts": [{"text": user_prompt}]}],
-                    "generationConfig": {"maxOutputTokens": max_tokens},
+                    # thinkingBudget: 0 disables Gemini's internal "thinking"
+                    # pass — left on, it can spend most of maxOutputTokens on
+                    # hidden reasoning before ever writing the visible reply,
+                    # which at a small budget (e.g. the 80-token daily
+                    # message) truncated the actual answer to a word or two.
+                    "generationConfig": {
+                        "maxOutputTokens": max_tokens,
+                        "thinkingConfig": {"thinkingBudget": 0},
+                    },
                 },
             )
         response.raise_for_status()
