@@ -1,9 +1,13 @@
+import logging
 from collections.abc import Generator
 
 from sqlalchemy import create_engine, inspect, text
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class Base(DeclarativeBase):
@@ -39,6 +43,7 @@ def init_db() -> None:
 
     Base.metadata.create_all(bind=engine)
     _add_missing_columns()
+    _widen_id_columns()
 
 
 # (table, column, DDL type) for columns added to a model after it first
@@ -76,3 +81,57 @@ def _add_missing_columns() -> None:
             if column not in existing:
                 conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {ddl_type}"))
         conn.commit()
+
+
+# (table, column) pairs that must be BIGINT — plain INTEGER (Postgres'
+# 32-bit default) overflows for newer Telegram user ids, which now
+# regularly exceed 2^31-1. SQLite has no fixed-width INTEGER (any
+# declared integer type stores up to a full 64-bit signed value), and
+# doesn't support ALTER COLUMN at all, so this only ever runs against
+# Postgres.
+_BIGINT_COLUMNS = [
+    ("users", "telegram_id"),
+    ("users", "referred_by"),
+    ("spread_records", "user_id"),
+    ("subscriptions", "user_id"),
+    ("subscription_payments", "user_id"),
+]
+
+# ALTER COLUMN TYPE needs an ACCESS EXCLUSIVE lock, which has to wait
+# for every in-flight transaction on the table to finish — and while it
+# waits, it also blocks any *new* transaction on that table from
+# jumping ahead of it. Against a table taking live production traffic
+# (as happened here: this hung an entire deploy for 5+ minutes,
+# because the previous version of this migration had no timeout and
+# ran inside the app's startup hook, so the whole app just never
+# finished starting and every user was 502'd). A short lock_timeout
+# turns "block forever" into "skip this run, retry on the next
+# deploy" — the app always finishes starting either way.
+_LOCK_TIMEOUT = "5s"
+
+
+def _widen_id_columns() -> None:
+    """Widens id columns created as INTEGER (before this fix) to BIGINT."""
+    if engine.dialect.name != "postgresql":
+        return
+    inspector = inspect(engine)
+    with engine.connect() as conn:
+        conn.execute(text(f"SET lock_timeout = '{_LOCK_TIMEOUT}'"))
+        for table, column in _BIGINT_COLUMNS:
+            if not inspector.has_table(table):
+                continue
+            columns = {col["name"]: col for col in inspector.get_columns(table)}
+            col_info = columns.get(column)
+            if col_info is None or str(col_info["type"]).upper() == "BIGINT":
+                continue
+            try:
+                conn.execute(text(f"ALTER TABLE {table} ALTER COLUMN {column} TYPE BIGINT"))
+                conn.commit()
+            except OperationalError:
+                conn.rollback()
+                logger.warning(
+                    "Could not acquire the lock to widen %s.%s to BIGINT within %s "
+                    "(likely concurrent traffic on the table) — skipping for this "
+                    "startup, will retry on the next deploy.",
+                    table, column, _LOCK_TIMEOUT,
+                )
