@@ -8,6 +8,7 @@ import { ProfileScreen } from "./pages/ProfileScreen/ProfileScreen";
 import { SubscriptionScreen } from "./pages/SubscriptionScreen/SubscriptionScreen";
 import { TermsScreen } from "./pages/TermsScreen/TermsScreen";
 import { ReferralScreen } from "./pages/ReferralScreen/ReferralScreen";
+import { AdminScreen } from "./pages/AdminScreen/AdminScreen";
 import { OnboardingScreen } from "./pages/OnboardingScreen/OnboardingScreen";
 import { Spinner } from "./components/Spinner/Spinner";
 import { useAmbientSound } from "./hooks/useAmbientSound";
@@ -17,11 +18,12 @@ import type { SpreadId } from "./types/tarot";
 import type { HistoryEntry } from "./types/history";
 import styles from "./App.module.css";
 
-// Nine screens now — still no router (e.g. react-router). Navigation
+// Ten screens now — still no router (e.g. react-router). Navigation
 // is mostly a flat back-to-main flow with no deep stack; historyDetail
-// is the one nested exception (back goes to history, not main) since
-// it's reached from a list and returning to that list is the obvious
-// expectation. Revisit with a real router if more nesting shows up.
+// and admin are the nested exceptions (back goes to history/profile,
+// not main) since they're reached from another screen and returning
+// there is the obvious expectation. Revisit with a real router if more
+// nesting shows up.
 type Screen =
   | { name: "main" }
   | { name: "spread"; spreadId: SpreadId }
@@ -31,7 +33,8 @@ type Screen =
   | { name: "profile" }
   | { name: "subscription" }
   | { name: "terms" }
-  | { name: "referral" };
+  | { name: "referral" }
+  | { name: "admin" };
 
 type OnboardingStatus = "checking" | "needed" | "done";
 
@@ -125,8 +128,13 @@ function App() {
         onOpenSubscription={() => setScreen({ name: "subscription" })}
         onOpenTerms={() => setScreen({ name: "terms" })}
         onOpenReferral={() => setScreen({ name: "referral" })}
+        onOpenAdmin={() => setScreen({ name: "admin" })}
       />
     );
+  }
+
+  if (screen.name === "admin") {
+    return <AdminScreen onBack={() => setScreen({ name: "profile" })} />;
   }
 
   if (screen.name === "subscription") {

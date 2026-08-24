@@ -81,9 +81,22 @@ class Settings(BaseSettings):
     # SKIP_PAYMENT_CHECK=true to flip.
     skip_payment_check: bool = False
 
+    # Comma-separated Telegram user ids allowed to see the admin
+    # dashboard (app/api/admin.py) — the app owner's own id(s), not a
+    # general role system. Empty means no one can access it.
+    admin_telegram_ids: str = ""
+
     @property
     def cors_origins(self) -> list[str]:
         return [origin.strip() for origin in self.frontend_origins.split(",") if origin.strip()]
+
+    @property
+    def admin_telegram_id_set(self) -> set[int]:
+        return {
+            int(raw.strip())
+            for raw in self.admin_telegram_ids.split(",")
+            if raw.strip().lstrip("-").isdigit()
+        }
 
     @property
     def cors_allow_credentials(self) -> bool:

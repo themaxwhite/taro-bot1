@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
+from app.config import settings
 from app.db import get_db
 from app.history.schemas import HistoryEntry, ProfileStats
 from app.models import SpreadRecord, User
@@ -115,6 +116,7 @@ class ProfileResponse(BaseModel):
     notifications_enabled: bool
     gender: str | None
     zodiac_sign: str | None
+    is_admin: bool
 
 
 def _profile_response(user: User) -> ProfileResponse:
@@ -125,6 +127,7 @@ def _profile_response(user: User) -> ProfileResponse:
         notifications_enabled=user.notifications_enabled,
         gender=user.gender,
         zodiac_sign=user.zodiac_sign,
+        is_admin=user.telegram_id in settings.admin_telegram_id_set,
     )
 
 

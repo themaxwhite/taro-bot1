@@ -15,6 +15,7 @@ interface ProfileScreenProps {
   onOpenSubscription: () => void;
   onOpenTerms: () => void;
   onOpenReferral: () => void;
+  onOpenAdmin: () => void;
 }
 
 function subscriptionLabel(sub: SubscriptionStatus | null): string {
@@ -24,7 +25,13 @@ function subscriptionLabel(sub: SubscriptionStatus | null): string {
   return `${title} — осталось ${(sub.quotaTotal ?? 0) - (sub.quotaUsed ?? 0)} из ${sub.quotaTotal}`;
 }
 
-export function ProfileScreen({ onBack, onOpenSubscription, onOpenTerms, onOpenReferral }: ProfileScreenProps) {
+export function ProfileScreen({
+  onBack,
+  onOpenSubscription,
+  onOpenTerms,
+  onOpenReferral,
+  onOpenAdmin,
+}: ProfileScreenProps) {
   const { firstName, username, photoUrl } = useTelegramUser();
   const [stats, setStats] = useState<ProfileStats | null>(null);
   const [interests, setInterests] = useState("");
@@ -32,6 +39,7 @@ export function ProfileScreen({ onBack, onOpenSubscription, onOpenTerms, onOpenR
   const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [notificationsBusy, setNotificationsBusy] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -47,6 +55,7 @@ export function ProfileScreen({ onBack, onOpenSubscription, onOpenTerms, onOpenR
         if (!cancelled) {
           setInterests(data.interests);
           setNotificationsEnabled(data.notificationsEnabled);
+          setIsAdmin(data.isAdmin);
         }
       })
       .catch(() => {});
@@ -166,6 +175,17 @@ export function ProfileScreen({ onBack, onOpenSubscription, onOpenTerms, onOpenR
             ›
           </span>
         </button>
+        {isAdmin && (
+          <button type="button" className={styles.settingsItem} onClick={onOpenAdmin}>
+            <span className={styles.settingsIcon} aria-hidden="true">
+              📊
+            </span>
+            <span className={styles.settingsLabel}>Дашборд</span>
+            <span className={styles.chevron} aria-hidden="true">
+              ›
+            </span>
+          </button>
+        )}
       </div>
     </div>
   );

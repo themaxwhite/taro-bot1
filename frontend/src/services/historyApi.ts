@@ -75,6 +75,7 @@ interface ProfileDTO {
   notifications_enabled: boolean;
   gender: Gender | null;
   zodiac_sign: ZodiacSign | null;
+  is_admin: boolean;
 }
 
 export interface Profile {
@@ -82,6 +83,7 @@ export interface Profile {
   notificationsEnabled: boolean;
   gender: Gender | null;
   zodiacSign: ZodiacSign | null;
+  isAdmin: boolean;
 }
 
 function toProfile(data: ProfileDTO): Profile {
@@ -90,6 +92,7 @@ function toProfile(data: ProfileDTO): Profile {
     notificationsEnabled: data.notifications_enabled,
     gender: data.gender,
     zodiacSign: data.zodiac_sign,
+    isAdmin: data.is_admin,
   };
 }
 
