@@ -23,6 +23,15 @@
   will-change: transform, opacity;
 }
 
+/* .item's own font-size (set per nth-child below) is reused purely as
+   a sizing unit for the SVG icon inside it — there's no text content
+   anymore, just an icon scaled to match. */
+.item svg {
+  display: block;
+  width: 1em;
+  height: 1em;
+}
+
 .item:nth-child(1)  { left: 5%;  font-size: 16px; animation-delay: 0s;    animation-duration: 18s; }
 .item:nth-child(2)  { left: 15%; font-size: 11px; animation-delay: 2.5s;  animation-duration: 15s; }
 .item:nth-child(3)  { left: 28%; font-size: 13px; animation-delay: 5s;    animation-duration: 20s; }

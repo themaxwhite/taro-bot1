@@ -1,6 +1,29 @@
 import styles from "./MysticalBackground.module.css";
 
-const SYMBOLS = ["✨", "⭐", "✦", "☾", "✧", "⋆"];
+// Plain Unicode star/moon characters (✨⭐☾...) used to be used here, but
+// several of them default to full-color emoji-font rendering — which
+// ignores the CSS `color` set on .item entirely, and Telegram's own
+// in-client emoji set renders some of them in colors (reportedly red)
+// that clash with the app's gold palette. Inline SVGs with
+// fill="currentColor" render as plain vector paths, so `.item`'s
+// `color: var(--color-accent)` always applies, on every platform.
+function StarIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+    </svg>
+  );
+}
+
+function MoonIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+    </svg>
+  );
+}
+
+const ICONS = [StarIcon, MoonIcon, StarIcon, MoonIcon, StarIcon, MoonIcon];
 
 interface MysticalBackgroundProps {
   // "full" (default) is the original entrance-moment density, for
@@ -19,15 +42,15 @@ interface MysticalBackgroundProps {
 // its negative z-index keeps it behind that ancestor's real content
 // instead of behind the whole page.
 export function MysticalBackground({ density = "full" }: MysticalBackgroundProps) {
-  const symbols = density === "subtle" ? SYMBOLS : SYMBOLS.concat(SYMBOLS);
+  const icons = density === "subtle" ? ICONS : ICONS.concat(ICONS);
   return (
     <div
       className={density === "subtle" ? `${styles.background} ${styles.subtle}` : styles.background}
       aria-hidden="true"
     >
-      {symbols.map((symbol, i) => (
+      {icons.map((Icon, i) => (
         <span key={i} className={styles.item}>
-          {symbol}
+          <Icon />
         </span>
       ))}
     </div>
