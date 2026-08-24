@@ -21,6 +21,16 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
+# Applies to every phase (connect/read/write) of each provider call.
+# Was 20s per provider — with three providers tried sequentially, a
+# single slow/stuck one (seen in production: Gemini hanging on a
+# ReadTimeout) made requests wait a full 20s before even reaching the
+# next provider, up to 60s in the worst case. A typical successful
+# generation (even the ~900-token spread interpretation) finishes in a
+# few seconds, so 10s is still generous headroom while capping how long
+# one bad provider can stall the whole request.
+_REQUEST_TIMEOUT = 10.0
+
 _GEMINI_MODEL = "gemini-flash-latest"
 _GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{_GEMINI_MODEL}:generateContent"
 
@@ -69,7 +79,7 @@ async def generate_text(system_prompt: str, user_prompt: str, max_tokens: int = 
 
 async def _generate_via_gemini(system_prompt: str, user_prompt: str, max_tokens: int) -> str | None:
     try:
-        async with httpx.AsyncClient(timeout=20.0) as client:
+        async with httpx.AsyncClient(timeout=_REQUEST_TIMEOUT) as client:
             response = await client.post(
                 _GEMINI_URL,
                 headers={
@@ -102,7 +112,7 @@ async def _generate_via_gemini(system_prompt: str, user_prompt: str, max_tokens:
 
 async def _generate_via_groq(system_prompt: str, user_prompt: str, max_tokens: int) -> str | None:
     try:
-        async with httpx.AsyncClient(timeout=20.0) as client:
+        async with httpx.AsyncClient(timeout=_REQUEST_TIMEOUT) as client:
             response = await client.post(
                 _GROQ_API_URL,
                 headers={
@@ -130,7 +140,7 @@ async def _generate_via_groq(system_prompt: str, user_prompt: str, max_tokens: i
 
 async def _generate_via_anthropic(system_prompt: str, user_prompt: str, max_tokens: int) -> str | None:
     try:
-        async with httpx.AsyncClient(timeout=20.0) as client:
+        async with httpx.AsyncClient(timeout=_REQUEST_TIMEOUT) as client:
             response = await client.post(
                 _ANTHROPIC_API_URL,
                 headers={
