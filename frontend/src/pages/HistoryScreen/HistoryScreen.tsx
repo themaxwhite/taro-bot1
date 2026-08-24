@@ -5,6 +5,7 @@ import { SpreadsApiError } from "../../services/spreadsApi";
 import { ScreenHeader } from "../../components/ScreenHeader/ScreenHeader";
 import { HistoryListItem } from "../../components/HistoryListItem/HistoryListItem";
 import { Spinner } from "../../components/Spinner/Spinner";
+import { MysticalBackground } from "../../components/MysticalBackground/MysticalBackground";
 import styles from "./HistoryScreen.module.css";
 
 interface HistoryScreenProps {
@@ -43,6 +44,7 @@ export function HistoryScreen({ onBack, onOpenEntry }: HistoryScreenProps) {
 
   return (
     <div className={styles.screen}>
+      <MysticalBackground density="subtle" />
       <ScreenHeader title="История" onBack={onBack} />
 
       {state.status === "loading" && (

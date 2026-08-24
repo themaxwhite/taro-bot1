@@ -8,6 +8,7 @@ import { CardFront } from "../../components/CardFront/CardFront";
 import { DailyCardCooldown } from "../../components/DailyCardCooldown/DailyCardCooldown";
 import { ThinkingOverlay } from "../../components/ThinkingOverlay/ThinkingOverlay";
 import { Spinner } from "../../components/Spinner/Spinner";
+import { MysticalBackground } from "../../components/MysticalBackground/MysticalBackground";
 import styles from "./ResultScreen.module.css";
 
 interface ResultScreenProps {
@@ -80,6 +81,7 @@ export function ResultScreen({ spreadId, question, onBack, onDone, onNeedSubscri
 
   return (
     <div className={styles.screen}>
+      <MysticalBackground density="subtle" />
       <ScreenHeader title={spread?.title ?? "Расклад"} onBack={onBack} />
 
       {state.status === "loading" && (

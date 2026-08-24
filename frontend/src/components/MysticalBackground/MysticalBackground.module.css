@@ -6,6 +6,13 @@
   pointer-events: none;
 }
 
+/* Multiplies with each .item's own animated opacity (0/0.55/0.7/0), so
+   the whole layer reads as a faint trace behind content instead of the
+   "entrance moment" density used on Onboarding/Main. */
+.subtle {
+  opacity: 0.55;
+}
+
 .item {
   position: absolute;
   bottom: 0;

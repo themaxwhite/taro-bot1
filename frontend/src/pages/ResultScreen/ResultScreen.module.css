@@ -1,4 +1,5 @@
 .screen {
+  position: relative;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
@@ -34,10 +35,27 @@
 }
 
 .cardsRow {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
   gap: 12px;
   padding: 8px 16px 16px;
+}
+
+/* A soft glow behind the just-revealed cards — a "reveal" moment
+   instead of the cards just sitting flat on the page background. */
+.cardsRow::before {
+  content: "";
+  position: absolute;
+  inset: -16px 0;
+  z-index: -1;
+  background: radial-gradient(
+    ellipse 70% 80% at 50% 40%,
+    color-mix(in srgb, var(--color-accent) 65%, transparent) 0%,
+    color-mix(in srgb, var(--color-accent) 20%, transparent) 45%,
+    transparent 75%
+  );
+  pointer-events: none;
 }
 
 .yesNoAnswer {

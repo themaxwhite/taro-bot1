@@ -2,6 +2,7 @@ import { useState } from "react";
 import { SPREAD_TYPES, type SpreadId } from "../../types/tarot";
 import { ScreenHeader } from "../../components/ScreenHeader/ScreenHeader";
 import { Deck } from "../../components/Deck/Deck";
+import { MysticalBackground } from "../../components/MysticalBackground/MysticalBackground";
 import styles from "./SpreadScreen.module.css";
 
 interface SpreadScreenProps {
@@ -31,6 +32,7 @@ export function SpreadScreen({ spreadId, onBack, onCardsSelected }: SpreadScreen
 
   return (
     <div className={styles.screen}>
+      <MysticalBackground density="subtle" />
       <ScreenHeader title={spread.title} onBack={onBack} />
       <p className={styles.description}>{spread.description}</p>
 
