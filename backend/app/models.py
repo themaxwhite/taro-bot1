@@ -45,6 +45,13 @@ class User(Base):
     # require_quota() before it even looks at a paid subscription.
     referred_by: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("users.telegram_id"), nullable=True)
     referral_bonus_quota: Mapped[int] = mapped_column(Integer, default=0)
+    # Free daily "energy" (see app/api/subscriptions.py::require_quota) —
+    # refills to DAILY_FREE_ENERGY on the first paid-feature request of a
+    # new calendar day (UTC) and doesn't carry over, so it's spent before
+    # referral_bonus_quota or a paid subscription. `energy_refreshed_date`
+    # ("YYYY-MM-DD") is the guard that triggers that refill.
+    energy: Mapped[int] = mapped_column(Integer, default=0)
+    energy_refreshed_date: Mapped[str | None] = mapped_column(String(10), nullable=True)
     # One-time onboarding (gender + zodiac sign), collected before the
     # user ever sees the main menu (see api/history.py::complete_onboarding).
     # Both null until it's done; the frontend gates on that, not on a
@@ -98,12 +105,17 @@ class DailyMessage(Base):
 
 class SpreadFollowUp(Base):
     """
-    One paid follow-up question ("Какие риски?", "Что в будущем?", ...)
-    answered in the context of an already-interpreted spread. Each
-    (spread_record_id, question_key) pair is generated — and billed via
-    require_quota() — at most once; re-opening the same spread later
-    (e.g. from History) just returns the cached answer for free, same
-    caching rationale as SpreadRecord.interpretation.
+    One paid follow-up question ("Какие риски?", "Что в будущем?", ...,
+    or — Премиум only — any free-text question) answered in the context
+    of an already-interpreted spread. A preset question is generated —
+    and billed via require_quota() — at most once per spread, keyed by
+    (spread_record_id, question_key); a free-text question always gets
+    a fresh, unique question_key (see app/api/ai.py::ask_follow_up) and
+    is never deduped, since there's no meaningful notion of "the same"
+    free-text question being asked twice. `question_label` is stored
+    verbatim at write time (not re-derived from question_key later) so
+    a free-text question's actual wording survives being shown again
+    from History.
     """
 
     __tablename__ = "spread_follow_ups"
@@ -112,6 +124,7 @@ class SpreadFollowUp(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     spread_record_id: Mapped[int] = mapped_column(ForeignKey("spread_records.id"))
     question_key: Mapped[str] = mapped_column(String(32))
+    question_label: Mapped[str] = mapped_column(String(300))
     answer: Mapped[str] = mapped_column(String)
     created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow)
 

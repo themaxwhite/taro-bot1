@@ -25,6 +25,10 @@ async function api(path: string, init?: RequestInit): Promise<Response> {
     const body = await response.json().catch(() => null);
     throw new SpreadsApiError(body?.detail ?? "Эта функция платная — сначала нужно оформить подписку.", 402);
   }
+  if (response.status === 403) {
+    const body = await response.json().catch(() => null);
+    throw new SpreadsApiError(body?.detail ?? "Эта функция недоступна на вашем тарифе.", 403);
+  }
   if (!response.ok) {
     throw new SpreadsApiError(`Сервер вернул ошибку (${response.status}).`);
   }
@@ -64,6 +68,16 @@ export async function fetchFollowUpAnswer(spreadRecordId: number, questionKey: s
   const response = await api(`/api/spreads/${spreadRecordId}/follow-up`, {
     method: "POST",
     body: JSON.stringify({ question_key: questionKey }),
+  });
+  const data = (await response.json()) as FollowUpDTO;
+  return { questionKey: data.question_key, questionLabel: data.question_label, answer: data.answer };
+}
+
+/** Премиум-exclusive: any free-text follow-up question, not just the preset list. */
+export async function fetchCustomFollowUpAnswer(spreadRecordId: number, customQuestion: string): Promise<FollowUpAnswer> {
+  const response = await api(`/api/spreads/${spreadRecordId}/follow-up`, {
+    method: "POST",
+    body: JSON.stringify({ custom_question: customQuestion }),
   });
   const data = (await response.json()) as FollowUpDTO;
   return { questionKey: data.question_key, questionLabel: data.question_label, answer: data.answer };

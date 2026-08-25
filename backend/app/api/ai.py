@@ -1,5 +1,6 @@
 import datetime as dt
 import json
+import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -10,8 +11,9 @@ from app.ai.client import generate_text
 from app.ai.fallback import daily_message_for, fallback_interpretation
 from app.api.deps import get_current_user
 from app.api.subscriptions import require_quota
+from app.config import settings
 from app.db import get_db
-from app.models import DailyMessage, SpreadFollowUp, SpreadRecord, User
+from app.models import DailyMessage, SpreadFollowUp, SpreadRecord, Subscription, User
 from app.spreads import SpreadId
 
 router = APIRouter(prefix="/api", tags=["ai"])
@@ -38,7 +40,11 @@ class InterpretationResponse(BaseModel):
 
 
 class FollowUpRequest(BaseModel):
-    question_key: str
+    # Exactly one of these is set: question_key picks one of the preset
+    # FOLLOW_UP_QUESTIONS; custom_question is the Премиум-exclusive
+    # free-text alternative (see ask_follow_up).
+    question_key: str | None = None
+    custom_question: str | None = None
 
 
 class FollowUpResponse(BaseModel):
@@ -139,6 +145,12 @@ async def interpret_spread(
     return InterpretationResponse(interpretation=text)
 
 
+def _is_premium(db: Session, user: User) -> bool:
+    """Премиум (or the admin promo tier, which already bypasses everything else)."""
+    sub = db.get(Subscription, user.telegram_id)
+    return sub is not None and sub.status == "active" and sub.tier in ("premium", "admin")
+
+
 @router.post("/spreads/{spread_record_id}/follow-up", response_model=FollowUpResponse)
 async def ask_follow_up(
     spread_record_id: int,
@@ -147,21 +159,45 @@ async def ask_follow_up(
     db: Session = Depends(get_db),
 ) -> FollowUpResponse:
     """
-    Answers one preset follow-up question ("Какие риски?", ...) in the
-    context of the spread's already-unlocked interpretation. Each
-    distinct question is billed once per spread via require_quota() —
-    always, with no "Карта дня is free" exception like interpret_spread
-    has, since this sits *after* that free hook as its own paid step —
-    and cached afterward so re-opening the spread later doesn't re-bill
-    or re-call the AI for the same question.
+    Answers one follow-up question in the context of the spread's
+    already-unlocked interpretation — either one of the preset
+    FOLLOW_UP_QUESTIONS, or (Премиум tier only) any free-text question
+    via body.custom_question. Each preset question is billed once per
+    spread via require_quota() and cached afterward, so re-opening the
+    spread later doesn't re-bill or re-call the AI for the same
+    question; custom questions are always freshly billed and never
+    deduped, since there's no meaningful notion of "the same" free-text
+    question being asked twice.
     """
-    question_label = FOLLOW_UP_QUESTIONS.get(body.question_key)
-    if question_label is None:
-        raise HTTPException(status_code=400, detail="Unknown question")
-
     record = db.get(SpreadRecord, spread_record_id)
     if record is None or record.user_id != user.telegram_id:
         raise HTTPException(status_code=404, detail="Spread not found")
+
+    custom_question = (body.custom_question or "").strip()
+    if custom_question:
+        if not _is_premium(db, user) and not settings.skip_payment_check:
+            raise HTTPException(status_code=403, detail="Свои вопросы к раскладу доступны на тарифе «Премиум».")
+        question_label = custom_question[:300]
+        # Unique per submission — see docstring: custom questions are
+        # never looked up/deduped, so this only needs to avoid colliding
+        # with the UniqueConstraint("spread_record_id", "question_key"),
+        # not to be a meaningful cache key.
+        question_key = f"custom-{uuid.uuid4().hex[:8]}"
+        existing = None
+    else:
+        question_label = FOLLOW_UP_QUESTIONS.get(body.question_key or "")
+        if question_label is None:
+            raise HTTPException(status_code=400, detail="Unknown question")
+        question_key = body.question_key
+        existing = db.execute(
+            select(SpreadFollowUp).where(
+                SpreadFollowUp.spread_record_id == spread_record_id,
+                SpreadFollowUp.question_key == question_key,
+            )
+        ).scalar_one_or_none()
+    if existing is not None:
+        return FollowUpResponse(question_key=question_key, question_label=question_label, answer=existing.answer)
+
     # Not requiring record.interpretation to be set: the frontend only
     # ever shows these questions once an interpretation has been shown
     # to the user, but that text isn't persisted here when it was itself
@@ -170,15 +206,6 @@ async def ask_follow_up(
     # with a confusing "unlock the interpretation first" error in that
     # case, right after the user did exactly that. record.interpretation
     # is used below as optional context, not a precondition.
-
-    existing = db.execute(
-        select(SpreadFollowUp).where(
-            SpreadFollowUp.spread_record_id == spread_record_id,
-            SpreadFollowUp.question_key == body.question_key,
-        )
-    ).scalar_one_or_none()
-    if existing is not None:
-        return FollowUpResponse(question_key=body.question_key, question_label=question_label, answer=existing.answer)
 
     require_quota(db, user)
 
@@ -219,6 +246,13 @@ async def ask_follow_up(
     # so a transient provider outage doesn't permanently strand this
     # question behind generic fallback text.
     if generated:
-        db.add(SpreadFollowUp(spread_record_id=spread_record_id, question_key=body.question_key, answer=answer))
+        db.add(
+            SpreadFollowUp(
+                spread_record_id=spread_record_id,
+                question_key=question_key,
+                question_label=question_label,
+                answer=answer,
+            )
+        )
         db.commit()
-    return FollowUpResponse(question_key=body.question_key, question_label=question_label, answer=answer)
+    return FollowUpResponse(question_key=question_key, question_label=question_label, answer=answer)

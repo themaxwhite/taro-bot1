@@ -3,6 +3,8 @@ import { SPREAD_TYPES, type SpreadId } from "../../types/tarot";
 import type { DrawSpreadResponse } from "../../types/result";
 import { drawSpread, SpreadsApiError } from "../../services/spreadsApi";
 import { fetchInterpretation, drawExtraCard } from "../../services/aiApi";
+import { getSubscriptionStatus } from "../../services/subscriptionsApi";
+import type { SubscriptionStatus } from "../../types/subscription";
 import { ScreenHeader } from "../../components/ScreenHeader/ScreenHeader";
 import { CardFront } from "../../components/CardFront/CardFront";
 import { DailyCardCooldown } from "../../components/DailyCardCooldown/DailyCardCooldown";
@@ -35,7 +37,21 @@ export function ResultScreen({ spreadId, question, onBack, onDone, onNeedSubscri
   const [interpretation, setInterpretation] = useState<string | null>(null);
   const [interpretState, setInterpretState] = useState<ActionState>({ status: "idle" });
   const [extraCardState, setExtraCardState] = useState<ActionState>({ status: "idle" });
+  const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
   const spread = SPREAD_TYPES.find((s) => s.id === spreadId);
+
+  function refreshSubscription() {
+    getSubscriptionStatus()
+      .then(setSubscription)
+      .catch(() => {
+        // Non-critical — the "⚡ бесплатно сегодня" hint and the custom-
+        // question box just don't render without it.
+      });
+  }
+
+  useEffect(refreshSubscription, []);
+
+  const isPremium = subscription?.tier === "premium" || subscription?.tier === "admin";
 
   function load() {
     setState({ status: "loading" });
@@ -59,6 +75,7 @@ export function ResultScreen({ spreadId, question, onBack, onDone, onNeedSubscri
       const text = await fetchInterpretation(recordId);
       setInterpretation(text);
       setInterpretState({ status: "idle" });
+      refreshSubscription();
     } catch (error) {
       const message = error instanceof SpreadsApiError ? error.message : "Не удалось получить толкование.";
       const needsSubscription = error instanceof SpreadsApiError && error.status === 402;
@@ -73,6 +90,7 @@ export function ResultScreen({ spreadId, question, onBack, onDone, onNeedSubscri
       setState({ status: "success", data });
       setInterpretation(null); // the old interpretation no longer covers the full spread
       setExtraCardState({ status: "idle" });
+      refreshSubscription();
     } catch (error) {
       const message = error instanceof SpreadsApiError ? error.message : "Не удалось вытянуть карту.";
       const needsSubscription = error instanceof SpreadsApiError && error.status === 402;
@@ -131,7 +149,12 @@ export function ResultScreen({ spreadId, question, onBack, onDone, onNeedSubscri
             {interpretation ? (
               <>
                 <div className={styles.interpretation}>{interpretation}</div>
-                <FollowUpQuestions spreadRecordId={state.data.id} onNeedSubscription={onNeedSubscription} />
+                <FollowUpQuestions
+                  spreadRecordId={state.data.id}
+                  isPremium={isPremium}
+                  onNeedSubscription={onNeedSubscription}
+                  onQuotaSpent={refreshSubscription}
+                />
               </>
             ) : (
               <button
@@ -140,7 +163,7 @@ export function ResultScreen({ spreadId, question, onBack, onDone, onNeedSubscri
                 disabled={interpretState.status === "working"}
                 onClick={() => handleUnlockInterpretation(state.data.id)}
               >
-                🔮 Подробное толкование
+                🔮 Подробное толкование{subscription?.energyAvailable ? " · ⚡ бесплатно сегодня" : ""}
               </button>
             )}
             {interpretState.status === "error" && (
@@ -160,7 +183,9 @@ export function ResultScreen({ spreadId, question, onBack, onDone, onNeedSubscri
               disabled={extraCardState.status === "working"}
               onClick={() => handleDrawExtraCard(state.data.id)}
             >
-              {extraCardState.status === "working" ? "Тянем карту…" : "🃏 Вытянуть ещё карту"}
+              {extraCardState.status === "working"
+                ? "Тянем карту…"
+                : `🃏 Вытянуть ещё карту${subscription?.energyAvailable ? " · ⚡ бесплатно сегодня" : ""}`}
             </button>
             {extraCardState.status === "error" && (
               <>

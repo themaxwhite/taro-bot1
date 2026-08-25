@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { HistoryEntry } from "../../types/history";
+import type { SubscriptionStatus } from "../../types/subscription";
 import { fetchInterpretation } from "../../services/aiApi";
+import { getSubscriptionStatus } from "../../services/subscriptionsApi";
 import { SpreadsApiError } from "../../services/spreadsApi";
 import { ScreenHeader } from "../../components/ScreenHeader/ScreenHeader";
 import { CardFront } from "../../components/CardFront/CardFront";
@@ -26,6 +28,17 @@ type ActionState =
 export function HistoryDetailScreen({ entry, onBack, onNeedSubscription }: HistoryDetailScreenProps) {
   const [interpretation, setInterpretation] = useState<string | null>(entry.interpretation);
   const [interpretState, setInterpretState] = useState<ActionState>({ status: "idle" });
+  const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
+
+  function refreshSubscription() {
+    getSubscriptionStatus()
+      .then(setSubscription)
+      .catch(() => {});
+  }
+
+  useEffect(refreshSubscription, []);
+
+  const isPremium = subscription?.tier === "premium" || subscription?.tier === "admin";
 
   async function handleUnlock() {
     setInterpretState({ status: "working" });
@@ -33,6 +46,7 @@ export function HistoryDetailScreen({ entry, onBack, onNeedSubscription }: Histo
       const text = await fetchInterpretation(entry.id);
       setInterpretation(text);
       setInterpretState({ status: "idle" });
+      refreshSubscription();
     } catch (error) {
       const message = error instanceof SpreadsApiError ? error.message : "Не удалось получить толкование.";
       const needsSubscription = error instanceof SpreadsApiError && error.status === 402;
@@ -71,7 +85,9 @@ export function HistoryDetailScreen({ entry, onBack, onNeedSubscription }: Histo
             <FollowUpQuestions
               spreadRecordId={entry.id}
               initialAnswers={entry.followUps}
+              isPremium={isPremium}
               onNeedSubscription={onNeedSubscription}
+              onQuotaSpent={refreshSubscription}
             />
           </>
         ) : (
@@ -81,7 +97,7 @@ export function HistoryDetailScreen({ entry, onBack, onNeedSubscription }: Histo
             disabled={interpretState.status === "working"}
             onClick={handleUnlock}
           >
-            🔮 Подробное толкование
+            🔮 Подробное толкование{subscription?.energyAvailable ? " · ⚡ бесплатно сегодня" : ""}
           </button>
         )}
         {interpretState.status === "error" && (

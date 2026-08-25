@@ -102,6 +102,7 @@ export function SubscriptionScreen({ onBack }: SubscriptionScreenProps) {
         <div className={styles.tiers}>
           {TIERS.map((tier) => (
             <div key={tier.id} className={styles.tierCard}>
+              {tier.badge && <span className={styles.tierBadge}>{tier.badge}</span>}
               <div className={styles.tierHead}>
                 <span className={styles.tierTitle}>{tier.title}</span>
                 <span className={styles.tierPrice}>{tier.priceRub} ₽/мес</span>

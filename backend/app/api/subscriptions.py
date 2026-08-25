@@ -33,6 +33,7 @@ class SubscriptionStatusResponse(BaseModel):
     quota_total: int | None
     quota_used: int | None
     period_end: dt.datetime | None
+    energy_available: bool
 
 
 class RedeemPromoRequest(BaseModel):
@@ -86,12 +87,22 @@ def get_subscription_status(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> SubscriptionStatusResponse:
+    _ensure_energy_refreshed(db, user)
+    energy_available = user.energy > 0
+
     sub = db.get(Subscription, user.telegram_id)
     if sub is None:
-        return SubscriptionStatusResponse(tier=None, status=None, quota_total=None, quota_used=None, period_end=None)
+        return SubscriptionStatusResponse(
+            tier=None, status=None, quota_total=None, quota_used=None, period_end=None, energy_available=energy_available
+        )
     _expire_if_due(db, sub)
     return SubscriptionStatusResponse(
-        tier=sub.tier, status=sub.status, quota_total=sub.quota_total, quota_used=sub.quota_used, period_end=sub.period_end
+        tier=sub.tier,
+        status=sub.status,
+        quota_total=sub.quota_total,
+        quota_used=sub.quota_used,
+        period_end=sub.period_end,
+        energy_available=energy_available,
     )
 
 
@@ -168,16 +179,40 @@ def _expire_if_due(db: Session, sub: Subscription) -> None:
         db.commit()
 
 
+# Free daily allowance, refilled once per calendar day (UTC) and not
+# carried over — deliberately well below even the Базовый tier's
+# effective daily rate (10/month ≈ 0.33/day) so it reads as a "come
+# back tomorrow" hook, not a substitute for subscribing. Spent before
+# referral_bonus_quota (which persists) and before a paid subscription,
+# since it's wasted if not used today anyway.
+DAILY_FREE_ENERGY = 1
+
+
+def _ensure_energy_refreshed(db: Session, user: User) -> None:
+    today = dt.datetime.utcnow().date().isoformat()
+    if user.energy_refreshed_date != today:
+        user.energy = DAILY_FREE_ENERGY
+        user.energy_refreshed_date = today
+        db.commit()
+
+
 def require_quota(db: Session, user: User) -> None:
     """
     Raises 402 unless the user has quota left, otherwise consumes one
-    unit. Shared by the two paid features (spread interpretation, extra
-    card) — each "unlock" costs one unit regardless of which feature it
-    is. Referral bonus quota (app/api/referral.py) is spent first, ahead
-    of a paid subscription, so inviting friends is worth something even
-    without one.
+    unit. Shared by every paid unlock (spread interpretation, extra
+    card, a follow-up question) — each "unlock" costs one unit
+    regardless of which feature it is. Spending order: free daily
+    energy first, then referral bonus quota (app/api/referral.py),
+    then a paid subscription — so inviting friends and just opening the
+    app are both worth something even without one.
     """
     if settings.skip_payment_check:
+        return
+
+    _ensure_energy_refreshed(db, user)
+    if user.energy > 0:
+        user.energy -= 1
+        db.commit()
         return
 
     if user.referral_bonus_quota > 0:

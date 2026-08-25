@@ -63,6 +63,12 @@ _ADDED_COLUMNS = [
     ("users", "referral_bonus_quota", "INTEGER DEFAULT 0"),
     ("users", "gender", "VARCHAR(16)"),
     ("users", "zodiac_sign", "VARCHAR(16)"),
+    ("users", "energy", "INTEGER DEFAULT 0"),
+    ("users", "energy_refreshed_date", "VARCHAR(10)"),
+    # spread_follow_ups shipped without question_label at first (the
+    # table itself is brand new as of this same round of changes, so no
+    # real rows are expected to ever hit the DEFAULT '' backfill below).
+    ("spread_follow_ups", "question_label", "VARCHAR(300) DEFAULT ''"),
 ]
 
 

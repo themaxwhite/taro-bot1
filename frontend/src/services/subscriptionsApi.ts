@@ -34,6 +34,7 @@ interface StatusResponseBody {
   quota_total: number | null;
   quota_used: number | null;
   period_end: string | null;
+  energy_available: boolean;
 }
 
 export async function getSubscriptionStatus(): Promise<SubscriptionStatus> {
@@ -45,6 +46,7 @@ export async function getSubscriptionStatus(): Promise<SubscriptionStatus> {
     quotaTotal: data.quota_total,
     quotaUsed: data.quota_used,
     periodEnd: data.period_end,
+    energyAvailable: data.energy_available,
   };
 }
 
