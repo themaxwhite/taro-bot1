@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTelegramUser } from "../../hooks/useTelegramUser";
 import type { ProfileStats } from "../../types/history";
+import type { Theme } from "../../hooks/useTheme";
 import { TIERS, type SubscriptionStatus } from "../../types/subscription";
 import { fetchProfileStats, fetchProfile, updateInterests, updateNotifications } from "../../services/historyApi";
 import { getSubscriptionStatus } from "../../services/subscriptionsApi";
@@ -17,6 +18,8 @@ interface ProfileScreenProps {
   onOpenTerms: () => void;
   onOpenReferral: () => void;
   onOpenAdmin: () => void;
+  theme: Theme;
+  onToggleTheme: () => void;
 }
 
 // The daily free-energy cap (backend: app/api/subscriptions.py::DAILY_FREE_ENERGY).
@@ -36,6 +39,8 @@ export function ProfileScreen({
   onOpenTerms,
   onOpenReferral,
   onOpenAdmin,
+  theme,
+  onToggleTheme,
 }: ProfileScreenProps) {
   const { firstName, username, photoUrl } = useTelegramUser();
   const [stats, setStats] = useState<ProfileStats | null>(null);
@@ -182,6 +187,17 @@ export function ProfileScreen({
             onChange={handleToggleNotifications}
             disabled={notificationsBusy}
             ariaLabel="Напоминание о карте дня"
+          />
+        </div>
+        <div className={styles.settingsItem}>
+          <span className={styles.settingsIcon} aria-hidden="true">
+            🌙
+          </span>
+          <span className={styles.settingsLabel}>Тёмная тема</span>
+          <Switch
+            checked={theme === "dark"}
+            onChange={onToggleTheme}
+            ariaLabel="Тёмная тема"
           />
         </div>
         <button type="button" className={styles.settingsItem} onClick={onOpenTerms}>

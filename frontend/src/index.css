@@ -24,6 +24,28 @@
   --safe-right: env(safe-area-inset-right, 0px);
 }
 
+/* Dark theme — same warm/gold identity, inverted: deep warm brown-black
+   instead of cream, brighter gold for contrast against it (accent-strong
+   goes brighter here, not darker, since "more emphasis" on a dark
+   ground means lighter/more saturated, not darker like on the light
+   page). Toggled explicitly (see hooks/useTheme.ts) — this attribute is
+   always set once React mounts, so there's no separate
+   prefers-color-scheme media-query path to keep in sync. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-bg: #1a1510;
+  --color-bg-elevated: #241d15;
+  --color-bg-elevated-active: #2e2419;
+  --color-accent: #d4a656;
+  --color-accent-strong: #e8c06c;
+  --color-teal: #7fa38f;
+  --color-teal-strong: #9dc2ab;
+  --color-text: #f0e6d6;
+  --color-text-muted: #a89985;
+  --color-on-accent: #2a2015;
+  --color-border: rgba(212, 166, 86, 0.28);
+}
+
 * {
   box-sizing: border-box;
 }

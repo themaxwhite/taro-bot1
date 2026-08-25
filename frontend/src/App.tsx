@@ -12,6 +12,7 @@ import { AdminScreen } from "./pages/AdminScreen/AdminScreen";
 import { OnboardingScreen } from "./pages/OnboardingScreen/OnboardingScreen";
 import { Spinner } from "./components/Spinner/Spinner";
 import { useAmbientSound } from "./hooks/useAmbientSound";
+import { useTheme } from "./hooks/useTheme";
 import { useReferralCapture } from "./hooks/useReferralCapture";
 import { fetchProfile } from "./services/historyApi";
 import type { SpreadId } from "./types/tarot";
@@ -45,6 +46,10 @@ function App() {
   // isn't torn down and recreated every time the user navigates away
   // from and back to the main screen — it just keeps playing.
   const ambientSound = useAmbientSound();
+  // Also lives at the App level — the data-theme attribute it manages
+  // is on <html>, outside any single screen, so it needs to be applied
+  // regardless of which screen is currently mounted.
+  const theme = useTheme();
   // Fires once per app open, regardless of which screen renders first.
   useReferralCapture();
 
@@ -129,6 +134,8 @@ function App() {
         onOpenTerms={() => setScreen({ name: "terms" })}
         onOpenReferral={() => setScreen({ name: "referral" })}
         onOpenAdmin={() => setScreen({ name: "admin" })}
+        theme={theme.theme}
+        onToggleTheme={theme.toggle}
       />
     );
   }
