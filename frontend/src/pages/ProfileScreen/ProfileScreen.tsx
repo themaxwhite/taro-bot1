@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTelegramUser } from "../../hooks/useTelegramUser";
 import type { ProfileStats } from "../../types/history";
-import type { SubscriptionStatus } from "../../types/subscription";
+import { TIERS, type SubscriptionStatus } from "../../types/subscription";
 import { fetchProfileStats, fetchProfile, updateInterests, updateNotifications } from "../../services/historyApi";
 import { getSubscriptionStatus } from "../../services/subscriptionsApi";
 import { ScreenHeader } from "../../components/ScreenHeader/ScreenHeader";
@@ -18,10 +18,14 @@ interface ProfileScreenProps {
   onOpenAdmin: () => void;
 }
 
+// The daily free-energy cap (backend: app/api/subscriptions.py::DAILY_FREE_ENERGY).
+// IMPORTANT: keep in sync with that value.
+const DAILY_FREE_ENERGY = 1;
+
 function subscriptionLabel(sub: SubscriptionStatus | null): string {
   if (sub === null || sub.status !== "active") return "Нет активной подписки";
   if (sub.tier === "admin") return "Админ-доступ активен";
-  const title = sub.tier === "plus" ? "Плюс" : "Базовый";
+  const title = TIERS.find((t) => t.id === sub.tier)?.title ?? sub.tier ?? "";
   return `${title} — осталось ${(sub.quotaTotal ?? 0) - (sub.quotaUsed ?? 0)} из ${sub.quotaTotal}`;
 }
 
@@ -109,6 +113,10 @@ export function ProfileScreen({
         stats={[
           { label: "Раскладов", value: stats?.totalSpreads ?? "—" },
           { label: "Дней подряд", value: stats?.daysStreak ?? "—" },
+          {
+            label: "Энергия сегодня",
+            value: subscription ? `${subscription.energyAvailable ? DAILY_FREE_ENERGY : 0}/${DAILY_FREE_ENERGY}` : "—",
+          },
         ]}
       />
 
