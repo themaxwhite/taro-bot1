@@ -1,6 +1,13 @@
-.avatar {
+.ringWrap {
   width: 84px;
   height: 84px;
+  border-radius: 50%;
+  padding: 3px;
+}
+
+.avatar {
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
   object-fit: cover;
   background: linear-gradient(135deg, var(--color-accent-strong), var(--color-teal-strong) 90%);
@@ -14,4 +21,42 @@
   font-weight: 700;
   font-family: var(--font-display);
   color: var(--color-on-accent);
+}
+
+/* Subscription-tier rings — a quiet status signal around the avatar
+   itself, escalating from a thin border (Базовый) to a visible gold
+   ring (Плюс) to a glowing, gently pulsing ring (Премиум/admin). */
+.ringBasic {
+  box-shadow: 0 0 0 2px var(--color-border);
+}
+
+.ringPlus {
+  box-shadow: 0 0 0 2px var(--color-accent);
+}
+
+.ringPremium {
+  box-shadow:
+    0 0 0 2px var(--color-accent),
+    0 0 14px 1px color-mix(in srgb, var(--color-accent) 55%, transparent);
+  animation: ring-pulse 2.6s ease-in-out infinite;
+}
+
+@keyframes ring-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 2px var(--color-accent),
+      0 0 10px 0px color-mix(in srgb, var(--color-accent) 45%, transparent);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px var(--color-accent),
+      0 0 18px 3px color-mix(in srgb, var(--color-accent) 65%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ringPremium {
+    animation: none;
+  }
 }

@@ -8,6 +8,7 @@ import { ScreenHeader } from "../../components/ScreenHeader/ScreenHeader";
 import { Avatar } from "../../components/Avatar/Avatar";
 import { StatRow } from "../../components/StatRow/StatRow";
 import { Switch } from "../../components/Switch/Switch";
+import { MysticalBackground } from "../../components/MysticalBackground/MysticalBackground";
 import styles from "./ProfileScreen.module.css";
 
 interface ProfileScreenProps {
@@ -99,12 +100,15 @@ export function ProfileScreen({
     }
   }
 
+  const activeTier = subscription?.status === "active" ? subscription.tier : null;
+
   return (
     <div className={styles.screen}>
+      <MysticalBackground density="subtle" />
       <ScreenHeader title="Профиль" onBack={onBack} />
 
       <div className={styles.identity}>
-        <Avatar photoUrl={photoUrl} firstName={firstName} />
+        <Avatar photoUrl={photoUrl} firstName={firstName} tier={activeTier} />
         <span className={styles.name}>{firstName ?? "Гость"}</span>
         {username && <span className={styles.username}>@{username}</span>}
       </div>
@@ -121,7 +125,13 @@ export function ProfileScreen({
       />
 
       <div className={`${styles.settingsList} ${styles.subscriptionRow}`}>
-        <button type="button" className={styles.settingsItem} onClick={onOpenSubscription}>
+        <button
+          type="button"
+          className={`${styles.settingsItem} ${activeTier ? styles.subscriptionActive : ""} ${
+            activeTier === "premium" || activeTier === "admin" ? styles.subscriptionPremium : ""
+          }`}
+          onClick={onOpenSubscription}
+        >
           <span className={styles.settingsIcon} aria-hidden="true">
             ⭐
           </span>
