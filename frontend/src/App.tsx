@@ -14,6 +14,7 @@ import { Spinner } from "./components/Spinner/Spinner";
 import { useAmbientSound } from "./hooks/useAmbientSound";
 import { useTheme } from "./hooks/useTheme";
 import { useReferralCapture } from "./hooks/useReferralCapture";
+import { useTelegramBackButton } from "./hooks/useTelegramBackButton";
 import { fetchProfile } from "./services/historyApi";
 import type { SpreadId } from "./types/tarot";
 import type { HistoryEntry } from "./types/history";
@@ -25,6 +26,13 @@ import styles from "./App.module.css";
 // not main) since they're reached from another screen and returning
 // there is the obvious expectation. Revisit with a real router if more
 // nesting shows up.
+//
+// Going back is expressed once, as `back` below, and then handed both to
+// Telegram's native back button and to the screen itself — the screen
+// only draws its own arrow when there is no native one to use. Keeping a
+// single handler is the point: two copies of "where does back go" would
+// eventually disagree, and the one in the client's header is exactly the
+// one nobody would think to update.
 type Screen =
   | { name: "main" }
   | { name: "spread"; spreadId: SpreadId }
@@ -71,6 +79,19 @@ function App() {
     };
   }, []);
 
+  // Where "back" goes from the current screen. Two screens are reached
+  // from somewhere other than main and return there instead.
+  const back =
+    screen.name === "historyDetail"
+      ? () => setScreen({ name: "history" })
+      : screen.name === "admin"
+        ? () => setScreen({ name: "profile" })
+        : goHome;
+
+  // null hides the native button: the main screen has nowhere to go, and
+  // onboarding is a gate the user isn't allowed to back out of.
+  useTelegramBackButton(onboarding !== "done" || screen.name === "main" ? null : back);
+
   if (onboarding === "checking") {
     return (
       <div className={styles.loading}>
@@ -87,7 +108,7 @@ function App() {
     return (
       <SpreadScreen
         spreadId={screen.spreadId}
-        onBack={goHome}
+        onBack={back}
         onCardsSelected={(spreadId, question) => {
           // The deck-selection gesture itself is cosmetic — the actual
           // cards are resolved by the backend Tarot Engine on the result
@@ -105,7 +126,7 @@ function App() {
       <ResultScreen
         spreadId={screen.spreadId}
         question={screen.question}
-        onBack={goHome}
+        onBack={back}
         onDone={goHome}
         onNeedSubscription={() => setScreen({ name: "subscription" })}
       />
@@ -113,14 +134,14 @@ function App() {
   }
 
   if (screen.name === "history") {
-    return <HistoryScreen onBack={goHome} onOpenEntry={(entry) => setScreen({ name: "historyDetail", entry })} />;
+    return <HistoryScreen onBack={back} onOpenEntry={(entry) => setScreen({ name: "historyDetail", entry })} />;
   }
 
   if (screen.name === "historyDetail") {
     return (
       <HistoryDetailScreen
         entry={screen.entry}
-        onBack={() => setScreen({ name: "history" })}
+        onBack={back}
         onNeedSubscription={() => setScreen({ name: "subscription" })}
       />
     );
@@ -129,7 +150,7 @@ function App() {
   if (screen.name === "profile") {
     return (
       <ProfileScreen
-        onBack={goHome}
+        onBack={back}
         onOpenSubscription={() => setScreen({ name: "subscription" })}
         onOpenTerms={() => setScreen({ name: "terms" })}
         onOpenReferral={() => setScreen({ name: "referral" })}
@@ -141,19 +162,19 @@ function App() {
   }
 
   if (screen.name === "admin") {
-    return <AdminScreen onBack={() => setScreen({ name: "profile" })} />;
+    return <AdminScreen onBack={back} />;
   }
 
   if (screen.name === "subscription") {
-    return <SubscriptionScreen onBack={goHome} />;
+    return <SubscriptionScreen onBack={back} />;
   }
 
   if (screen.name === "terms") {
-    return <TermsScreen onBack={goHome} />;
+    return <TermsScreen onBack={back} />;
   }
 
   if (screen.name === "referral") {
-    return <ReferralScreen onBack={goHome} />;
+    return <ReferralScreen onBack={back} />;
   }
 
   return (

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { completeOnboarding, type Gender, type ZodiacSign } from "../../services/historyApi";
 import { MysticalBackground } from "../../components/MysticalBackground/MysticalBackground";
+import { hasNativeMainButton, useTelegramMainButton } from "../../hooks/useTelegramMainButton";
 import styles from "./OnboardingScreen.module.css";
 
 interface OnboardingScreenProps {
@@ -36,6 +37,19 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
     setGender(value);
     setStep(2);
   }
+
+  // Step 2 has exactly one action, which is what the native main button
+  // is for. Step 1 has none — picking a gender advances by itself — so
+  // the button stays hidden there rather than sitting at the bottom of
+  // the sheet with nothing to do.
+  const native = hasNativeMainButton();
+  useTelegramMainButton({
+    text: "Готово",
+    onClick: () => void handleFinish(),
+    visible: step === 2,
+    disabled: !zodiacSign || submitting,
+    progress: submitting,
+  });
 
   async function handleFinish() {
     if (!gender || !zodiacSign) return;
@@ -107,14 +121,18 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
 
           {error && <p className={styles.error}>{error}</p>}
 
-          <button
-            type="button"
-            className={styles.continueButton}
-            disabled={!zodiacSign || submitting}
-            onClick={handleFinish}
-          >
-            {submitting ? "Сохраняем…" : "Готово"}
-          </button>
+          {/* Outside Telegram there is no sheet to pin a button to, so
+              the in-flow one is still the only way to finish. */}
+          {!native && (
+            <button
+              type="button"
+              className={styles.continueButton}
+              disabled={!zodiacSign || submitting}
+              onClick={handleFinish}
+            >
+              {submitting ? "Сохраняем…" : "Готово"}
+            </button>
+          )}
         </div>
       )}
     </div>
