@@ -9,20 +9,19 @@ function resolveInitialTheme(): Theme {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored === "light" || stored === "dark") return stored;
   } catch {
-    // localStorage unavailable (private mode, etc.) — fall through to
-    // the system preference below instead of crashing.
+    // localStorage unavailable (private mode, etc.) — falls through to
+    // the light default below instead of crashing.
   }
-  if (typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches) {
-    return "dark";
-  }
+  // Deliberately not reading prefers-color-scheme here — every user
+  // starts on light regardless of their system setting, and only ever
+  // sees dark after explicitly switching to it via the toggle.
   return "light";
 }
 
 /**
  * Manual light/dark toggle (see index.css's `:root[data-theme="dark"]`
- * token overrides) — defaults to the system preference the first time
- * the app is ever opened, then remembers whatever the user explicitly
- * picks from then on, independent of the OS setting.
+ * token overrides) — every user starts on light, then this remembers
+ * whatever they explicitly pick from then on via localStorage.
  */
 export function useTheme() {
   const [theme, setTheme] = useState<Theme>(resolveInitialTheme);
