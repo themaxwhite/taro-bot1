@@ -9,10 +9,12 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user
 from app.api.subscriptions import require_quota
 from app.db import get_db
+from app.moderation import ensure_question_allowed
 from app.models import SpreadRecord, User
 from app.spreads import SPREADS, SpreadId
 from app.tarot.engine import tarot_engine
 from app.tarot.schemas import DrawnCard, DrawSpreadRequest, DrawSpreadResponse
+from app.tarot.visibility import card_count, stored_cards, visible_cards
 
 router = APIRouter(prefix="/api/spreads", tags=["spreads"])
 
@@ -84,16 +86,24 @@ def draw_spread(
         # this guards against SPREADS/enum drifting out of sync.
         raise HTTPException(status_code=400, detail="Unknown spread_id")
 
-    if request.spread_id == SpreadId.DAILY_CARD:
+    is_daily_card = request.spread_id == SpreadId.DAILY_CARD
+
+    if is_daily_card:
         existing = _current_daily_card(db, user.telegram_id)
         if existing is not None:
-            cards = [DrawnCard.model_validate(c) for c in json.loads(existing.cards_json)]
             return DrawSpreadResponse(
                 id=existing.id,
                 spread_id=request.spread_id,
-                cards=cards,
+                cards=visible_cards(existing),
+                unlocked=existing.unlocked,
+                card_count=card_count(existing),
                 next_available_at=_as_utc(existing.created_at + DAILY_CARD_COOLDOWN),
             )
+
+    if request.question:
+        # Проверяем до розыгрыша: иначе запрещённый вопрос успел бы
+        # создать запись и сжечь суточный лимит карты дня.
+        ensure_question_allowed(request.question)
 
     cards = tarot_engine.draw(request.spread_id)
 
@@ -103,15 +113,23 @@ def draw_spread(
         spread_title=SPREADS[request.spread_id].title,
         cards_json=json.dumps([c.model_dump(mode="json") for c in cards]),
         question=request.question,
+        # Карта дня — единственный бесплатный расклад, она открыта сразу.
+        # Всё остальное ждёт разблокировки (api/ai.py::interpret_spread).
+        unlocked=is_daily_card,
     )
     db.add(record)
     db.commit()
     db.refresh(record)
 
-    next_available_at = (
-        _as_utc(record.created_at + DAILY_CARD_COOLDOWN) if request.spread_id == SpreadId.DAILY_CARD else None
+    next_available_at = _as_utc(record.created_at + DAILY_CARD_COOLDOWN) if is_daily_card else None
+    return DrawSpreadResponse(
+        id=record.id,
+        spread_id=request.spread_id,
+        cards=visible_cards(record),
+        unlocked=record.unlocked,
+        card_count=len(cards),
+        next_available_at=next_available_at,
     )
-    return DrawSpreadResponse(id=record.id, spread_id=request.spread_id, cards=cards, next_available_at=next_available_at)
 
 
 @router.post("/{spread_record_id}/draw-extra", response_model=DrawSpreadResponse)
@@ -129,9 +147,18 @@ def draw_extra_card(
     if record is None or record.user_id != user.telegram_id:
         raise HTTPException(status_code=404, detail="Spread not found")
 
+    if record.spread_id == SpreadId.DAILY_CARD.value:
+        # Карта дня — ровно одна карта в сутки, в этом весь её смысл.
+        raise HTTPException(status_code=400, detail="К карте дня нельзя вытянуть дополнительную карту.")
+
+    if not record.unlocked:
+        # Иначе можно было бы увидеть расклад по частям, доплачивая за
+        # «дополнительную» карту вместо разблокировки самого расклада.
+        raise HTTPException(status_code=402, detail="Сначала откройте расклад.")
+
     require_quota(db, user)
 
-    cards = [DrawnCard.model_validate(c) for c in json.loads(record.cards_json)]
+    cards = stored_cards(record)
 
     extra = tarot_engine.draw_one_more(
         position=len(cards),
@@ -146,4 +173,10 @@ def draw_extra_card(
     record.interpretation = None
     db.commit()
 
-    return DrawSpreadResponse(id=record.id, spread_id=SpreadId(record.spread_id), cards=cards)
+    return DrawSpreadResponse(
+        id=record.id,
+        spread_id=SpreadId(record.spread_id),
+        cards=cards,
+        unlocked=True,
+        card_count=len(cards),
+    )

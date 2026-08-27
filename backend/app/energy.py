@@ -1,0 +1,39 @@
+"""
+Энергия — валюта разблокировок.
+
+Одна единица открывает одно из: расклад целиком (карты вместе с
+толкованием), дополнительную карту или уточняющий вопрос. Подписка даёт
+свой месячный запас разблокировок; энергию можно докупить пакетом, и она,
+в отличие от подписки, не сгорает.
+
+Цены пакетов держим синхронно с frontend/src/types/energy.ts.
+"""
+
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class EnergyPack:
+    id: str
+    title: str
+    amount: int
+    price_rub: int
+    # Маркетинговая плашка на карточке пакета, на поведение не влияет.
+    badge: str | None = None
+
+    @property
+    def price_per_unit(self) -> float:
+        return self.price_rub / self.amount
+
+
+ENERGY_PACKS: dict[str, EnergyPack] = {
+    "small": EnergyPack(id="small", title="5 энергии", amount=5, price_rub=60),
+    "medium": EnergyPack(id="medium", title="15 энергии", amount=15, price_rub=149, badge="Выгодно"),
+    "large": EnergyPack(id="large", title="40 энергии", amount=40, price_rub=349, badge="Максимум"),
+}
+
+# Бесплатная энергия, начисляемая раз в календарные сутки (UTC) и не
+# переносящаяся на завтра. Намеренно держится ниже даже дневного темпа
+# «Базового» тарифа — это повод вернуться завтра, а не замена подписке.
+# Карта дня её не тратит: она бесплатна сама по себе.
+DAILY_FREE_ENERGY = 1

@@ -8,12 +8,15 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.ai.client import generate_text
-from app.ai.fallback import daily_message_for, fallback_interpretation
+from app.ai.fallback import daily_message_for, fallback_interpretation, fallback_story
 from app.api.deps import get_current_user
 from app.api.subscriptions import require_quota
 from app.config import settings
 from app.db import get_db
-from app.models import DailyMessage, SpreadFollowUp, SpreadRecord, Subscription, User
+from app.tarot.schemas import DrawnCard
+from app.tarot.visibility import stored_cards
+from app.moderation import ensure_question_allowed
+from app.models import DailyMessage, DailyStory, SpreadFollowUp, SpreadRecord, Subscription, User
 from app.spreads import SpreadId
 
 router = APIRouter(prefix="/api", tags=["ai"])
@@ -37,6 +40,10 @@ class DailyMessageResponse(BaseModel):
 
 class InterpretationResponse(BaseModel):
     interpretation: str
+    # Разблокировка оплачивается один раз и открывает расклад целиком,
+    # поэтому карты приезжают вместе с толкованием — до этого момента
+    # api/spreads.py их не отдаёт.
+    cards: list[DrawnCard] = []
 
 
 class FollowUpRequest(BaseModel):
@@ -51,6 +58,12 @@ class FollowUpResponse(BaseModel):
     question_key: str
     question_label: str
     answer: str
+
+
+class DailyStoryResponse(BaseModel):
+    author: str
+    spread_title: str
+    text: str
 
 
 @router.get("/daily-message", response_model=DailyMessageResponse)
@@ -79,6 +92,74 @@ async def get_daily_message(db: Session = Depends(get_db)) -> DailyMessageRespon
     return DailyMessageResponse(text=text)
 
 
+@router.get("/daily-story", response_model=DailyStoryResponse)
+async def get_daily_story(db: Session = Depends(get_db)) -> DailyStoryResponse:
+    """
+    Одна выдуманная история дня, общая для всех и закэшированная на
+    календарные сутки (UTC) — как и «фраза дня», чтобы это стоило один
+    вызов модели в сутки, а не один на каждое открытие приложения.
+
+    Истории вымышленные. Интерфейс говорит об этом прямо (см.
+    frontend DailyStory), и промпт ниже тоже требует не выдавать текст за
+    реальный отзыв: сочинённая история, поданная как настоящая, — это
+    обман пользователя, а не украшение витрины.
+    """
+    today = dt.datetime.utcnow().date()
+    key = today.isoformat()
+
+    cached = db.get(DailyStory, key)
+    if cached is not None:
+        return DailyStoryResponse(author=cached.author, spread_title=cached.spread_title, text=cached.text)
+
+    generated = await generate_text(
+        system_prompt=(
+            "Ты пишешь короткую вымышленную историю для приложения с раскладами "
+            "таро — от лица человека, который однажды сделал расклад. Пиши на "
+            "русском языке, от первого лица, 60-90 слов, обычным текстом. "
+            "История должна быть житейской и правдоподобной: конкретная мелочь "
+            "из жизни, а не чудо и не исполнившееся пророчество. Карты в ней "
+            "помогают человеку заметить то, что он и так знал, но не признавал "
+            "— они ничего не предсказывают. Не обещай удачу, не давай советов, "
+            "не рекламируй приложение, не используй смайлики и кавычки-ёлочки "
+            "вокруг всего текста. Обязательно закончи мысль законченным "
+            "предложением.\n\n"
+            "Ответь ровно тремя строками:\n"
+            "Имя, возраст\n"
+            "Название расклада\n"
+            "Текст истории"
+        ),
+        user_prompt=(
+            "Придумай историю на сегодня. Расклад выбери из списка: Карта дня, "
+            "Любовь, Будущее, Кельтский крест, Да или нет, Подкова, Совместимость."
+        ),
+        max_tokens=700,
+    )
+
+    author, spread_title, text = _parse_story(generated) if generated else fallback_story(today.timetuple().tm_yday)
+
+    db.add(DailyStory(date=key, author=author, spread_title=spread_title, text=text))
+    db.commit()
+    return DailyStoryResponse(author=author, spread_title=spread_title, text=text)
+
+
+def _parse_story(raw: str) -> tuple[str, str, str]:
+    """
+    Разбирает три строки ответа модели, а если формат не соблюдён —
+    откатывается на запасную историю, а не показывает пользователю сырой
+    вывод модели.
+    """
+    lines = [line.strip() for line in raw.strip().splitlines() if line.strip()]
+    if len(lines) < 3:
+        return fallback_story(dt.datetime.utcnow().timetuple().tm_yday)
+    author, spread_title, *rest = lines
+    text = " ".join(rest)
+    # Длины должны укладываться в колонки (см. models.py::DailyStory) —
+    # иначе вставка упадёт уже после того, как за генерацию заплачено.
+    if not text or len(author) > 80 or len(spread_title) > 80:
+        return fallback_story(dt.datetime.utcnow().timetuple().tm_yday)
+    return author, spread_title, text[:1200]
+
+
 @router.post("/spreads/{spread_record_id}/interpret", response_model=InterpretationResponse)
 async def interpret_spread(
     spread_record_id: int,
@@ -97,14 +178,19 @@ async def interpret_spread(
         raise HTTPException(status_code=404, detail="Spread not found")
 
     if record.interpretation:
-        return InterpretationResponse(interpretation=record.interpretation)
+        return InterpretationResponse(interpretation=record.interpretation, cards=stored_cards(record))
 
-    # "Карта дня" gets its full interpretation for free — it's the one
-    # spread meant as a lightweight daily hook, unlike the paid multi-card
-    # readings. Everything else consumes one unit of subscription quota.
+    # "Карта дня" is free — the one lightweight daily hook, unlike the
+    # paid multi-card readings. Everything else costs one unlock, and
+    # that single unlock buys the whole reading: the cards become
+    # visible at the same moment their interpretation does.
     is_daily_card = record.spread_id == SpreadId.DAILY_CARD.value
     if not is_daily_card:
         require_quota(db, user)
+
+    if not record.unlocked:
+        record.unlocked = True
+        db.commit()
 
     cards = json.loads(record.cards_json)
     card_lines = "\n".join(
@@ -142,7 +228,7 @@ async def interpret_spread(
     if generated:
         record.interpretation = text
         db.commit()
-    return InterpretationResponse(interpretation=text)
+    return InterpretationResponse(interpretation=text, cards=stored_cards(record))
 
 
 def _is_premium(db: Session, user: User) -> bool:
@@ -173,10 +259,19 @@ async def ask_follow_up(
     if record is None or record.user_id != user.telegram_id:
         raise HTTPException(status_code=404, detail="Spread not found")
 
+    if not record.unlocked:
+        # Ответ строится по картам расклада и неизбежно их описывает —
+        # без этой проверки уточняющий вопрос стал бы способом узнать
+        # расклад, не разблокировав его.
+        raise HTTPException(status_code=402, detail="Сначала откройте расклад.")
+
     custom_question = (body.custom_question or "").strip()
     if custom_question:
         if not _is_premium(db, user) and not settings.skip_payment_check:
             raise HTTPException(status_code=403, detail="Свои вопросы к раскладу доступны на тарифе «Премиум».")
+        # Свободный текст проходит ту же проверку, что и вопрос к
+        # раскладу — иначе ограничения обходились бы через этот путь.
+        ensure_question_allowed(custom_question)
         question_label = custom_question[:300]
         # Unique per submission — see docstring: custom questions are
         # never looked up/deduped, so this only needs to avoid colliding

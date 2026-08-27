@@ -31,7 +31,16 @@ class DrawnCard(BaseModel):
 class DrawSpreadResponse(BaseModel):
     id: int = Field(..., description="SpreadRecord id — used to request an interpretation or an extra card")
     spread_id: SpreadId
+    # Empty while `unlocked` is false. The cards have already been drawn
+    # and stored server-side at this point — they are simply not sent,
+    # so a locked spread cannot be read out of the network response.
     cards: list[DrawnCard]
+    # Whether this spread has been paid for. False means the client shows
+    # `card_count` face-down backs and an unlock prompt.
+    unlocked: bool = True
+    # How many cards the spread has, which stays visible while locked so
+    # the layout is right before anything is revealed.
+    card_count: int = 0
     # Only set for spread_id="daily-card": when the 24-hour cooldown
     # since this card was drawn ends and a new one becomes available.
     # Null for every other spread type, which has no cooldown.

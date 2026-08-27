@@ -47,11 +47,17 @@ class User(Base):
     referral_bonus_quota: Mapped[int] = mapped_column(Integer, default=0)
     # Free daily "energy" (see app/api/subscriptions.py::require_quota) —
     # refills to DAILY_FREE_ENERGY on the first paid-feature request of a
-    # new calendar day (UTC) and doesn't carry over, so it's spent before
-    # referral_bonus_quota or a paid subscription. `energy_refreshed_date`
-    # ("YYYY-MM-DD") is the guard that triggers that refill.
+    # new calendar day (UTC) and doesn't carry over, so it's spent first.
+    # `energy_refreshed_date` ("YYYY-MM-DD") is the guard that triggers
+    # that refill. Note this column is *overwritten* on refill, never
+    # incremented — which is exactly why bought energy cannot live here.
     energy: Mapped[int] = mapped_column(Integer, default=0)
     energy_refreshed_date: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    # Energy bought outright (app/energy.py::ENERGY_PACKS). Unlike the
+    # daily grant above it accumulates and never expires, and unlike a
+    # subscription's quota it survives the end of a billing period — so
+    # it is deliberately spent last, once everything perishable is gone.
+    purchased_energy: Mapped[int] = mapped_column(Integer, default=0)
     # One-time onboarding (gender + zodiac sign), collected before the
     # user ever sees the main menu (see api/history.py::complete_onboarding).
     # Both null until it's done; the frontend gates on that, not on a
@@ -83,6 +89,13 @@ class SpreadRecord(Base):
     # for free afterwards (e.g. reopening it from History).
     interpretation: Mapped[str | None] = mapped_column(String, nullable=True)
     question: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # Whether the drawn cards have been paid for and may be shown. False
+    # means the API deliberately withholds the card identities (see
+    # api/spreads.py) — the engine has already decided them and they are
+    # stored here, but nothing about them reaches the client until one
+    # unlock is spent. "Карта дня" is created already unlocked, being the
+    # one free reading.
+    unlocked: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow)
 
     user: Mapped[User] = relationship(back_populates="spreads")
@@ -101,6 +114,28 @@ class DailyMessage(Base):
 
     date: Mapped[str] = mapped_column(String(10), primary_key=True)  # "YYYY-MM-DD"
     text: Mapped[str] = mapped_column(String(500))
+
+
+class DailyStory(Base):
+    """
+    Короткая выдуманная история «от человека, который сделал расклад»,
+    одна на календарные сутки (UTC) и общая для всех — как и
+    DailyMessage, чтобы генерация стоила один вызов модели в день, а не
+    один на каждого посетителя.
+
+    Истории вымышленные, и это не деталь реализации, а обязательство:
+    выдавать сочинённый отзыв за настоящий — обман пользователя. Поэтому
+    рядом с ней в интерфейсе стоит пометка, а `author` намеренно только
+    имя и возраст, без фотографии и фамилии, чтобы её нельзя было
+    принять за реальный профиль.
+    """
+
+    __tablename__ = "daily_stories"
+
+    date: Mapped[str] = mapped_column(String(10), primary_key=True)  # "YYYY-MM-DD"
+    author: Mapped[str] = mapped_column(String(80))
+    spread_title: Mapped[str] = mapped_column(String(80))
+    text: Mapped[str] = mapped_column(String(1200))
 
 
 class SpreadFollowUp(Base):
@@ -154,10 +189,16 @@ class Subscription(Base):
 
 class SubscriptionPayment(Base):
     """
-    One ЮKassa payment attempt for a subscription. Created in "pending"
-    status when a payment is initiated; flipped to "succeeded" once the
-    webhook re-verifies the payment directly against the ЮKassa API (see
-    app/yookassa/client.py — the webhook body itself is never trusted).
+    One ЮKassa payment attempt. Created in "pending" status when a payment
+    is initiated; flipped to "succeeded" once the webhook re-verifies the
+    payment directly against the ЮKassa API (see app/yookassa/client.py —
+    the webhook body itself is never trusted).
+
+    Covers both things that can be bought: a subscription (`kind` =
+    "subscription", `tier` says which one) and a pack of energy (`kind` =
+    "energy", `energy_amount` says how much). The table keeps its
+    original name because renaming it would mean migrating a table that
+    holds real payment history for no functional gain.
     """
 
     __tablename__ = "subscription_payments"
@@ -165,7 +206,13 @@ class SubscriptionPayment(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     yookassa_payment_id: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.telegram_id"))
-    tier: Mapped[str] = mapped_column(String(16))  # "basic" | "plus"
+    # "subscription" | "energy". Existing rows all predate energy packs,
+    # hence the default.
+    kind: Mapped[str] = mapped_column(String(16), default="subscription")
+    # Empty for an energy purchase.
+    tier: Mapped[str] = mapped_column(String(16))
+    # Units of energy granted once this settles; 0 for a subscription.
+    energy_amount: Mapped[int] = mapped_column(Integer, default=0)
     amount_rub: Mapped[int] = mapped_column(Integer)
     status: Mapped[str] = mapped_column(String(16), default="pending")  # pending | succeeded | canceled
     created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow)

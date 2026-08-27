@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user
 from app.config import settings
 from app.db import get_db
+from app.tarot.visibility import card_count, visible_cards
 from app.history.schemas import FollowUpEntry, HistoryEntry, ProfileStats
 from app.models import SpreadRecord, User
 from app.tarot.schemas import DrawnCard
@@ -18,7 +19,6 @@ router = APIRouter(prefix="/api", tags=["history"])
 
 
 def _record_to_entry(record: SpreadRecord) -> HistoryEntry:
-    cards = [DrawnCard.model_validate(c) for c in json.loads(record.cards_json)]
     follow_ups = [
         FollowUpEntry(question_key=fu.question_key, question_label=fu.question_label, answer=fu.answer)
         for fu in sorted(record.follow_ups, key=lambda fu: fu.created_at)
@@ -28,7 +28,11 @@ def _record_to_entry(record: SpreadRecord) -> HistoryEntry:
         spread_id=record.spread_id,
         spread_title=record.spread_title,
         completed_at=record.created_at,
-        cards=cards,
+        # Нельзя отдать карты нераскрытого расклада: иначе историю можно
+        # было бы использовать как обходной путь мимо разблокировки.
+        cards=visible_cards(record),
+        unlocked=record.unlocked,
+        card_count=card_count(record),
         question=record.question,
         interpretation=record.interpretation,
         follow_ups=follow_ups,

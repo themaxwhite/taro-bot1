@@ -17,7 +17,12 @@ class HistoryEntry(BaseModel):
     spread_id: SpreadId
     spread_title: str
     completed_at: dt.datetime
+    # Empty for a spread that was never unlocked — same rule as
+    # DrawSpreadResponse, so history cannot be used as a back door to
+    # read cards that were not paid for.
     cards: list[DrawnCard]
+    unlocked: bool = True
+    card_count: int = 0
     question: str | None
     interpretation: str | None
     follow_ups: list[FollowUpEntry]
