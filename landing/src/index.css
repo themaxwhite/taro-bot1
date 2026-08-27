@@ -1,0 +1,492 @@
+@import "tailwindcss";
+
+/* Playfair Display, self-hosted. Served from our own origin instead of
+   fonts.gstatic.com: one connection fewer to open before the headline can
+   paint, and no third-party request from visitors. Google serves one variable
+   file per subset for weights 500-700, hence the single @font-face each. */
+@font-face {
+  font-family: "Playfair Display";
+  font-style: normal;
+  font-weight: 500 700;
+  font-display: swap;
+  src: url("/fonts/playfair-cyrillic.woff2") format("woff2");
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+
+@font-face {
+  font-family: "Playfair Display";
+  font-style: normal;
+  font-weight: 500 700;
+  font-display: swap;
+  src: url("/fonts/playfair-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Playfair Display";
+  font-style: normal;
+  font-weight: 500 700;
+  font-display: swap;
+  src: url("/fonts/playfair-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+    U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
+    U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* ============================================================
+   Нуар-палитра
+
+   The Mini App keeps its warm parchment look; the landing is deliberately its
+   negative — near-black ground, gold as the only warm thing on the page, and a
+   cold steel-blue for the mystic half. There is no light theme here: a noir
+   page with a day mode is neither. */
+:root {
+  color-scheme: dark;
+
+  --page: #08080b;
+  --page-deep: #040405;
+  --surface: #101014;
+  --surface-active: #191921;
+  --surface-glass: rgba(22, 22, 29, 0.72);
+
+  --gold: #d9b166;
+  --gold-strong: #f2d492;
+  --gold-deep: #8a6c2f;
+
+  /* Cold accent — moonlight against the candlelight of the gold. */
+  --mist: #7c8bb5;
+  --mist-strong: #a9b8e0;
+
+  --ink: #ece8e0;
+  --ink-muted: #948d84;
+  --ink-faint: #5d574f;
+  --on-gold: #14110b;
+
+  --hairline: rgba(217, 177, 102, 0.16);
+  --hairline-strong: rgba(217, 177, 102, 0.34);
+}
+
+@theme inline {
+  --color-page: var(--page);
+  --color-page-deep: var(--page-deep);
+  --color-surface: var(--surface);
+  --color-surface-active: var(--surface-active);
+  --color-surface-glass: var(--surface-glass);
+  --color-gold: var(--gold);
+  --color-gold-strong: var(--gold-strong);
+  --color-gold-deep: var(--gold-deep);
+  --color-mist: var(--mist);
+  --color-mist-strong: var(--mist-strong);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+  --color-on-gold: var(--on-gold);
+  --color-hairline: var(--hairline);
+  --color-hairline-strong: var(--hairline-strong);
+
+  --font-display: "Playfair Display", Georgia, serif;
+}
+
+html {
+  scroll-behavior: smooth;
+  background-color: var(--page-deep);
+}
+
+body {
+  background-color: var(--page);
+  color: var(--ink);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--gold);
+  color: var(--on-gold);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--page-deep);
+}
+::-webkit-scrollbar-thumb {
+  background: #24222a;
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--gold-deep);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================================
+   Появление секций */
+
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.reveal {
+  animation: reveal-up 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes float-slow {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+.float-slow {
+  animation: float-slow 7s ease-in-out infinite;
+}
+
+/* ============================================================
+   Атмосфера: зерно, виньетка, свет */
+
+/* Film grain. The noise is a self-contained SVG turbulence filter, so it costs
+   no request and no image decode; the layer is nudged around in eight steps so
+   it reads as moving grain rather than a static speckle. */
+.grain::before {
+  content: "";
+  position: fixed;
+  inset: -120px;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0.32;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  animation: grain-shift 700ms steps(1) infinite;
+}
+
+@keyframes grain-shift {
+  0% {
+    transform: translate(0, 0);
+  }
+  12.5% {
+    transform: translate(-6%, -3%);
+  }
+  25% {
+    transform: translate(4%, -6%);
+  }
+  37.5% {
+    transform: translate(-3%, 5%);
+  }
+  50% {
+    transform: translate(6%, 2%);
+  }
+  62.5% {
+    transform: translate(-5%, -5%);
+  }
+  75% {
+    transform: translate(3%, 6%);
+  }
+  87.5% {
+    transform: translate(-6%, 3%);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}
+
+/* Darkened corners — the cheapest thing that makes a page look shot rather
+   than rendered. */
+.vignette::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  pointer-events: none;
+  background: radial-gradient(
+    120% 90% at 50% 45%,
+    transparent 45%,
+    rgba(0, 0, 0, 0.6) 100%
+  );
+}
+
+/* Cursor-tracked pool of candlelight; --mx/--my come from useSpotlight. */
+.spotlight {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    30rem 30rem at var(--mx, 50%) var(--my, 28%),
+    color-mix(in srgb, var(--gold) 10%, transparent),
+    transparent 72%
+  );
+}
+
+/* ============================================================
+   Золото */
+
+@keyframes gold-shimmer {
+  to {
+    background-position: 200% center;
+  }
+}
+
+.shimmer-gold {
+  background: linear-gradient(
+      100deg,
+      var(--gold) 0%,
+      var(--gold) 34%,
+      #fff6dd 50%,
+      var(--gold) 66%,
+      var(--gold) 100%
+    )
+    0% center / 200% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  animation: gold-shimmer 7s linear infinite;
+}
+
+/* Hairline that fades to nothing at both ends — used as a section rule. */
+.rule-gold {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--hairline-strong) 18%,
+    var(--gold) 50%,
+    var(--hairline-strong) 82%,
+    transparent
+  );
+  opacity: 0.7;
+}
+
+/* Gold gloss sweeping across a surface on hover. */
+.sheen::after {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  background: linear-gradient(
+    105deg,
+    transparent 42%,
+    color-mix(in srgb, var(--gold-strong) 32%, transparent) 50%,
+    transparent 58%
+  );
+  transform: translateX(-120%);
+  transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.group:hover .sheen::after,
+.group:focus-visible .sheen::after {
+  transform: translateX(120%);
+}
+
+/* Glass panel with a gold hairline that brightens along the top edge, as if
+   lit from above. */
+.panel {
+  position: relative;
+  background: var(--surface-glass);
+  border: 1px solid var(--hairline);
+  backdrop-filter: blur(10px);
+}
+
+.panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    170deg,
+    color-mix(in srgb, var(--gold) 40%, transparent),
+    transparent 44%
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* ============================================================
+   Карты */
+
+.tilt {
+  transform: perspective(1100px) translate3d(var(--tx, 0), var(--ty, 0), 0)
+    rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+/* Glare pinned to the pointer. */
+.glare::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    36% 28% at calc(var(--px, 0.5) * 100%) calc(var(--py, 0.5) * 100%),
+    color-mix(in srgb, var(--gold-strong) 40%, transparent),
+    transparent 70%
+  );
+  opacity: 0.55;
+  mix-blend-mode: overlay;
+}
+
+@keyframes shuffle-wobble {
+  0% {
+    transform: rotate(0deg) translateY(0);
+  }
+  25% {
+    transform: rotate(-4deg) translateY(-10px);
+  }
+  50% {
+    transform: rotate(3.5deg) translateY(4px);
+  }
+  75% {
+    transform: rotate(-2deg) translateY(-4px);
+  }
+  100% {
+    transform: rotate(0deg) translateY(0);
+  }
+}
+
+.shuffling {
+  animation: shuffle-wobble 0.6s ease-in-out;
+}
+
+/* The deck art is printed on cream stock. On a near-black page it has to sit
+   back a little, or every card reads as a lightbox instead of as something
+   lying on a dark table. */
+.card-art {
+  filter: brightness(0.86) contrast(1.08) saturate(0.9);
+  transition: filter 0.5s ease;
+}
+
+.group:hover .card-art,
+.card-lit .card-art {
+  filter: brightness(1) contrast(1.02) saturate(1);
+}
+
+/* ============================================================
+   Фоновые силуэты */
+
+@keyframes drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(0, -26px, 0) rotate(1.4deg);
+  }
+}
+
+.drift {
+  animation: drift 22s ease-in-out infinite;
+}
+
+@keyframes spin-slow {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spin-slow {
+  animation: spin-slow 150s linear infinite;
+}
+
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 0.12;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.twinkle {
+  animation: twinkle 4s ease-in-out infinite;
+}
+
+/* Smoke curling up past the hero. */
+@keyframes smoke {
+  0% {
+    opacity: 0;
+    transform: translateY(40px) scale(1);
+  }
+  22% {
+    opacity: 0.45;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-180px) scale(1.6);
+  }
+}
+
+.smoke {
+  animation: smoke 15s ease-out infinite;
+}
+
+/* Typing caret for the "answer" section. */
+@keyframes caret {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.caret::after {
+  content: "";
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 3px;
+  vertical-align: -0.15em;
+  background: var(--gold);
+  animation: caret 1s steps(1) infinite;
+}
+
+/* ============================================================
+   Лента отзывов */
+
+@keyframes marquee {
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes marquee-reverse {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
