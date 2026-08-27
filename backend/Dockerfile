@@ -5,6 +5,11 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# The migrations have to ship with the image: init_db() runs `alembic
+# upgrade head` on startup and reads both of these from disk.
+COPY alembic.ini .
+COPY alembic ./alembic
+
 COPY app ./app
 
 # Most PaaS providers (Railway, Render, Fly.io) inject $PORT at runtime.

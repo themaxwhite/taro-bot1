@@ -1,6 +1,9 @@
 import logging
 from collections.abc import Generator
+from pathlib import Path
 
+from alembic import command
+from alembic.config import Config
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
@@ -33,29 +36,104 @@ def get_db() -> Generator[Session, None, None]:
         db.close()
 
 
+_ALEMBIC_INI = Path(__file__).resolve().parent.parent / "alembic.ini"
+
+# The revision that reproduces the schema as `create_all` used to build
+# it. A database that predates Alembic is stamped with exactly this and
+# nothing further, so that every later revision still runs against it.
+_BASELINE_REVISION = "0001_baseline"
+
+# Any table that only ever existed post-`create_all` would do; `users` is
+# simply the oldest one.
+_SENTINEL_TABLE = "users"
+
+
 def init_db() -> None:
     """
-    Creates tables if they don't exist yet. Fine for an MVP with SQLite;
-    swap for Alembic migrations once the schema needs to evolve safely
-    against a populated production database.
+    Brings the database up to the current schema, then clears out cached
+    rows known to be broken.
+
+    Runs on every startup. On a fresh database this creates everything
+    from scratch; on one that already existed before Alembic was
+    introduced it is baselined first (see `_baseline_pre_alembic_database`)
+    so the migration history starts from what is actually on disk.
     """
     from app import models  # noqa: F401  (ensure models are registered on Base)
 
-    Base.metadata.create_all(bind=engine)
-    _add_missing_columns()
-    _widen_id_columns()
+    _baseline_pre_alembic_database()
+    _run_migrations()
     _clear_truncated_daily_messages()
 
 
+def _alembic_config() -> Config:
+    config = Config(str(_ALEMBIC_INI))
+    # Reuse the app's Engine rather than letting env.py open a second
+    # connection pool on every startup.
+    config.attributes["engine"] = engine
+    return config
+
+
+def _baseline_pre_alembic_database() -> None:
+    """
+    Adopts a database created before Alembic existed.
+
+    Such a database has all the app's tables but no `alembic_version`, so
+    running the migrations against it would try to create tables that are
+    already there. Stamping it with the baseline says "this schema is
+    already at revision 0001" without executing it, and later revisions
+    then apply normally.
+
+    Before stamping, the old hand-rolled column patcher gets one final
+    run. Without it, a database old enough to be missing one of the
+    columns in `_ADDED_COLUMNS` would be declared up to date while
+    silently lacking it — the patcher was the only thing that had ever
+    added them, and stamping would retire it. After this has run once,
+    the database has an `alembic_version` row and none of this executes
+    again.
+    """
+    inspector = inspect(engine)
+    if not inspector.has_table(_SENTINEL_TABLE) or inspector.has_table("alembic_version"):
+        return
+
+    logger.info("Database predates Alembic — catching up columns, then stamping %s.", _BASELINE_REVISION)
+    _add_missing_columns()
+    command.stamp(_alembic_config(), _BASELINE_REVISION)
+
+
+def _run_migrations() -> None:
+    """
+    Upgrades to the newest revision.
+
+    A lock timeout is not fatal: `0002_bigint_ids` deliberately gives up
+    rather than queue behind live traffic on a table, since the ALTER it
+    wants takes an ACCESS EXCLUSIVE lock and an earlier, timeout-free
+    version of that logic once hung a deploy for five minutes and 502'd
+    every user. Giving up leaves the revision unapplied, so the next
+    deploy simply tries again — and in the meantime the app starts and
+    serves normally. Anything else is a real problem and is left to
+    propagate.
+    """
+    try:
+        command.upgrade(_alembic_config(), "head")
+    except OperationalError:
+        logger.warning(
+            "A migration could not get the lock it needed and was rolled back — "
+            "most likely concurrent traffic on the table. The app is starting "
+            "anyway; the next deploy will retry it.",
+            exc_info=True,
+        )
+
+
 # (table, column, DDL type) for columns added to a model after it first
-# shipped — create_all() only creates missing *tables*, never adds
-# columns to one that already exists, so a production row would
-# otherwise be missing these forever. Add an entry here (never remove
-# one) whenever a nullable/defaulted column is added to an existing
-# model; a real schema change still needs a real migration tool. The
-# DDL type must be valid on both SQLite and Postgres (the two dialects
-# this has actually run against) — stick to BOOLEAN/INTEGER/VARCHAR(n)
-# with a DEFAULT literal, nothing dialect-specific.
+# shipped, back when `create_all` was the whole migration story —
+# create_all() only creates missing *tables*, never adds columns to one
+# that already exists, so a production row would otherwise be missing
+# these forever.
+#
+# This list is frozen. It exists solely to bring a pre-Alembic database
+# up to `_BASELINE_REVISION` on its first startup after this change, and
+# runs exactly once per database, ever. New columns are a new revision in
+# alembic/versions/ now — do not add to this list.
 _ADDED_COLUMNS = [
     ("users", "notifications_enabled", "BOOLEAN DEFAULT FALSE"),
     ("users", "last_notified_date", "VARCHAR(10)"),
@@ -65,9 +143,6 @@ _ADDED_COLUMNS = [
     ("users", "zodiac_sign", "VARCHAR(16)"),
     ("users", "energy", "INTEGER DEFAULT 0"),
     ("users", "energy_refreshed_date", "VARCHAR(10)"),
-    # spread_follow_ups shipped without question_label at first (the
-    # table itself is brand new as of this same round of changes, so no
-    # real rows are expected to ever hit the DEFAULT '' backfill below).
     ("spread_follow_ups", "question_label", "VARCHAR(300) DEFAULT ''"),
 ]
 
@@ -76,83 +151,18 @@ def _add_missing_columns() -> None:
     """
     Cross-dialect version of "ALTER TABLE ADD COLUMN IF NOT EXISTS" — via
     SQLAlchemy's inspector rather than a dialect-specific PRAGMA/catalog
-    query, since this now runs against both SQLite (local dev) and
+    query, since this has run against both SQLite (local dev) and
     Postgres (production, since the SQLite-on-an-ephemeral-disk incident).
     """
     inspector = inspect(engine)
     with engine.connect() as conn:
         for table, column, ddl_type in _ADDED_COLUMNS:
             if not inspector.has_table(table):
-                continue  # created fresh by create_all() with every current column — nothing to backfill
+                continue  # nothing on disk to backfill
             existing = {col["name"] for col in inspector.get_columns(table)}
             if column not in existing:
                 conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {ddl_type}"))
         conn.commit()
-
-
-# (table, column) pairs that must be BIGINT — plain INTEGER (Postgres'
-# 32-bit default) overflows for newer Telegram user ids, which now
-# regularly exceed 2^31-1. SQLite has no fixed-width INTEGER (any
-# declared integer type stores up to a full 64-bit signed value), and
-# doesn't support ALTER COLUMN at all, so this only ever runs against
-# Postgres.
-_BIGINT_COLUMNS = [
-    ("users", "telegram_id"),
-    ("users", "referred_by"),
-    ("spread_records", "user_id"),
-    ("subscriptions", "user_id"),
-    ("subscription_payments", "user_id"),
-]
-
-# ALTER COLUMN TYPE needs an ACCESS EXCLUSIVE lock, which has to wait
-# for every in-flight transaction on the table to finish — and while it
-# waits, it also blocks any *new* transaction on that table from
-# jumping ahead of it. Against a table taking live production traffic
-# (as happened here: this hung an entire deploy for 5+ minutes,
-# because the previous version of this migration had no timeout and
-# ran inside the app's startup hook, so the whole app just never
-# finished starting and every user was 502'd). A short lock_timeout
-# turns "block forever" into "skip this run, retry on the next
-# deploy" — the app always finishes starting either way.
-_LOCK_TIMEOUT = "5s"
-
-
-def _widen_id_columns() -> None:
-    """Widens id columns created as INTEGER (before this fix) to BIGINT."""
-    if engine.dialect.name != "postgresql":
-        return
-    inspector = inspect(engine)
-    with engine.connect() as conn:
-        for table, column in _BIGINT_COLUMNS:
-            if not inspector.has_table(table):
-                continue
-            columns = {col["name"]: col for col in inspector.get_columns(table)}
-            col_info = columns.get(column)
-            if col_info is None or str(col_info["type"]).upper() == "BIGINT":
-                continue
-            try:
-                # SET LOCAL (not plain SET) scopes the timeout to just
-                # this one ALTER's transaction, so it's re-armed fresh
-                # every iteration and can never leak: a plain SET here
-                # would (a) get wiped by conn.rollback() below if THIS
-                # column's lock wait times out, leaving every later
-                # column in the loop unprotected again — silently
-                # reproducing the exact startup hang this was written to
-                # prevent — and (b) on success, persist on the pooled
-                # connection past this function, so a later, unrelated
-                # request that happens to reuse it could unexpectedly
-                # fail if a normal write needs to wait >5s for a lock.
-                conn.execute(text(f"SET LOCAL lock_timeout = '{_LOCK_TIMEOUT}'"))
-                conn.execute(text(f"ALTER TABLE {table} ALTER COLUMN {column} TYPE BIGINT"))
-                conn.commit()
-            except OperationalError:
-                conn.rollback()
-                logger.warning(
-                    "Could not acquire the lock to widen %s.%s to BIGINT within %s "
-                    "(likely concurrent traffic on the table) — skipping for this "
-                    "startup, will retry on the next deploy.",
-                    table, column, _LOCK_TIMEOUT,
-                )
 
 
 # Below this length, a cached daily_messages row can only be a

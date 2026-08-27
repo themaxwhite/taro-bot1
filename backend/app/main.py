@@ -22,8 +22,8 @@ scheduler = AsyncIOScheduler()
 
 @app.on_event("startup")
 def on_startup() -> None:
-    # MVP-grade migration story: create tables if missing. Move to
-    # Alembic once the schema needs to change against real prod data.
+    # Runs the Alembic migrations (and, the first time, adopts a
+    # database that predates them) — see app/db.py::init_db.
     init_db()
 
     # In-process scheduler for the daily "карта дня" reminder — no
