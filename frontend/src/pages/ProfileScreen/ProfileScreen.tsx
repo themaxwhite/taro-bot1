@@ -17,6 +17,7 @@ interface ProfileScreenProps {
   onBack: () => void;
   onOpenSubscription: () => void;
   onOpenTerms: () => void;
+  onOpenGuide: () => void;
   onOpenReferral: () => void;
   onOpenAdmin: () => void;
   theme: Theme;
@@ -60,6 +61,7 @@ export function ProfileScreen({
   onBack,
   onOpenSubscription,
   onOpenTerms,
+  onOpenGuide,
   onOpenReferral,
   onOpenAdmin,
   theme,
@@ -208,6 +210,15 @@ export function ProfileScreen({
             ariaLabel="Тёмная тема"
           />
         </div>
+        <button type="button" className={styles.settingsItem} onClick={onOpenGuide}>
+          <span className={styles.settingsIcon} aria-hidden="true">
+            💡
+          </span>
+          <span className={styles.settingsLabel}>Как это работает</span>
+          <span className={styles.chevron} aria-hidden="true">
+            ›
+          </span>
+        </button>
         <button type="button" className={styles.settingsItem} onClick={onOpenTerms}>
           <span className={styles.settingsIcon} aria-hidden="true">
             📄

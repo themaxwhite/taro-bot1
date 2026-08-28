@@ -2,6 +2,7 @@ import { useState } from "react";
 import { completeOnboarding, type Gender, type ZodiacSign } from "../../services/historyApi";
 import { MysticalBackground } from "../../components/MysticalBackground/MysticalBackground";
 import { hasNativeMainButton, useTelegramMainButton } from "../../hooks/useTelegramMainButton";
+import { INTRO_SECTIONS } from "../../content/guide";
 import styles from "./OnboardingScreen.module.css";
 
 interface OnboardingScreenProps {
@@ -23,38 +24,10 @@ const ZODIAC_SIGNS: { id: ZodiacSign; symbol: string; title: string }[] = [
   { id: "pisces", symbol: "♓", title: "Рыбы" },
 ];
 
-// Вводные экраны идут перед вопросами о себе: до них человек не знает,
-// что это за приложение, и просьба указать пол и знак зодиака выглядит
-// как анкета на пустом месте. Первым делом — что такое расклад, потом
-// уже данные для него.
-const INTRO_STEPS: { glyph: string; title: string; paragraphs: string[] }[] = [
-  {
-    glyph: "🔮",
-    title: "Добро пожаловать в Tarot Aurum",
-    paragraphs: [
-      "Колода — 78 карт. 22 старших аркана говорят о крупных поворотах, 56 младших — о повседневном.",
-      "Расклад — это несколько карт, каждая на своей позиции, и толкование, которое связывает их в один ответ на ваш вопрос.",
-    ],
-  },
-  {
-    glyph: "🌗",
-    title: "Перевёрнутые карты",
-    paragraphs: [
-      "Карта может лечь вверх ногами — это не делает её «плохой».",
-      "Перевёрнутое положение разворачивает смысл: то же качество, но ослабленное, запаздывающее или обращённое внутрь, а не наружу.",
-    ],
-  },
-  {
-    glyph: "✦",
-    title: "Энергия",
-    paragraphs: [
-      "Расклад открывается за одну энергию — карты вместе с толкованием. Столько же стоит дополнительная карта или уточняющий вопрос.",
-      "Одна энергия начисляется бесплатно каждый день. Больше дают подписка и приглашённые друзья, а карта дня бесплатна всегда.",
-    ],
-  },
-];
-
-const GENDER_STEP = INTRO_STEPS.length + 1;
+// Вводные экраны берутся из общего со справкой модуля (content/guide.ts),
+// чтобы объяснение в онбординге и на экране «Как это работает» не
+// разъезжалось.
+const GENDER_STEP = INTRO_SECTIONS.length + 1;
 const ZODIAC_STEP = GENDER_STEP + 1;
 const TOTAL_STEPS = ZODIAC_STEP;
 
@@ -79,7 +52,7 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
   // выбор карточки сам ведёт дальше, и кнопке внизу нечего было бы
   // делать.
   const native = hasNativeMainButton();
-  const isIntro = step <= INTRO_STEPS.length;
+  const isIntro = step <= INTRO_SECTIONS.length;
   useTelegramMainButton({
     text: isIntro ? "Дальше" : "Готово",
     onClick: () => (isIntro ? setStep((current) => current + 1) : void handleFinish()),
@@ -114,10 +87,10 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
       {isIntro && (
         <div className={styles.step} key={step}>
           <span className={styles.glyph} aria-hidden="true">
-            {INTRO_STEPS[step - 1].glyph}
+            {INTRO_SECTIONS[step - 1].glyph}
           </span>
-          <h1 className={styles.title}>{INTRO_STEPS[step - 1].title}</h1>
-          {INTRO_STEPS[step - 1].paragraphs.map((text) => (
+          <h1 className={styles.title}>{INTRO_SECTIONS[step - 1].title}</h1>
+          {INTRO_SECTIONS[step - 1].paragraphs.map((text) => (
             <p key={text} className={styles.introParagraph}>
               {text}
             </p>

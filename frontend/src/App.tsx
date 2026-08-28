@@ -10,6 +10,7 @@ import { TermsScreen } from "./pages/TermsScreen/TermsScreen";
 import { ReferralScreen } from "./pages/ReferralScreen/ReferralScreen";
 import { AdminScreen } from "./pages/AdminScreen/AdminScreen";
 import { OnboardingScreen } from "./pages/OnboardingScreen/OnboardingScreen";
+import { GuideScreen } from "./pages/GuideScreen/GuideScreen";
 import { Spinner } from "./components/Spinner/Spinner";
 import { useTheme } from "./hooks/useTheme";
 import { useReferralCapture } from "./hooks/useReferralCapture";
@@ -41,6 +42,7 @@ type Screen =
   | { name: "profile" }
   | { name: "subscription" }
   | { name: "terms" }
+  | { name: "guide" }
   | { name: "referral" }
   | { name: "admin" };
 
@@ -79,7 +81,7 @@ function App() {
   const back =
     screen.name === "historyDetail"
       ? () => setScreen({ name: "history" })
-      : screen.name === "admin"
+      : screen.name === "admin" || screen.name === "guide"
         ? () => setScreen({ name: "profile" })
         : goHome;
 
@@ -148,6 +150,7 @@ function App() {
         onBack={back}
         onOpenSubscription={() => setScreen({ name: "subscription" })}
         onOpenTerms={() => setScreen({ name: "terms" })}
+        onOpenGuide={() => setScreen({ name: "guide" })}
         onOpenReferral={() => setScreen({ name: "referral" })}
         onOpenAdmin={() => setScreen({ name: "admin" })}
         theme={theme.theme}
@@ -162,6 +165,10 @@ function App() {
 
   if (screen.name === "subscription") {
     return <SubscriptionScreen onBack={back} />;
+  }
+
+  if (screen.name === "guide") {
+    return <GuideScreen onBack={back} />;
   }
 
   if (screen.name === "terms") {
