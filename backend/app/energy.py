@@ -26,10 +26,15 @@ class EnergyPack:
         return self.price_rub / self.amount
 
 
+# Пакет намеренно дороже подписки в пересчёте на единицу: самый выгодный
+# пакет — 11,2 руб. за штуку против 5,70 в самом дешёвом тарифе. Пакет
+# продаёт не цену, а отсутствие ежемесячного списания: разово докупить и
+# забыть. Если сделать его дешевле подписки, подписку не купит никто —
+# энергия ведь ещё и не сгорает.
 ENERGY_PACKS: dict[str, EnergyPack] = {
-    "small": EnergyPack(id="small", title="5 энергии", amount=5, price_rub=60),
-    "medium": EnergyPack(id="medium", title="15 энергии", amount=15, price_rub=149, badge="Выгодно"),
-    "large": EnergyPack(id="large", title="40 энергии", amount=40, price_rub=349, badge="Максимум"),
+    "small": EnergyPack(id="small", title="5 энергии", amount=5, price_rub=89),
+    "medium": EnergyPack(id="medium", title="15 энергии", amount=15, price_rub=199, badge="Выгодно"),
+    "large": EnergyPack(id="large", title="40 энергии", amount=40, price_rub=449, badge="Максимум"),
 }
 
 # Бесплатная энергия, начисляемая раз в календарные сутки (UTC) и не

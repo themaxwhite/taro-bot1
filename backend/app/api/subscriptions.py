@@ -10,7 +10,7 @@ from app.config import settings
 from app.db import get_db
 from app.models import Subscription, SubscriptionPayment, User
 from app.energy import DAILY_FREE_ENERGY, ENERGY_PACKS
-from app.subscriptions import TIERS, SubscriptionTier
+from app.subscriptions import SUPPORT_CHAT_TIERS, TIERS, SubscriptionTier, purchasable_tiers
 from app.yookassa.client import YooKassaError, create_payment, get_payment
 from app.yookassa.client import is_configured as is_yookassa_configured
 
@@ -42,6 +42,20 @@ class SubscriptionStatusResponse(BaseModel):
     energy_daily: int
     energy_purchased: int
     energy_referral: int
+    # Ссылка на личный чат поддержки — приходит только тем, чей тариф её
+    # включает, и только если она вообще настроена. Иначе фронтенд
+    # показал бы неработающую кнопку.
+    support_chat_url: str | None
+
+
+class TierResponse(BaseModel):
+    id: str
+    title: str
+    price_rub: int
+    monthly_quota: int
+    description: str
+    badge: str | None
+    perks: list[str]
 
 
 class EnergyPackResponse(BaseModel):
@@ -74,6 +88,11 @@ async def create_subscription_payment(
         raise HTTPException(status_code=503, detail="Оплата подписки временно недоступна. Попробуйте позже.")
 
     tier = TIERS[body.tier]
+    if not tier.purchasable:
+        # Тариф снят с продажи: у действующих подписчиков он продолжает
+        # работать, но оформить его заново нельзя.
+        raise HTTPException(status_code=400, detail="Этот тариф больше не продаётся.")
+
     try:
         payment = await create_payment(
             amount_rub=tier.price_rub,
@@ -100,6 +119,29 @@ async def create_subscription_payment(
         confirmation_url=payment["confirmation"]["confirmation_url"],
         payment_id=payment["id"],
     )
+
+
+@router.get("/tiers", response_model=list[TierResponse])
+def list_tiers() -> list[TierResponse]:
+    """
+    Тарифы, доступные к покупке — снятые с продажи сюда не попадают.
+
+    Витрину отдаёт backend, а не хардкод на фронтенде: иначе цена на
+    экране и цена, по которой реально выставляется счёт, разъезжаются
+    ровно в тот момент, когда их меняют.
+    """
+    return [
+        TierResponse(
+            id=t.id.value,
+            title=t.title,
+            price_rub=t.price_rub,
+            monthly_quota=t.monthly_quota,
+            description=t.description,
+            badge=t.badge,
+            perks=list(t.perks),
+        )
+        for t in purchasable_tiers()
+    ]
 
 
 @router.get("/energy-packs", response_model=list[EnergyPackResponse])
@@ -166,6 +208,7 @@ def get_subscription_status(
     _ensure_energy_refreshed(db, user)
     balance = available_unlocks(db, user)
     common = {
+        "support_chat_url": _support_chat_url(db, user),
         "energy_available": balance > 0,
         "energy_balance": balance,
         "energy_daily": user.energy,
@@ -262,6 +305,15 @@ def _activate_subscription(db: Session, user_id: int, *, tier: str, quota_total:
     sub.quota_used = 0
     sub.period_end = dt.datetime.utcnow() + dt.timedelta(days=days)
     db.commit()
+
+
+def _support_chat_url(db: Session, user: User) -> str | None:
+    if not settings.support_chat_url:
+        return None
+    sub = db.get(Subscription, user.telegram_id)
+    if sub is None or sub.status != "active" or sub.tier not in SUPPORT_CHAT_TIERS:
+        return None
+    return settings.support_chat_url
 
 
 def _expire_if_due(db: Session, sub: Subscription) -> None:

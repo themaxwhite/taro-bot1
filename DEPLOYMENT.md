@@ -80,7 +80,7 @@ curl -X POST "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook" \
 Ту же случайную строку пропиши в `TELEGRAM_WEBHOOK_SECRET` на backend.
 Проверить регистрацию: `https://api.telegram.org/bot<TOKEN>/getWebhookInfo`.
 
-### 3.2 Подключаем ЮKassa (подписка «Базовый»/«Плюс»)
+### 3.2 Подключаем ЮKassa (подписка)
 
 Платёж — редирект на страницу ЮKassa, а не встроенный Telegram-инвойс,
 так что это работает и в браузере, и в Mini App:
@@ -95,8 +95,14 @@ curl -X POST "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook" \
    события `payment.succeeded` и `payment.canceled`.
 4. `MINI_APP_URL` (уже настроен для `/start`, см. шаг 3.1) используется
    и как `return_url` — куда ЮKassa вернёт пользователя после оплаты.
-5. Тарифы (`Базовый` — 10 разблокировок/199₽, `Плюс` — 30/399₽) заданы в
-   `backend/app/subscriptions.py` — поменяй числа там, если нужно другое.
+5. Тарифы (`Плюс` — 70 разблокировок/599₽, `Премиум` — 160/799₽,
+   `Магистр` — 300/1199₽) заданы в `backend/app/subscriptions.py` — поменяй
+   числа там, если нужно другое; фронтенд берёт витрину оттуда же через
+   `GET /api/subscriptions/tiers`. Тариф, который больше не продаётся,
+   помечается `purchasable=False`, а не удаляется: у него могут остаться
+   действующие подписчики. Перк «Магистра» — личный чат с поддержкой —
+   включается переменной `SUPPORT_CHAT_URL`; пока она пуста, кнопка чата
+   не показывается.
 
 ---
 
@@ -114,7 +120,7 @@ curl -X POST "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook" \
 - [x] Валидация Telegram `initData` — готово
 - [x] Персистентность истории (SQLite) — история/профиль читают реальные данные, не моки
 - [x] AI-толкование расклада, дневное пожелание — готово (нужен `GEMINI_API_KEY` или `ANTHROPIC_API_KEY`, иначе статичный fallback)
-- [x] Подписка на ЮKassa (тарифы «Базовый»/«Плюс», квота на толкование и
+- [x] Подписка на ЮKassa (тарифы «Плюс»/«Премиум»/«Магистр», квота на толкование и
       доп. карту) — готово на backend+frontend, нужны только реальные
       `YOOKASSA_SHOP_ID`/`YOOKASSA_SECRET_KEY`
 - [ ] Backend задеплоен на хостинг — сделать по разделу 1

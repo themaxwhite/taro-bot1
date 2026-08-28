@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { fetchAdminStats, type AdminStats } from "../../services/adminApi";
+import { TIER_TITLES } from "../../types/subscription";
 import { SpreadsApiError } from "../../services/spreadsApi";
 import { ScreenHeader } from "../../components/ScreenHeader/ScreenHeader";
 import { Spinner } from "../../components/Spinner/Spinner";
@@ -43,10 +44,13 @@ function buildSections(stats: AdminStats): { title: string; metrics: Metric[] }[
     },
     {
       title: "Подписки",
-      metrics: [
-        { label: "Базовый (активные)", value: String(stats.activeSubscriptionsBasic) },
-        { label: "Плюс (активные)", value: String(stats.activeSubscriptionsPlus) },
-      ],
+      // Строка на каждый тариф, который вернул сервер, включая снятые с
+      // продажи и админский доступ: иначе действующие подписчики
+      // старого тарифа просто пропадают из статистики.
+      metrics: Object.entries(stats.activeSubscriptions).map(([tier, count]) => ({
+        label: `${TIER_TITLES[tier] ?? tier} (активные)`,
+        value: String(count),
+      })),
     },
     {
       title: "Выручка",

@@ -17,6 +17,7 @@ from app.tarot.schemas import DrawnCard
 from app.tarot.visibility import stored_cards
 from app.moderation import ensure_question_allowed
 from app.models import DailyMessage, DailyStory, SpreadFollowUp, SpreadRecord, Subscription, User
+from app.subscriptions import FREE_TEXT_TIERS
 from app.spreads import SpreadId
 
 router = APIRouter(prefix="/api", tags=["ai"])
@@ -48,7 +49,7 @@ class InterpretationResponse(BaseModel):
 
 class FollowUpRequest(BaseModel):
     # Exactly one of these is set: question_key picks one of the preset
-    # FOLLOW_UP_QUESTIONS; custom_question is the Премиум-exclusive
+    # FOLLOW_UP_QUESTIONS; custom_question is the paid-tier-exclusive
     # free-text alternative (see ask_follow_up).
     question_key: str | None = None
     custom_question: str | None = None
@@ -231,10 +232,14 @@ async def interpret_spread(
     return InterpretationResponse(interpretation=text, cards=stored_cards(record))
 
 
-def _is_premium(db: Session, user: User) -> bool:
-    """Премиум (or the admin promo tier, which already bypasses everything else)."""
+def _can_ask_free_text(db: Session, user: User) -> bool:
+    """
+    Тарифы, где вопрос можно задать своими словами. Список живёт в
+    app/subscriptions.py, чтобы добавление тарифа не требовало помнить
+    про это место.
+    """
     sub = db.get(Subscription, user.telegram_id)
-    return sub is not None and sub.status == "active" and sub.tier in ("premium", "admin")
+    return sub is not None and sub.status == "active" and sub.tier in FREE_TEXT_TIERS
 
 
 @router.post("/spreads/{spread_record_id}/follow-up", response_model=FollowUpResponse)
@@ -247,7 +252,7 @@ async def ask_follow_up(
     """
     Answers one follow-up question in the context of the spread's
     already-unlocked interpretation — either one of the preset
-    FOLLOW_UP_QUESTIONS, or (Премиум tier only) any free-text question
+    FOLLOW_UP_QUESTIONS, or (on «Премиум»/«Магистр» only) any free-text question
     via body.custom_question. Each preset question is billed once per
     spread via require_quota() and cached afterward, so re-opening the
     spread later doesn't re-bill or re-call the AI for the same
@@ -267,8 +272,11 @@ async def ask_follow_up(
 
     custom_question = (body.custom_question or "").strip()
     if custom_question:
-        if not _is_premium(db, user) and not settings.skip_payment_check:
-            raise HTTPException(status_code=403, detail="Свои вопросы к раскладу доступны на тарифе «Премиум».")
+        if not _can_ask_free_text(db, user) and not settings.skip_payment_check:
+            raise HTTPException(
+                status_code=403,
+                detail="Свои вопросы к раскладу доступны на тарифах «Премиум» и «Магистр».",
+            )
         # Свободный текст проходит ту же проверку, что и вопрос к
         # раскладу — иначе ограничения обходились бы через этот путь.
         ensure_question_allowed(custom_question)

@@ -81,6 +81,12 @@ class Settings(BaseSettings):
     # SKIP_PAYMENT_CHECK=true to flip.
     skip_payment_check: bool = False
 
+    # Ссылка на личный чат поддержки — перк тарифа «Магистр». Обычно
+    # это https://t.me/<username> оператора или ссылка на чат-бот
+    # поддержки. Пока не задана, тариф продаётся, но кнопка чата не
+    # показывается: лучше не показать перк, чем показать битую ссылку.
+    support_chat_url: str | None = None
+
     # Comma-separated Telegram user ids allowed to see the admin
     # dashboard (app/api/admin.py) — the app owner's own id(s), not a
     # general role system. Empty means no one can access it.

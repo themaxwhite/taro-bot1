@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useTelegramUser } from "../../hooks/useTelegramUser";
 import type { ProfileStats } from "../../types/history";
 import type { Theme } from "../../hooks/useTheme";
-import { TIERS, type SubscriptionStatus } from "../../types/subscription";
+import { TIER_TITLES, type SubscriptionStatus } from "../../types/subscription";
 import { fetchProfileStats, fetchProfile, updateInterests, updateNotifications } from "../../services/historyApi";
 import { getSubscriptionStatus } from "../../services/subscriptionsApi";
 import { EnergyBalance } from "../../components/EnergyBalance/EnergyBalance";
@@ -26,7 +26,7 @@ interface ProfileScreenProps {
 function subscriptionLabel(sub: SubscriptionStatus | null): string {
   if (sub === null || sub.status !== "active") return "Нет активной подписки";
   if (sub.tier === "admin") return "Админ-доступ активен";
-  const title = TIERS.find((t) => t.id === sub.tier)?.title ?? sub.tier ?? "";
+  const title = TIER_TITLES[sub.tier ?? ""] ?? sub.tier ?? "";
   return `${title} — осталось ${(sub.quotaTotal ?? 0) - (sub.quotaUsed ?? 0)} из ${sub.quotaTotal}`;
 }
 

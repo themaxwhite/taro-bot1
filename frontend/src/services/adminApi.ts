@@ -10,8 +10,7 @@ interface AdminStatsDTO {
   active_today: number;
   spreads_total: number;
   spreads_today: number;
-  active_subscriptions_basic: number;
-  active_subscriptions_plus: number;
+  active_subscriptions: Record<string, number>;
   revenue_total_rub: number;
   revenue_7d_rub: number;
   referrals_total: number;
@@ -24,8 +23,12 @@ export interface AdminStats {
   activeToday: number;
   spreadsTotal: number;
   spreadsToday: number;
-  activeSubscriptionsBasic: number;
-  activeSubscriptionsPlus: number;
+  /**
+   * Активные подписки по тарифам: id тарифа -> количество. Словарём, а
+   * не полем на тариф, — тарифы добавляются и снимаются с продажи, и
+   * фиксированные поля пришлось бы править здесь при каждом изменении.
+   */
+  activeSubscriptions: Record<string, number>;
   revenueTotalRub: number;
   revenue7dRub: number;
   referralsTotal: number;
@@ -39,8 +42,7 @@ function toAdminStats(data: AdminStatsDTO): AdminStats {
     activeToday: data.active_today,
     spreadsTotal: data.spreads_total,
     spreadsToday: data.spreads_today,
-    activeSubscriptionsBasic: data.active_subscriptions_basic,
-    activeSubscriptionsPlus: data.active_subscriptions_plus,
+    activeSubscriptions: data.active_subscriptions,
     revenueTotalRub: data.revenue_total_rub,
     revenue7dRub: data.revenue_7d_rub,
     referralsTotal: data.referrals_total,

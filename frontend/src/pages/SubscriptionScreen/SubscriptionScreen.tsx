@@ -1,11 +1,17 @@
 import { useEffect, useState } from "react";
-import { TIERS, type SubscriptionStatus, type SubscriptionTierId } from "../../types/subscription";
+import {
+  TIER_TITLES,
+  type SubscriptionStatus,
+  type SubscriptionTierId,
+  type TierOption,
+} from "../../types/subscription";
 import {
   getSubscriptionStatus,
   subscribeToTier,
   redeemPromoCode,
   getEnergyPacks,
   buyEnergyPack,
+  getTiers,
 } from "../../services/subscriptionsApi";
 import type { EnergyPack } from "../../types/energy";
 import { EnergyBalance } from "../../components/EnergyBalance/EnergyBalance";
@@ -34,7 +40,24 @@ function formatDate(iso: string): string {
 }
 
 function tierTitle(tier: string): string {
-  return TIERS.find((t) => t.id === tier)?.title ?? (tier === "admin" ? "Админ-доступ" : tier);
+  // По названиям, а не по витрине с сервера: у пользователя может быть
+  // активен тариф, снятый с продажи, и его всё равно нужно назвать.
+  return TIER_TITLES[tier] ?? tier;
+}
+
+function openSupportChat(url: string) {
+  const webApp = window.Telegram?.WebApp;
+  if (!webApp) {
+    window.open(url, "_blank");
+    return;
+  }
+  // Ссылки на t.me открываются внутри Telegram, всё остальное — во
+  // встроенном браузере.
+  if (/^https:\/\/t\.me\//.test(url)) {
+    webApp.openTelegramLink(url);
+  } else {
+    webApp.openLink(url);
+  }
 }
 
 export function SubscriptionScreen({ onBack }: SubscriptionScreenProps) {
@@ -44,12 +67,18 @@ export function SubscriptionScreen({ onBack }: SubscriptionScreenProps) {
   const [promoState, setPromoState] = useState<PromoState>({ status: "idle" });
   const [packs, setPacks] = useState<EnergyPack[]>([]);
   const [packState, setPackState] = useState<PackState>({ status: "idle" });
+  const [tiers, setTiers] = useState<TierOption[]>([]);
 
   useEffect(() => {
     // Пакеты — витрина: если их не удалось загрузить, экран подписки
     // должен работать дальше, просто без этого блока.
     getEnergyPacks()
       .then(setPacks)
+      .catch(() => {});
+    // То же и с тарифами: витрина приходит с сервера, чтобы цена на
+    // экране не могла разойтись с ценой в счёте.
+    getTiers()
+      .then(setTiers)
       .catch(() => {});
   }, []);
 
@@ -127,6 +156,15 @@ export function SubscriptionScreen({ onBack }: SubscriptionScreenProps) {
           {active.periodEnd && (
             <span className={styles.currentRenew}>Действует до {formatDate(active.periodEnd)}</span>
           )}
+          {active.supportChatUrl && (
+            <button
+              type="button"
+              className={styles.supportButton}
+              onClick={() => openSupportChat(active.supportChatUrl as string)}
+            >
+              Личный чат с поддержкой
+            </button>
+          )}
         </div>
       )}
 
@@ -171,11 +209,11 @@ export function SubscriptionScreen({ onBack }: SubscriptionScreenProps) {
         </div>
       )}
 
-      {state.status !== "loading" && (
+      {state.status !== "loading" && tiers.length > 0 && (
         <div className={styles.tiers}>
           <h2 className={styles.sectionHeading}>Подписка</h2>
           <p className={styles.sectionHint}>Запас разблокировок каждый месяц.</p>
-          {TIERS.map((tier) => (
+          {tiers.map((tier) => (
             <div key={tier.id} className={styles.tierCard}>
               {tier.badge && <span className={styles.tierBadge}>{tier.badge}</span>}
               <div className={styles.tierHead}>
@@ -183,6 +221,15 @@ export function SubscriptionScreen({ onBack }: SubscriptionScreenProps) {
                 <span className={styles.tierPrice}>{tier.priceRub} ₽/мес</span>
               </div>
               <p className={styles.tierDescription}>{tier.description}</p>
+              {tier.perks.length > 0 && (
+                <ul className={styles.tierPerks}>
+                  {tier.perks.map((perk) => (
+                    <li key={perk} className={styles.tierPerk}>
+                      {perk}
+                    </li>
+                  ))}
+                </ul>
+              )}
               <button
                 type="button"
                 className={styles.tierButton}

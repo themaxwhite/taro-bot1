@@ -1,5 +1,5 @@
 import type { EnergyPack } from "../types/energy";
-import type { SubscriptionStatus, SubscriptionTierId } from "../types/subscription";
+import type { SubscriptionStatus, SubscriptionTierId, TierOption } from "../types/subscription";
 import { SpreadsApiError } from "./spreadsApi";
 
 const API_BASE_URL: string =
@@ -40,6 +40,7 @@ interface StatusResponseBody {
   energy_daily: number;
   energy_purchased: number;
   energy_referral: number;
+  support_chat_url: string | null;
 }
 
 export async function getSubscriptionStatus(): Promise<SubscriptionStatus> {
@@ -58,7 +59,31 @@ export async function getSubscriptionStatus(): Promise<SubscriptionStatus> {
       purchased: data.energy_purchased,
       referral: data.energy_referral,
     },
+    supportChatUrl: data.support_chat_url,
   };
+}
+
+/** Витрина тарифов. Снятые с продажи сюда не попадают. */
+export async function getTiers(): Promise<TierOption[]> {
+  const response = await api("/api/subscriptions/tiers");
+  const data = (await response.json()) as {
+    id: SubscriptionTierId;
+    title: string;
+    price_rub: number;
+    monthly_quota: number;
+    description: string;
+    badge: string | null;
+    perks: string[];
+  }[];
+  return data.map((t) => ({
+    id: t.id,
+    title: t.title,
+    priceRub: t.price_rub,
+    monthlyQuota: t.monthly_quota,
+    description: t.description,
+    badge: t.badge,
+    perks: t.perks,
+  }));
 }
 
 export async function getEnergyPacks(): Promise<EnergyPack[]> {

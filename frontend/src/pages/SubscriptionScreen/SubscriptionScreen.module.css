@@ -57,6 +57,21 @@
   color: var(--color-text-muted);
 }
 
+/* Кнопка чата поддержки — перк тарифа, поэтому живёт в карточке
+   текущего тарифа, а не в общем списке действий. */
+.supportButton {
+  align-self: flex-start;
+  margin-top: 12px;
+  padding: 9px 16px;
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-accent-strong);
+  font-size: 13.5px;
+  font-weight: 600;
+  touch-action: manipulation;
+}
+
 .tiers {
   display: flex;
   flex-direction: column;
@@ -114,6 +129,33 @@
   font-size: 13.5px;
   color: var(--color-text-muted);
   line-height: 1.45;
+}
+
+/* Перки списком: что входит в тариф по существу — это то, по чему
+   тарифы сравнивают глазами, а не сплошным описанием. */
+.tierPerks {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tierPerk {
+  position: relative;
+  padding-left: 20px;
+  font-size: 13.5px;
+  line-height: 1.4;
+  color: var(--color-text);
+}
+
+.tierPerk::before {
+  content: "✦";
+  position: absolute;
+  left: 0;
+  color: var(--color-accent-strong);
+  font-size: 12px;
 }
 
 .tierButton {

@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user
 from app.config import settings
 from app.db import get_db
+from app.subscriptions import TIERS
 from app.models import SpreadRecord, Subscription, SubscriptionPayment, User
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -32,8 +33,11 @@ class AdminStatsResponse(BaseModel):
     active_today: int
     spreads_total: int
     spreads_today: int
-    active_subscriptions_basic: int
-    active_subscriptions_plus: int
+    # Счётчик по каждому тарифу, а не пара фиксированных полей: тарифы
+    # добавляются и снимаются с продажи, и захардкоженные поля пришлось
+    # бы править здесь, во фронтенде и в маппинге при каждом изменении —
+    # а пока не поправишь, новый тариф просто не виден в статистике.
+    active_subscriptions: dict[str, int]
     revenue_total_rub: int
     revenue_7d_rub: int
     referrals_total: int
@@ -70,16 +74,22 @@ def get_admin_stats(
         select(func.count(func.distinct(SpreadRecord.user_id))).where(SpreadRecord.created_at >= today_start)
     ).scalar_one()
 
-    active_basic = db.execute(
-        select(func.count())
-        .select_from(Subscription)
-        .where(Subscription.status == "active", Subscription.tier == "basic", Subscription.period_end >= now)
-    ).scalar_one()
-    active_plus = db.execute(
-        select(func.count())
-        .select_from(Subscription)
-        .where(Subscription.status == "active", Subscription.tier == "plus", Subscription.period_end >= now)
-    ).scalar_one()
+    # Группируем по тому, что реально лежит в базе, — так в статистику
+    # попадают и снятые с продажи тарифы с действующими подписчиками, и
+    # админский промо-доступ.
+    active_by_tier = dict(
+        db.execute(
+            select(Subscription.tier, func.count())
+            .where(Subscription.status == "active", Subscription.period_end >= now)
+            .group_by(Subscription.tier)
+        ).all()
+    )
+    active_subscriptions = {
+        tier.id.value: active_by_tier.get(tier.id.value, 0) for tier in TIERS.values()
+    }
+    # Тарифы, которых нет в конфиге (например "admin"), иначе потерялись бы.
+    for tier_name, count in active_by_tier.items():
+        active_subscriptions.setdefault(tier_name, count)
 
     revenue_total = db.execute(
         select(func.coalesce(func.sum(SubscriptionPayment.amount_rub), 0)).where(
@@ -100,8 +110,7 @@ def get_admin_stats(
         active_today=active_today,
         spreads_total=spreads_total,
         spreads_today=spreads_today,
-        active_subscriptions_basic=active_basic,
-        active_subscriptions_plus=active_plus,
+        active_subscriptions=active_subscriptions,
         revenue_total_rub=revenue_total,
         revenue_7d_rub=revenue_7d,
         referrals_total=referrals_total,
