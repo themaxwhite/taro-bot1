@@ -23,11 +23,47 @@ const ZODIAC_SIGNS: { id: ZodiacSign; symbol: string; title: string }[] = [
   { id: "pisces", symbol: "♓", title: "Рыбы" },
 ];
 
-// One-time gate before the main menu — gender, then zodiac sign. Both
-// are persisted server-side (see api/history.py::complete_onboarding)
-// so App.tsx skips straight to MainScreen on every later open.
+// Вводные экраны идут перед вопросами о себе: до них человек не знает,
+// что это за приложение, и просьба указать пол и знак зодиака выглядит
+// как анкета на пустом месте. Первым делом — что такое расклад, потом
+// уже данные для него.
+const INTRO_STEPS: { glyph: string; title: string; paragraphs: string[] }[] = [
+  {
+    glyph: "🔮",
+    title: "Добро пожаловать в Tarot Aurum",
+    paragraphs: [
+      "Колода — 78 карт. 22 старших аркана говорят о крупных поворотах, 56 младших — о повседневном.",
+      "Расклад — это несколько карт, каждая на своей позиции, и толкование, которое связывает их в один ответ на ваш вопрос.",
+    ],
+  },
+  {
+    glyph: "🌗",
+    title: "Перевёрнутые карты",
+    paragraphs: [
+      "Карта может лечь вверх ногами — это не делает её «плохой».",
+      "Перевёрнутое положение разворачивает смысл: то же качество, но ослабленное, запаздывающее или обращённое внутрь, а не наружу.",
+    ],
+  },
+  {
+    glyph: "✦",
+    title: "Энергия",
+    paragraphs: [
+      "Расклад открывается за одну энергию — карты вместе с толкованием. Столько же стоит дополнительная карта или уточняющий вопрос.",
+      "Одна энергия начисляется бесплатно каждый день. Больше дают подписка и приглашённые друзья, а карта дня бесплатна всегда.",
+    ],
+  },
+];
+
+const GENDER_STEP = INTRO_STEPS.length + 1;
+const ZODIAC_STEP = GENDER_STEP + 1;
+const TOTAL_STEPS = ZODIAC_STEP;
+
+// One-time gate before the main menu — a short intro, then gender and
+// zodiac sign. Both answers are persisted server-side (see
+// api/history.py::complete_onboarding) so App.tsx skips straight to
+// MainScreen on every later open.
 export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState(1);
   const [gender, setGender] = useState<Gender | null>(null);
   const [zodiacSign, setZodiacSign] = useState<ZodiacSign | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -35,19 +71,20 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
 
   function handleGenderSelect(value: Gender) {
     setGender(value);
-    setStep(2);
+    setStep(ZODIAC_STEP);
   }
 
-  // Step 2 has exactly one action, which is what the native main button
-  // is for. Step 1 has none — picking a gender advances by itself — so
-  // the button stays hidden there rather than sitting at the bottom of
-  // the sheet with nothing to do.
+  // Каждый шаг, кроме выбора пола, имеет ровно одно действие — это и
+  // есть случай нативной главной кнопки. На шаге с полом её нет:
+  // выбор карточки сам ведёт дальше, и кнопке внизу нечего было бы
+  // делать.
   const native = hasNativeMainButton();
+  const isIntro = step <= INTRO_STEPS.length;
   useTelegramMainButton({
-    text: "Готово",
-    onClick: () => void handleFinish(),
-    visible: step === 2,
-    disabled: !zodiacSign || submitting,
+    text: isIntro ? "Дальше" : "Готово",
+    onClick: () => (isIntro ? setStep((current) => current + 1) : void handleFinish()),
+    visible: step !== GENDER_STEP,
+    disabled: isIntro ? false : !zodiacSign || submitting,
     progress: submitting,
   });
 
@@ -69,17 +106,35 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
       <MysticalBackground />
 
       <div className={styles.progress} aria-hidden="true">
-        <span className={`${styles.dot} ${step >= 1 ? styles.dotActive : ""}`} />
-        <span className={`${styles.dot} ${step >= 2 ? styles.dotActive : ""}`} />
+        {Array.from({ length: TOTAL_STEPS }, (_, i) => (
+          <span key={i} className={`${styles.dot} ${step >= i + 1 ? styles.dotActive : ""}`} />
+        ))}
       </div>
 
-      {step === 1 && (
-        <div className={styles.step}>
+      {isIntro && (
+        <div className={styles.step} key={step}>
           <span className={styles.glyph} aria-hidden="true">
-            🔮
+            {INTRO_STEPS[step - 1].glyph}
           </span>
-          <h1 className={styles.title}>Добро пожаловать в Tarot Aurum</h1>
-          <p className={styles.subtitle}>Расскажите немного о себе — это поможет точнее толковать карты</p>
+          <h1 className={styles.title}>{INTRO_STEPS[step - 1].title}</h1>
+          {INTRO_STEPS[step - 1].paragraphs.map((text) => (
+            <p key={text} className={styles.introParagraph}>
+              {text}
+            </p>
+          ))}
+
+          {!native && (
+            <button type="button" className={styles.continueButton} onClick={() => setStep(step + 1)}>
+              Дальше
+            </button>
+          )}
+        </div>
+      )}
+
+      {step === GENDER_STEP && (
+        <div className={styles.step}>
+          <h1 className={styles.title}>Расскажите о себе</h1>
+          <p className={styles.subtitle}>Пол и знак зодиака учитываются в толковании карт</p>
 
           <div className={styles.genderRow}>
             <button type="button" className={styles.genderCard} onClick={() => handleGenderSelect("male")}>
@@ -98,7 +153,7 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
         </div>
       )}
 
-      {step === 2 && (
+      {step === ZODIAC_STEP && (
         <div className={styles.step}>
           <h1 className={styles.title}>Ваш знак зодиака</h1>
           <p className={styles.subtitle}>Тоже учитывается в толкованиях — выберите свой</p>

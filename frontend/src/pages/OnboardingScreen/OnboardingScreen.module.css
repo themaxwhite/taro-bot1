@@ -68,6 +68,22 @@
   max-width: 30ch;
 }
 
+/* Абзац вводного экрана. Шире и с большим межстрочным, чем .subtitle:
+   там одна строка-подпись под заголовком, здесь связный текст, который
+   человек действительно читает. */
+.introParagraph {
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--color-text-muted);
+  text-align: center;
+  margin: 0 0 14px;
+  max-width: 34ch;
+}
+
+.introParagraph:last-of-type {
+  margin-bottom: 8px;
+}
+
 .genderRow {
   display: flex;
   gap: 12px;
