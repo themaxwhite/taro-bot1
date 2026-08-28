@@ -13,6 +13,7 @@ import { SpreadList } from "../../components/SpreadList/SpreadList";
 import { EnergyBalance } from "../../components/EnergyBalance/EnergyBalance";
 import { DailyStory } from "../../components/DailyStory/DailyStory";
 import { getSubscriptionStatus } from "../../services/subscriptionsApi";
+import type { EnergyBreakdown } from "../../types/energy";
 import { MysticalBackground } from "../../components/MysticalBackground/MysticalBackground";
 import styles from "./MainScreen.module.css";
 
@@ -50,13 +51,14 @@ export function MainScreen({
   }, []);
 
   // Баланс разблокировок. null пока грузится — плашка рисуется сразу с
-  // многоточием, чтобы шапка не прыгала, когда приедет число.
-  const [energy, setEnergy] = useState<number | null>(null);
+  // многоточием, чтобы шапка не прыгала, когда приедет число. Разбивка
+  // нужна и здесь: без неё шкала аккумулятора не знает своей ёмкости.
+  const [energy, setEnergy] = useState<EnergyBreakdown | null>(null);
   useEffect(() => {
     let cancelled = false;
     getSubscriptionStatus()
       .then((status) => {
-        if (!cancelled) setEnergy(status.energy.balance);
+        if (!cancelled) setEnergy(status.energy);
       })
       .catch(() => {});
     return () => {
@@ -86,7 +88,11 @@ export function MainScreen({
       <TopBar onHistoryClick={onOpenHistory} onProfileClick={onOpenProfile} />
       <div className={styles.balanceRow}>
         <Greeting firstName={firstName} />
-        <EnergyBalance balance={energy} onClick={onOpenSubscription} />
+        <EnergyBalance
+          balance={energy?.balance ?? null}
+          breakdown={energy ?? undefined}
+          onClick={onOpenSubscription}
+        />
       </div>
       <DailyWish />
       {dailyCardCooldown && <DailyCardCooldown nextAvailableAt={dailyCardCooldown} />}

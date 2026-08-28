@@ -38,6 +38,7 @@ interface StatusResponseBody {
   energy_available: boolean;
   energy_balance: number;
   energy_daily: number;
+  energy_daily_max: number;
   energy_purchased: number;
   energy_referral: number;
   support_chat_url: string | null;
@@ -56,8 +57,16 @@ export async function getSubscriptionStatus(): Promise<SubscriptionStatus> {
     energy: {
       balance: data.energy_balance,
       daily: data.energy_daily,
+      dailyMax: data.energy_daily_max,
       purchased: data.energy_purchased,
       referral: data.energy_referral,
+      subscription:
+        data.status === "active" && data.quota_total !== null
+          ? {
+              remaining: Math.max(data.quota_total - (data.quota_used ?? 0), 0),
+              total: data.quota_total,
+            }
+          : null,
     },
     supportChatUrl: data.support_chat_url,
   };

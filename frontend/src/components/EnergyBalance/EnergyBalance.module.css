@@ -1,7 +1,7 @@
 .badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   padding: 6px 12px;
   border-radius: 999px;
   border: 1px solid var(--color-border);
@@ -15,27 +15,116 @@
   opacity: 0.7;
 }
 
-.icon {
-  color: var(--color-accent-strong);
-  font-size: 13px;
-}
-
 .value {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
+/* --- Аккумулятор ------------------------------------------------- */
+
+.battery {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.track {
+  position: relative;
+  display: block;
+  width: 34px;
+  height: 15px;
+  padding: 2px;
+  border-radius: 4px;
+  border: 1.5px solid var(--color-accent-strong);
+  overflow: hidden;
+}
+
+.fill {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--color-accent-strong), var(--color-accent));
+  /* Заряд меняется редко и на заметную величину — переход показывает,
+     что число именно убыло, а не перерисовалось другим. */
+  transition: width 0.45s ease;
+}
+
+/* Клемма справа — то, что делает прямоугольник аккумулятором. */
+.nub {
+  display: block;
+  width: 2.5px;
+  height: 6px;
+  border-radius: 0 2px 2px 0;
+  background: var(--color-accent-strong);
+}
+
+/* Разряжен: цвет уходит в приглушённый, чтобы пустая шкала читалась как
+   «нечем открыть», а не как не догрузившаяся картинка. */
+.batteryEmpty .track {
+  border-color: var(--color-text-muted);
+}
+
+.batteryEmpty .nub {
+  background: var(--color-text-muted);
+}
+
+/* --- Развёрнутый вид --------------------------------------------- */
+
 .detailed {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
   width: 100%;
-  justify-content: flex-start;
   border-radius: 14px;
   padding: 14px 16px;
   font-size: 15px;
 }
 
-.hint {
-  margin-left: auto;
-  font-size: 13px;
+.detailed .track {
+  width: 96px;
+  height: 20px;
+  border-radius: 5px;
+}
+
+.detailed .nub {
+  width: 3.5px;
+  height: 9px;
+}
+
+.readoutRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.readout {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.charge {
+  font-family: var(--font-display);
+  font-size: 22px;
+  line-height: 1;
+  color: var(--color-text);
+}
+
+.capacity {
+  font-size: 14px;
   color: var(--color-text-muted);
-  text-align: right;
+}
+
+.caption {
+  font-size: 12.5px;
+  color: var(--color-accent-strong);
+}
+
+.hint {
+  font-size: 12.5px;
+  color: var(--color-text-muted);
 }

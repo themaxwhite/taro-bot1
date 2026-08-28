@@ -40,6 +40,11 @@ class SubscriptionStatusResponse(BaseModel):
     energy_balance: int
     # Из чего он складывается — для подсказки в профиле.
     energy_daily: int
+    # Ёмкость суточной зарядки. Без неё фронтенд не может нарисовать
+    # шкалу «сколько из скольких» тем, у кого нет подписки, — а
+    # захардкодить константу бэкенда у себя значит разъехаться с ней при
+    # первом же изменении.
+    energy_daily_max: int
     energy_purchased: int
     energy_referral: int
     # Ссылка на личный чат поддержки — приходит только тем, чей тариф её
@@ -212,6 +217,7 @@ def get_subscription_status(
         "energy_available": balance > 0,
         "energy_balance": balance,
         "energy_daily": user.energy,
+        "energy_daily_max": DAILY_FREE_ENERGY,
         "energy_purchased": user.purchased_energy,
         "energy_referral": user.referral_bonus_quota,
     }
