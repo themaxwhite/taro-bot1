@@ -10,6 +10,10 @@ class SpreadId(str, Enum):
     YES_NO = "yes-no"
     HORSESHOE = "horseshoe"
     COMPATIBILITY = "compatibility"
+    WORK = "work"
+    CROSSROADS = "crossroads"
+    MIRROR = "mirror"
+    MONTH = "month"
 
 
 @dataclass(frozen=True)
@@ -90,6 +94,54 @@ SPREADS: dict[SpreadId, SpreadConfig] = {
             "Что вас связывает",
             "Трудности",
             "Потенциал отношений",
+        ),
+    ),
+    SpreadId.WORK: SpreadConfig(
+        id=SpreadId.WORK,
+        title="Работа и деньги",
+        card_count=4,
+        position_labels=(
+            "Где вы сейчас",
+            "Что мешает",
+            "Незамеченная возможность",
+            "Совет",
+        ),
+    ),
+    SpreadId.CROSSROADS: SpreadConfig(
+        id=SpreadId.CROSSROADS,
+        title="Два пути",
+        card_count=5,
+        # Позиции не повторяются дословно («К чему приведёт» дважды) —
+        # они уходят в промпт толкования построчно, и одинаковые подписи
+        # там неотличимы друг от друга.
+        position_labels=(
+            "Суть выбора",
+            "Первый путь — что он даст",
+            "Первый путь — чего будет стоить",
+            "Второй путь — что он даст",
+            "Второй путь — чего будет стоить",
+        ),
+    ),
+    SpreadId.MIRROR: SpreadConfig(
+        id=SpreadId.MIRROR,
+        title="Зеркало",
+        card_count=4,
+        position_labels=(
+            "Каким вы себя видите",
+            "Каким вас видят другие",
+            "Что вы прячете",
+            "Что стоит принять",
+        ),
+    ),
+    SpreadId.MONTH: SpreadConfig(
+        id=SpreadId.MONTH,
+        title="Месяц впереди",
+        card_count=4,
+        position_labels=(
+            "Начало месяца",
+            "Середина",
+            "Конец месяца",
+            "Главная тема",
         ),
     ),
 }
