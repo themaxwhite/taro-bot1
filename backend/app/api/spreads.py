@@ -75,6 +75,25 @@ def get_daily_card_status(
     return DailyCardStatusResponse(next_available_at=next_available_at)
 
 
+class CheckQuestionRequest(BaseModel):
+    question: str
+
+
+@router.post("/check-question")
+def check_question(body: CheckQuestionRequest) -> dict:
+    """
+    Прогоняет вопрос через те же ограничения, что и розыгрыш.
+
+    Существует ради того, чтобы отказ показывался под полем ввода, а не
+    после того, как человек уже вытянул карты: сам розыгрыш происходит
+    на следующем экране, и 400 оттуда прилетал бы в момент, когда
+    исправить вопрос уже негде. На проверку в /draw это не влияет — она
+    остаётся главной, а эта лишь предупреждает заранее.
+    """
+    ensure_question_allowed(body.question)
+    return {"ok": True}
+
+
 @router.post("/draw", response_model=DrawSpreadResponse)
 def draw_spread(
     request: DrawSpreadRequest,

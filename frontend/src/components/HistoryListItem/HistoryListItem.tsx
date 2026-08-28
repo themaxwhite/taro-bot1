@@ -19,9 +19,14 @@ function formatDate(iso: string): string {
 const MAX_THUMBNAILS = 3;
 
 export function HistoryListItem({ entry, onClick }: HistoryListItemProps) {
-  const cardNames = entry.cards.map((card) => card.name).join(" · ");
-  const thumbnails = entry.cards.slice(0, MAX_THUMBNAILS);
-  const extraCount = entry.cards.length - thumbnails.length;
+  // У закрытого расклада карт в записи нет вовсе — рисуем рубашки по
+  // известному количеству и не выдаём названий.
+  const thumbnails = entry.unlocked ? entry.cards.slice(0, MAX_THUMBNAILS) : [];
+  const backsCount = entry.unlocked ? 0 : Math.min(entry.cardCount, MAX_THUMBNAILS);
+  const shownCount = entry.unlocked ? thumbnails.length : backsCount;
+  const totalCount = entry.unlocked ? entry.cards.length : entry.cardCount;
+  const extraCount = totalCount - shownCount;
+  const cardNames = entry.unlocked ? entry.cards.map((card) => card.name).join(" · ") : "Расклад не открыт";
 
   return (
     <button type="button" className={styles.item} onClick={onClick}>
@@ -34,6 +39,9 @@ export function HistoryListItem({ entry, onClick }: HistoryListItemProps) {
             alt=""
             aria-hidden="true"
           />
+        ))}
+        {Array.from({ length: backsCount }, (_, i) => (
+          <img key={`back-${i}`} className={styles.thumbnail} src="/cards/card-back.webp" alt="" aria-hidden="true" />
         ))}
         {extraCount > 0 && <span className={styles.thumbnailExtra}>+{extraCount}</span>}
       </div>

@@ -5,6 +5,7 @@ import type { Theme } from "../../hooks/useTheme";
 import { TIERS, type SubscriptionStatus } from "../../types/subscription";
 import { fetchProfileStats, fetchProfile, updateInterests, updateNotifications } from "../../services/historyApi";
 import { getSubscriptionStatus } from "../../services/subscriptionsApi";
+import { EnergyBalance } from "../../components/EnergyBalance/EnergyBalance";
 import { ScreenHeader } from "../../components/ScreenHeader/ScreenHeader";
 import { Avatar } from "../../components/Avatar/Avatar";
 import { StatRow } from "../../components/StatRow/StatRow";
@@ -21,10 +22,6 @@ interface ProfileScreenProps {
   theme: Theme;
   onToggleTheme: () => void;
 }
-
-// The daily free-energy cap (backend: app/api/subscriptions.py::DAILY_FREE_ENERGY).
-// IMPORTANT: keep in sync with that value.
-const DAILY_FREE_ENERGY = 1;
 
 function subscriptionLabel(sub: SubscriptionStatus | null): string {
   if (sub === null || sub.status !== "active") return "Нет активной подписки";
@@ -122,12 +119,23 @@ export function ProfileScreen({
         stats={[
           { label: "Раскладов", value: stats?.totalSpreads ?? "—" },
           { label: "Дней подряд", value: stats?.daysStreak ?? "—" },
-          {
-            label: "Энергия сегодня",
-            value: subscription ? `${subscription.energyAvailable ? DAILY_FREE_ENERGY : 0}/${DAILY_FREE_ENERGY}` : "—",
-          },
+          // Общий баланс, а не только суточная доля: пользователю важно
+          // «сколько я могу открыть», из какого источника — вторично.
+          // Разбивка ниже, в отдельной строке.
+          { label: "Энергия", value: subscription?.energy.balance ?? "—" },
         ]}
       />
+
+      {subscription && (
+        <div className={styles.energyRow}>
+          <EnergyBalance
+            balance={subscription.energy.balance}
+            variant="detailed"
+            breakdown={subscription.energy}
+            onClick={onOpenSubscription}
+          />
+        </div>
+      )}
 
       <div className={`${styles.settingsList} ${styles.subscriptionRow}`}>
         <button

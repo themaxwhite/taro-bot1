@@ -19,7 +19,10 @@ export interface HistoryEntry {
   spreadTitle: string;
   /** ISO 8601 date string */
   completedAt: string;
+  /** Пусто для неразблокированного расклада — backend их не отдаёт. */
   cards: DrawnCard[];
+  unlocked: boolean;
+  cardCount: number;
   question: string | null;
   interpretation: string | null;
   followUps: HistoryFollowUp[];

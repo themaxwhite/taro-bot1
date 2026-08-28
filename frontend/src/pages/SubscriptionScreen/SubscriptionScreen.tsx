@@ -1,6 +1,14 @@
 import { useEffect, useState } from "react";
 import { TIERS, type SubscriptionStatus, type SubscriptionTierId } from "../../types/subscription";
-import { getSubscriptionStatus, subscribeToTier, redeemPromoCode } from "../../services/subscriptionsApi";
+import {
+  getSubscriptionStatus,
+  subscribeToTier,
+  redeemPromoCode,
+  getEnergyPacks,
+  buyEnergyPack,
+} from "../../services/subscriptionsApi";
+import type { EnergyPack } from "../../types/energy";
+import { EnergyBalance } from "../../components/EnergyBalance/EnergyBalance";
 import { SpreadsApiError } from "../../services/spreadsApi";
 import { ScreenHeader } from "../../components/ScreenHeader/ScreenHeader";
 import { Spinner } from "../../components/Spinner/Spinner";
@@ -19,6 +27,8 @@ type BuyState = { status: "idle" } | { status: "paying"; tier: SubscriptionTierI
 
 type PromoState = { status: "idle" } | { status: "checking" } | { status: "error"; message: string };
 
+type PackState = { status: "idle" } | { status: "paying"; packId: string } | { status: "error"; message: string };
+
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
 }
@@ -32,6 +42,28 @@ export function SubscriptionScreen({ onBack }: SubscriptionScreenProps) {
   const [buyState, setBuyState] = useState<BuyState>({ status: "idle" });
   const [promoCode, setPromoCode] = useState("");
   const [promoState, setPromoState] = useState<PromoState>({ status: "idle" });
+  const [packs, setPacks] = useState<EnergyPack[]>([]);
+  const [packState, setPackState] = useState<PackState>({ status: "idle" });
+
+  useEffect(() => {
+    // Пакеты — витрина: если их не удалось загрузить, экран подписки
+    // должен работать дальше, просто без этого блока.
+    getEnergyPacks()
+      .then(setPacks)
+      .catch(() => {});
+  }, []);
+
+  async function handleBuyPack(packId: string) {
+    setPackState({ status: "paying", packId });
+    try {
+      await buyEnergyPack(packId);
+      setPackState({ status: "idle" });
+      load();
+    } catch (error) {
+      const message = error instanceof SpreadsApiError ? error.message : "Не удалось пополнить энергию.";
+      setPackState({ status: "error", message });
+    }
+  }
 
   function load() {
     setState({ status: "loading" });
@@ -98,8 +130,51 @@ export function SubscriptionScreen({ onBack }: SubscriptionScreenProps) {
         </div>
       )}
 
+      {state.status === "ready" && (
+        <div className={styles.balanceBlock}>
+          <EnergyBalance
+            balance={state.subscription.energy.balance}
+            variant="detailed"
+            breakdown={state.subscription.energy}
+          />
+          <p className={styles.balanceHint}>
+            Одна энергия открывает расклад целиком — карты вместе с толкованием. Столько же стоит
+            дополнительная карта или уточняющий вопрос. Карта дня бесплатна и не тратит энергию.
+          </p>
+        </div>
+      )}
+
+      {packs.length > 0 && (
+        <div className={styles.packs}>
+          <h2 className={styles.sectionHeading}>Пополнить энергию</h2>
+          <p className={styles.sectionHint}>Разово, без подписки. Купленная энергия не сгорает.</p>
+          <div className={styles.packRow}>
+            {packs.map((pack) => (
+              <button
+                key={pack.id}
+                type="button"
+                className={styles.packCard}
+                disabled={packState.status === "paying"}
+                onClick={() => handleBuyPack(pack.id)}
+              >
+                {pack.badge && <span className={styles.packBadge}>{pack.badge}</span>}
+                <span className={styles.packAmount}>✦ {pack.amount}</span>
+                <span className={styles.packPrice}>
+                  {packState.status === "paying" && packState.packId === pack.id
+                    ? "Ждём оплату…"
+                    : `${pack.priceRub} ₽`}
+                </span>
+              </button>
+            ))}
+          </div>
+          {packState.status === "error" && <p className={styles.error}>{packState.message}</p>}
+        </div>
+      )}
+
       {state.status !== "loading" && (
         <div className={styles.tiers}>
+          <h2 className={styles.sectionHeading}>Подписка</h2>
+          <p className={styles.sectionHint}>Запас разблокировок каждый месяц.</p>
           {TIERS.map((tier) => (
             <div key={tier.id} className={styles.tierCard}>
               {tier.badge && <span className={styles.tierBadge}>{tier.badge}</span>}

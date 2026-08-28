@@ -11,7 +11,6 @@ import { ReferralScreen } from "./pages/ReferralScreen/ReferralScreen";
 import { AdminScreen } from "./pages/AdminScreen/AdminScreen";
 import { OnboardingScreen } from "./pages/OnboardingScreen/OnboardingScreen";
 import { Spinner } from "./components/Spinner/Spinner";
-import { useAmbientSound } from "./hooks/useAmbientSound";
 import { useTheme } from "./hooks/useTheme";
 import { useReferralCapture } from "./hooks/useReferralCapture";
 import { useTelegramBackButton } from "./hooks/useTelegramBackButton";
@@ -50,10 +49,6 @@ type OnboardingStatus = "checking" | "needed" | "done";
 function App() {
   const [screen, setScreen] = useState<Screen>({ name: "main" });
   const goHome = () => setScreen({ name: "main" });
-  // Lives at the App level (not inside MainScreen) so the AudioContext
-  // isn't torn down and recreated every time the user navigates away
-  // from and back to the main screen — it just keeps playing.
-  const ambientSound = useAmbientSound();
   // Also lives at the App level — the data-theme attribute it manages
   // is on <html>, outside any single screen, so it needs to be applied
   // regardless of which screen is currently mounted.
@@ -182,8 +177,7 @@ function App() {
       onSelectSpread={(spreadId) => setScreen({ name: "spread", spreadId })}
       onOpenHistory={() => setScreen({ name: "history" })}
       onOpenProfile={() => setScreen({ name: "profile" })}
-      soundEnabled={ambientSound.enabled}
-      onToggleSound={ambientSound.toggle}
+      onOpenSubscription={() => setScreen({ name: "subscription" })}
     />
   );
 }

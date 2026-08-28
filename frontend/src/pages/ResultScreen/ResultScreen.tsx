@@ -7,6 +7,7 @@ import { getSubscriptionStatus } from "../../services/subscriptionsApi";
 import type { SubscriptionStatus } from "../../types/subscription";
 import { ScreenHeader } from "../../components/ScreenHeader/ScreenHeader";
 import { CardFront } from "../../components/CardFront/CardFront";
+import { LockedCards } from "../../components/LockedCards/LockedCards";
 import { DailyCardCooldown } from "../../components/DailyCardCooldown/DailyCardCooldown";
 import { ThinkingOverlay } from "../../components/ThinkingOverlay/ThinkingOverlay";
 import { Spinner } from "../../components/Spinner/Spinner";
@@ -72,8 +73,13 @@ export function ResultScreen({ spreadId, question, onBack, onDone, onNeedSubscri
   async function handleUnlockInterpretation(recordId: number) {
     setInterpretState({ status: "working" });
     try {
-      const text = await fetchInterpretation(recordId);
+      const { interpretation: text, cards } = await fetchInterpretation(recordId);
       setInterpretation(text);
+      // Одна разблокировка открывает расклад целиком: карты приезжают
+      // вместе с толкованием, до этого их в ответе не было вовсе.
+      setState((prev) =>
+        prev.status === "success" ? { status: "success", data: { ...prev.data, cards, unlocked: true } } : prev,
+      );
       setInterpretState({ status: "idle" });
       refreshSubscription();
     } catch (error) {
@@ -121,27 +127,38 @@ export function ResultScreen({ spreadId, question, onBack, onDone, onNeedSubscri
 
       {state.status === "success" && (
         <>
-          <div className={styles.cardsRow}>
-            {state.data.cards.map((card) => (
-              <CardFront key={card.position} card={card} />
-            ))}
-          </div>
+          {state.data.unlocked ? (
+            <div className={styles.cardsRow}>
+              {state.data.cards.map((card) => (
+                <CardFront key={card.position} card={card} />
+              ))}
+            </div>
+          ) : (
+            <>
+              <LockedCards count={state.data.card_count} />
+              <p className={styles.lockedHint}>
+                Карты уже выбраны. Откройте расклад, чтобы увидеть их и прочитать толкование.
+              </p>
+            </>
+          )}
 
-          {spreadId === "yes-no" && (
+          {state.data.unlocked && spreadId === "yes-no" && state.data.cards.length > 0 && (
             <p className={styles.yesNoAnswer}>{state.data.cards[0].is_reversed ? "Скорее нет" : "Скорее да"}</p>
           )}
 
-          <div className={styles.meaningsList}>
-            {state.data.cards.map((card) => (
-              <div key={card.position} className={styles.meaningItem}>
-                <p className={styles.meaningTitle}>
-                  {card.position_label}: {card.name}
-                  {card.is_reversed ? " (перевёрнутая)" : ""}
-                </p>
-                <p className={styles.meaningText}>{card.meaning}</p>
-              </div>
-            ))}
-          </div>
+          {state.data.unlocked && (
+            <div className={styles.meaningsList}>
+              {state.data.cards.map((card) => (
+                <div key={card.position} className={styles.meaningItem}>
+                  <p className={styles.meaningTitle}>
+                    {card.position_label}: {card.name}
+                    {card.is_reversed ? " (перевёрнутая)" : ""}
+                  </p>
+                  <p className={styles.meaningText}>{card.meaning}</p>
+                </div>
+              ))}
+            </div>
+          )}
 
           {state.data.next_available_at && <DailyCardCooldown nextAvailableAt={state.data.next_available_at} />}
 
@@ -163,7 +180,7 @@ export function ResultScreen({ spreadId, question, onBack, onDone, onNeedSubscri
                 disabled={interpretState.status === "working"}
                 onClick={() => handleUnlockInterpretation(state.data.id)}
               >
-                🔮 Подробное толкование{subscription?.energyAvailable ? " · ⚡ бесплатно сегодня" : ""}
+                {state.data.unlocked ? "🔮 Подробное толкование" : "🔮 Открыть расклад"} · ✦ 1
               </button>
             )}
             {interpretState.status === "error" && (
@@ -171,28 +188,32 @@ export function ResultScreen({ spreadId, question, onBack, onDone, onNeedSubscri
                 <p className={styles.paywallError}>{interpretState.message}</p>
                 {interpretState.needsSubscription && (
                   <button type="button" className={styles.unlockButtonSecondary} onClick={onNeedSubscription}>
-                    Оформить подписку
+                    Пополнить энергию
                   </button>
                 )}
               </>
             )}
 
-            <button
-              type="button"
-              className={styles.unlockButtonSecondary}
-              disabled={extraCardState.status === "working"}
-              onClick={() => handleDrawExtraCard(state.data.id)}
-            >
-              {extraCardState.status === "working"
-                ? "Тянем карту…"
-                : `🃏 Вытянуть ещё карту${subscription?.energyAvailable ? " · ⚡ бесплатно сегодня" : ""}`}
-            </button>
+            {/* Карта дня — ровно одна карта в сутки, в этом её смысл, так
+                что тянуть к ней ещё одну нельзя (backend отвечает 400).
+                На закрытом раскладе кнопки тоже нет: иначе расклад можно
+                было бы открывать по частям в обход разблокировки. */}
+            {spreadId !== "daily-card" && state.data.unlocked && (
+              <button
+                type="button"
+                className={styles.unlockButtonSecondary}
+                disabled={extraCardState.status === "working"}
+                onClick={() => handleDrawExtraCard(state.data.id)}
+              >
+                {extraCardState.status === "working" ? "Тянем карту…" : "🃏 Вытянуть ещё карту · ✦ 1"}
+              </button>
+            )}
             {extraCardState.status === "error" && (
               <>
                 <p className={styles.paywallError}>{extraCardState.message}</p>
                 {extraCardState.needsSubscription && (
                   <button type="button" className={styles.unlockButtonSecondary} onClick={onNeedSubscription}>
-                    Оформить подписку
+                    Пополнить энергию
                   </button>
                 )}
               </>

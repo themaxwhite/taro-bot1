@@ -19,6 +19,8 @@ interface HistoryEntryDTO {
   spread_title: string;
   completed_at: string;
   cards: HistoryEntry["cards"];
+  unlocked: boolean;
+  card_count: number;
   question: string | null;
   interpretation: string | null;
   follow_ups: FollowUpDTO[];
@@ -59,6 +61,8 @@ export async function fetchHistory(): Promise<HistoryEntry[]> {
     spreadTitle: entry.spread_title,
     completedAt: entry.completed_at,
     cards: entry.cards,
+    unlocked: entry.unlocked,
+    cardCount: entry.card_count,
     question: entry.question,
     interpretation: entry.interpretation,
     followUps: entry.follow_ups.map((fu) => ({

@@ -6,6 +6,7 @@ import { getSubscriptionStatus } from "../../services/subscriptionsApi";
 import { SpreadsApiError } from "../../services/spreadsApi";
 import { ScreenHeader } from "../../components/ScreenHeader/ScreenHeader";
 import { CardFront } from "../../components/CardFront/CardFront";
+import { LockedCards } from "../../components/LockedCards/LockedCards";
 import { ThinkingOverlay } from "../../components/ThinkingOverlay/ThinkingOverlay";
 import { FollowUpQuestions } from "../../components/FollowUpQuestions/FollowUpQuestions";
 import resultStyles from "../ResultScreen/ResultScreen.module.css";
@@ -27,6 +28,10 @@ type ActionState =
 // card action, which only make sense right after a fresh draw.
 export function HistoryDetailScreen({ entry, onBack, onNeedSubscription }: HistoryDetailScreenProps) {
   const [interpretation, setInterpretation] = useState<string | null>(entry.interpretation);
+  // Расклад мог остаться неоплаченным — тогда карт в записи нет, и они
+  // появятся здесь только после разблокировки.
+  const [cards, setCards] = useState(entry.cards);
+  const [unlocked, setUnlocked] = useState(entry.unlocked);
   const [interpretState, setInterpretState] = useState<ActionState>({ status: "idle" });
   const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
 
@@ -43,8 +48,10 @@ export function HistoryDetailScreen({ entry, onBack, onNeedSubscription }: Histo
   async function handleUnlock() {
     setInterpretState({ status: "working" });
     try {
-      const text = await fetchInterpretation(entry.id);
+      const { interpretation: text, cards: revealed } = await fetchInterpretation(entry.id);
       setInterpretation(text);
+      setCards(revealed);
+      setUnlocked(true);
       setInterpretState({ status: "idle" });
       refreshSubscription();
     } catch (error) {
@@ -60,23 +67,32 @@ export function HistoryDetailScreen({ entry, onBack, onNeedSubscription }: Histo
 
       {entry.question && <p className={styles.question}>«{entry.question}»</p>}
 
-      <div className={resultStyles.cardsRow}>
-        {entry.cards.map((card) => (
-          <CardFront key={card.position} card={card} />
-        ))}
-      </div>
+      {unlocked ? (
+        <div className={resultStyles.cardsRow}>
+          {cards.map((card) => (
+            <CardFront key={card.position} card={card} />
+          ))}
+        </div>
+      ) : (
+        <>
+          <LockedCards count={entry.cardCount} />
+          <p className={resultStyles.lockedHint}>Этот расклад так и остался закрытым.</p>
+        </>
+      )}
 
-      <div className={resultStyles.meaningsList}>
-        {entry.cards.map((card) => (
-          <div key={card.position} className={resultStyles.meaningItem}>
-            <p className={resultStyles.meaningTitle}>
-              {card.position_label}: {card.name}
-              {card.is_reversed ? " (перевёрнутая)" : ""}
-            </p>
-            <p className={resultStyles.meaningText}>{card.meaning}</p>
-          </div>
-        ))}
-      </div>
+      {unlocked && (
+        <div className={resultStyles.meaningsList}>
+          {cards.map((card) => (
+            <div key={card.position} className={resultStyles.meaningItem}>
+              <p className={resultStyles.meaningTitle}>
+                {card.position_label}: {card.name}
+                {card.is_reversed ? " (перевёрнутая)" : ""}
+              </p>
+              <p className={resultStyles.meaningText}>{card.meaning}</p>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className={resultStyles.paywallSection}>
         {interpretation ? (
@@ -97,7 +113,7 @@ export function HistoryDetailScreen({ entry, onBack, onNeedSubscription }: Histo
             disabled={interpretState.status === "working"}
             onClick={handleUnlock}
           >
-            🔮 Подробное толкование{subscription?.energyAvailable ? " · ⚡ бесплатно сегодня" : ""}
+            {unlocked ? "🔮 Подробное толкование" : "🔮 Открыть расклад"} · ✦ 1
           </button>
         )}
         {interpretState.status === "error" && (
@@ -105,7 +121,7 @@ export function HistoryDetailScreen({ entry, onBack, onNeedSubscription }: Histo
             <p className={resultStyles.paywallError}>{interpretState.message}</p>
             {interpretState.needsSubscription && (
               <button type="button" className={resultStyles.unlockButtonSecondary} onClick={onNeedSubscription}>
-                Оформить подписку
+                Пополнить энергию
               </button>
             )}
           </>

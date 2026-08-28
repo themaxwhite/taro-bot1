@@ -1,3 +1,5 @@
+import type { EnergyBreakdown } from "./energy";
+
 /**
  * Frontend-facing description of a subscription tier. Pricing and quota
  * are decided by the backend (app/subscriptions.py) — this type only
@@ -58,6 +60,8 @@ export interface SubscriptionStatus {
   quotaUsed: number | null;
   /** ISO 8601 date string */
   periodEnd: string | null;
-  /** Free daily energy (see backend require_quota) still unspent today. */
+  /** Есть ли хоть одна разблокировка прямо сейчас, из любого источника. */
   energyAvailable: boolean;
+  /** Единый баланс и его состав — см. types/energy.ts. */
+  energy: EnergyBreakdown;
 }

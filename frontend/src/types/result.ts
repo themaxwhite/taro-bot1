@@ -21,7 +21,12 @@ export interface DrawnCard {
 export interface DrawSpreadResponse {
   id: number;
   spread_id: SpreadId;
+  /** Пусто, пока `unlocked` false — backend не отдаёт карты неоплаченного расклада. */
   cards: DrawnCard[];
+  /** Оплачен ли расклад. False — рисуем `card_count` рубашек. */
+  unlocked: boolean;
+  /** Сколько карт в раскладе; известно и до оплаты, чтобы верстка не прыгала. */
+  card_count: number;
   /** ISO 8601 date string, only set for spread_id === "daily-card". */
   next_available_at: string | null;
 }

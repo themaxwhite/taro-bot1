@@ -46,3 +46,23 @@
   padding: 0 16px;
   color: var(--color-text-muted);
 }
+
+/* Подпись только для скринридеров: поле должно быть названо, но на
+   экране никакой подсказки не остаётся — см. SpreadScreen.tsx. */
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.questionError {
+  margin: 6px 16px 0;
+  font-size: 13px;
+  color: var(--color-danger, #c0392b);
+}

@@ -1,3 +1,4 @@
+import type { EnergyPack } from "../types/energy";
 import type { SubscriptionStatus, SubscriptionTierId } from "../types/subscription";
 import { SpreadsApiError } from "./spreadsApi";
 
@@ -35,6 +36,10 @@ interface StatusResponseBody {
   quota_used: number | null;
   period_end: string | null;
   energy_available: boolean;
+  energy_balance: number;
+  energy_daily: number;
+  energy_purchased: number;
+  energy_referral: number;
 }
 
 export async function getSubscriptionStatus(): Promise<SubscriptionStatus> {
@@ -47,7 +52,63 @@ export async function getSubscriptionStatus(): Promise<SubscriptionStatus> {
     quotaUsed: data.quota_used,
     periodEnd: data.period_end,
     energyAvailable: data.energy_available,
+    energy: {
+      balance: data.energy_balance,
+      daily: data.energy_daily,
+      purchased: data.energy_purchased,
+      referral: data.energy_referral,
+    },
   };
+}
+
+export async function getEnergyPacks(): Promise<EnergyPack[]> {
+  const response = await api("/api/subscriptions/energy-packs");
+  const data = (await response.json()) as {
+    id: string;
+    title: string;
+    amount: number;
+    price_rub: number;
+    badge: string | null;
+  }[];
+  return data.map((p) => ({
+    id: p.id,
+    title: p.title,
+    amount: p.amount,
+    priceRub: p.price_rub,
+    badge: p.badge,
+  }));
+}
+
+/**
+ * Покупка пакета энергии. Тот же путь, что и подписка: ссылка на оплату
+ * открывается в системном браузере, а возврат в Telegram не считается
+ * доказательством оплаты — ждём, пока вебхук увеличит баланс.
+ */
+export async function buyEnergyPack(packId: string): Promise<void> {
+  const webApp = window.Telegram?.WebApp;
+  if (!webApp) {
+    throw new SpreadsApiError("Оплата доступна только внутри Telegram.");
+  }
+
+  const before = (await getSubscriptionStatus()).energy.purchased;
+
+  const response = await api("/api/subscriptions/create-energy-payment", {
+    method: "POST",
+    body: JSON.stringify({ pack_id: packId }),
+  });
+  const { confirmation_url: confirmationUrl } = (await response.json()) as {
+    confirmation_url: string;
+  };
+  webApp.openLink(confirmationUrl, { try_instant_view: false });
+
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    await new Promise((r) => setTimeout(r, 3000));
+    const status = await getSubscriptionStatus();
+    if (status.energy.purchased > before) return;
+  }
+  throw new SpreadsApiError(
+    "Не удалось подтвердить оплату автоматически. Если деньги списались, откройте профиль ещё раз через минуту.",
+  );
 }
 
 export async function redeemPromoCode(code: string): Promise<void> {

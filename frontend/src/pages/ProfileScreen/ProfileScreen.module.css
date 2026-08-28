@@ -141,3 +141,7 @@
   color: var(--color-text-muted);
   font-size: 18px;
 }
+
+.energyRow {
+  padding: 4px 16px 0;
+}

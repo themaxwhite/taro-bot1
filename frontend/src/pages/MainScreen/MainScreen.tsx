@@ -10,6 +10,9 @@ import { DailyCardBanner } from "../../components/DailyCardBanner/DailyCardBanne
 import { DailyCardCooldown } from "../../components/DailyCardCooldown/DailyCardCooldown";
 import { LoveNudgeBanner } from "../../components/LoveNudgeBanner/LoveNudgeBanner";
 import { SpreadList } from "../../components/SpreadList/SpreadList";
+import { EnergyBalance } from "../../components/EnergyBalance/EnergyBalance";
+import { DailyStory } from "../../components/DailyStory/DailyStory";
+import { getSubscriptionStatus } from "../../services/subscriptionsApi";
 import { MysticalBackground } from "../../components/MysticalBackground/MysticalBackground";
 import styles from "./MainScreen.module.css";
 
@@ -17,16 +20,14 @@ interface MainScreenProps {
   onSelectSpread: (id: SpreadType["id"]) => void;
   onOpenHistory: () => void;
   onOpenProfile: () => void;
-  soundEnabled: boolean;
-  onToggleSound: () => void;
+  onOpenSubscription: () => void;
 }
 
 export function MainScreen({
   onSelectSpread,
   onOpenHistory,
   onOpenProfile,
-  soundEnabled,
-  onToggleSound,
+  onOpenSubscription,
 }: MainScreenProps) {
   const { firstName } = useTelegramUser();
   // "Карта дня" already has its own banner right above this grid —
@@ -43,6 +44,21 @@ export function MainScreen({
     getDailyCardStatus().then((nextAvailableAt) => {
       if (!cancelled) setDailyCardCooldown(nextAvailableAt);
     });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Баланс разблокировок. null пока грузится — плашка рисуется сразу с
+  // многоточием, чтобы шапка не прыгала, когда приедет число.
+  const [energy, setEnergy] = useState<number | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    getSubscriptionStatus()
+      .then((status) => {
+        if (!cancelled) setEnergy(status.energy.balance);
+      })
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
@@ -67,18 +83,17 @@ export function MainScreen({
   return (
     <div className={styles.screen}>
       <MysticalBackground />
-      <TopBar
-        onHistoryClick={onOpenHistory}
-        onProfileClick={onOpenProfile}
-        soundEnabled={soundEnabled}
-        onToggleSound={onToggleSound}
-      />
-      <Greeting firstName={firstName} />
+      <TopBar onHistoryClick={onOpenHistory} onProfileClick={onOpenProfile} />
+      <div className={styles.balanceRow}>
+        <Greeting firstName={firstName} />
+        <EnergyBalance balance={energy} onClick={onOpenSubscription} />
+      </div>
       <DailyWish />
       {dailyCardCooldown && <DailyCardCooldown nextAvailableAt={dailyCardCooldown} />}
       <DailyCardBanner onClick={() => onSelectSpread("daily-card")} />
       <LoveNudgeBanner gender={gender} onSelectSpread={onSelectSpread} />
       <SpreadList spreads={gridSpreads} onSelect={onSelectSpread} />
+      <DailyStory />
     </div>
   );
 }

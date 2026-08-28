@@ -1,4 +1,4 @@
-import type { DrawSpreadResponse } from "../types/result";
+import type { DrawnCard, DrawSpreadResponse } from "../types/result";
 import { SpreadsApiError } from "./spreadsApi";
 
 const API_BASE_URL: string =
@@ -41,10 +41,17 @@ export async function fetchDailyMessage(): Promise<string> {
   return data.text;
 }
 
-export async function fetchInterpretation(spreadRecordId: number): Promise<string> {
+/**
+ * Разблокирует расклад: одна единица энергии открывает и карты, и
+ * толкование сразу, поэтому карты приезжают в том же ответе — до этого
+ * момента backend их не отдавал вовсе.
+ */
+export async function fetchInterpretation(
+  spreadRecordId: number,
+): Promise<{ interpretation: string; cards: DrawnCard[] }> {
   const response = await api(`/api/spreads/${spreadRecordId}/interpret`, { method: "POST" });
-  const data = (await response.json()) as { interpretation: string };
-  return data.interpretation;
+  const data = (await response.json()) as { interpretation: string; cards: DrawnCard[] };
+  return { interpretation: data.interpretation, cards: data.cards };
 }
 
 export async function drawExtraCard(spreadRecordId: number): Promise<DrawSpreadResponse> {

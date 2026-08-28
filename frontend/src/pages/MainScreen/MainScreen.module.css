@@ -6,3 +6,18 @@
   padding-bottom: 24px;
   width: 100%;
 }
+
+/* Приветствие и баланс в одной строке: баланс должен быть виден сразу,
+   не заставляя листать. Greeting несёт свой нижний отступ, поэтому
+   выравниваем плашку по верхнему краю его первой строки. */
+.balanceRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-right: 16px;
+}
+
+.balanceRow > *:first-child {
+  min-width: 0;
+}
