@@ -197,3 +197,17 @@
   line-height: 1.5;
   color: var(--color-text-muted);
 }
+
+/* Награда за серию дней подряд — редкое событие (7-й и 30-й день), и
+   выглядеть должно как событие, а не как ещё одна строка текста. */
+.streakBonus {
+  margin: 0 16px 14px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-accent);
+  background: var(--color-bg-elevated-active);
+  color: var(--color-accent-strong);
+  font-size: 13.5px;
+  font-weight: 600;
+  text-align: center;
+}

@@ -25,51 +25,6 @@
   color: var(--color-text-muted);
 }
 
-.interestsSection {
-  padding: 20px 16px 4px;
-}
-
-.interestsLabel {
-  display: block;
-  font-size: 14px;
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-
-.interestsHint {
-  margin: 0 0 8px;
-  font-size: 12.5px;
-  color: var(--color-text-muted);
-}
-
-.interestsInput {
-  width: 100%;
-  padding: 12px 14px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
-  background: var(--color-bg-elevated);
-  color: var(--color-text);
-  font-family: inherit;
-  font-size: 14px;
-  resize: none;
-}
-
-.interestsInput:focus {
-  outline: none;
-  border-color: var(--color-accent);
-}
-
-.saveButton {
-  margin-top: 8px;
-  padding: 10px 16px;
-  border: none;
-  border-radius: var(--radius-md);
-  background: var(--color-accent-strong);
-  color: var(--color-on-accent);
-  font-size: 13.5px;
-  font-weight: 600;
-}
-
 .settingsList {
   display: flex;
   flex-direction: column;
@@ -142,6 +97,20 @@
   font-size: 18px;
 }
 
+.streakHint {
+  margin: 10px 16px 0;
+  font-size: 12.5px;
+  text-align: center;
+  color: var(--color-accent-strong);
+}
+
 .energyRow {
   padding: 4px 16px 0;
+}
+
+.energyHint {
+  margin: 8px 2px 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
 }

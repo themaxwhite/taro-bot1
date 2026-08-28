@@ -13,6 +13,7 @@ from app.db import get_db
 from app.tarot.visibility import card_count, visible_cards
 from app.history.schemas import FollowUpEntry, HistoryEntry, ProfileStats
 from app.models import SpreadRecord, User
+from app.streaks import days_streak, next_reward
 from app.tarot.schemas import DrawnCard
 
 router = APIRouter(prefix="/api", tags=["history"])
@@ -39,38 +40,6 @@ def _record_to_entry(record: SpreadRecord) -> HistoryEntry:
     )
 
 
-def _days_streak(db: Session, user_id: int) -> int:
-    """
-    Consecutive-day streak, Duolingo-style: counts back from today (or
-    yesterday, so the streak survives until the day actually lapses)
-    through unbroken calendar days that have at least one spread.
-    """
-    stmt = (
-        select(SpreadRecord.created_at)
-        .where(SpreadRecord.user_id == user_id)
-        .order_by(SpreadRecord.created_at.desc())
-    )
-    timestamps = db.execute(stmt).scalars().all()
-    if not timestamps:
-        return 0
-
-    distinct_days = sorted({ts.date() for ts in timestamps}, reverse=True)
-    today = dt.datetime.utcnow().date()
-
-    if (today - distinct_days[0]).days > 1:
-        return 0  # most recent spread was more than a day ago — streak's over
-
-    streak = 1
-    cursor = distinct_days[0]
-    for day in distinct_days[1:]:
-        if cursor - day == dt.timedelta(days=1):
-            streak += 1
-            cursor = day
-        else:
-            break
-    return streak
-
-
 @router.get("/history", response_model=list[HistoryEntry])
 def get_history(
     user: User = Depends(get_current_user),
@@ -95,7 +64,14 @@ def get_profile_stats(
             select(SpreadRecord.id).where(SpreadRecord.user_id == user.telegram_id)
         ).all()
     )
-    return ProfileStats(total_spreads=total_count, days_streak=_days_streak(db, user.telegram_id))
+    streak = days_streak(db, user.telegram_id)
+    upcoming = next_reward(streak, user.streak_reward_day)
+    return ProfileStats(
+        total_spreads=total_count,
+        days_streak=streak,
+        next_reward_day=upcoming[0] if upcoming else None,
+        next_reward_energy=upcoming[1] if upcoming else None,
+    )
 
 
 class UpdateInterestsRequest(BaseModel):

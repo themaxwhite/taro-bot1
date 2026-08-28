@@ -127,6 +127,15 @@ export function ResultScreen({ spreadId, question, onBack, onDone, onNeedSubscri
 
       {state.status === "success" && (
         <>
+          {/* Момент, ради которого серия и считается: награда
+              показывается там же, где её заработали, а не только
+              цифрой в профиле. */}
+          {state.data.streak_bonus !== null && (
+            <p className={styles.streakBonus}>
+              🔥 Серия дней подряд — начислено ✦ {state.data.streak_bonus}
+            </p>
+          )}
+
           {state.data.unlocked ? (
             <div className={styles.cardsRow}>
               {state.data.cards.map((card) => (

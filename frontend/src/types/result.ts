@@ -29,4 +29,6 @@ export interface DrawSpreadResponse {
   card_count: number;
   /** ISO 8601 date string, only set for spread_id === "daily-card". */
   next_available_at: string | null;
+  /** Энергия, начисленная за серию дней подряд, если этот расклад довёл её до порога. */
+  streak_bonus: number | null;
 }

@@ -12,6 +12,7 @@ from app.db import get_db
 from app.moderation import ensure_question_allowed
 from app.models import SpreadRecord, User
 from app.spreads import SPREADS, SpreadId
+from app.streaks import award_streak_bonus
 from app.tarot.engine import tarot_engine
 from app.tarot.schemas import DrawnCard, DrawSpreadRequest, DrawSpreadResponse
 from app.tarot.visibility import card_count, stored_cards, visible_cards
@@ -140,6 +141,10 @@ def draw_spread(
     db.commit()
     db.refresh(record)
 
+    # После коммита: серия считается по сохранённым раскладам, и до него
+    # сегодняшний день в неё не попадёт.
+    streak_bonus = award_streak_bonus(db, user)
+
     next_available_at = _as_utc(record.created_at + DAILY_CARD_COOLDOWN) if is_daily_card else None
     return DrawSpreadResponse(
         id=record.id,
@@ -148,6 +153,7 @@ def draw_spread(
         unlocked=record.unlocked,
         card_count=len(cards),
         next_available_at=next_available_at,
+        streak_bonus=streak_bonus,
     )
 
 

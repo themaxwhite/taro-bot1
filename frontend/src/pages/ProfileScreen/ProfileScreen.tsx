@@ -3,7 +3,7 @@ import { useTelegramUser } from "../../hooks/useTelegramUser";
 import type { ProfileStats } from "../../types/history";
 import type { Theme } from "../../hooks/useTheme";
 import { TIER_TITLES, type SubscriptionStatus } from "../../types/subscription";
-import { fetchProfileStats, fetchProfile, updateInterests, updateNotifications } from "../../services/historyApi";
+import { fetchProfileStats, fetchProfile, updateNotifications } from "../../services/historyApi";
 import { getSubscriptionStatus } from "../../services/subscriptionsApi";
 import { EnergyBalance } from "../../components/EnergyBalance/EnergyBalance";
 import { ScreenHeader } from "../../components/ScreenHeader/ScreenHeader";
@@ -21,6 +21,32 @@ interface ProfileScreenProps {
   onOpenAdmin: () => void;
   theme: Theme;
   onToggleTheme: () => void;
+}
+
+function daysWord(n: number): string {
+  const tens = n % 100;
+  if (tens >= 11 && tens <= 14) return "дней";
+  switch (n % 10) {
+    case 1:
+      return "день";
+    case 2:
+    case 3:
+    case 4:
+      return "дня";
+    default:
+      return "дней";
+  }
+}
+
+/**
+ * Подпись под серией дней подряд: ради чего эта цифра растёт. Пока
+ * награда за серию не была видна, счётчик оставался просто числом.
+ */
+function streakRewardLabel(stats: ProfileStats | null): string | null {
+  if (!stats?.nextRewardDay || !stats.nextRewardEnergy) return null;
+  const left = stats.nextRewardDay - stats.daysStreak;
+  if (left <= 0) return null;
+  return `Ещё ${left} ${daysWord(left)} подряд — и ✦ ${stats.nextRewardEnergy} в подарок`;
 }
 
 function subscriptionLabel(sub: SubscriptionStatus | null): string {
@@ -41,8 +67,6 @@ export function ProfileScreen({
 }: ProfileScreenProps) {
   const { firstName, username, photoUrl } = useTelegramUser();
   const [stats, setStats] = useState<ProfileStats | null>(null);
-  const [interests, setInterests] = useState("");
-  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
   const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [notificationsBusy, setNotificationsBusy] = useState(false);
@@ -60,7 +84,6 @@ export function ProfileScreen({
     fetchProfile()
       .then((data) => {
         if (!cancelled) {
-          setInterests(data.interests);
           setNotificationsEnabled(data.notificationsEnabled);
           setIsAdmin(data.isAdmin);
         }
@@ -77,17 +100,6 @@ export function ProfileScreen({
       cancelled = true;
     };
   }, []);
-
-  async function handleSaveInterests() {
-    setSaveState("saving");
-    try {
-      await updateInterests(interests.trim());
-      setSaveState("saved");
-      setTimeout(() => setSaveState("idle"), 1500);
-    } catch {
-      setSaveState("idle");
-    }
-  }
 
   async function handleToggleNotifications(next: boolean) {
     const previous = notificationsEnabled;
@@ -126,6 +138,8 @@ export function ProfileScreen({
         ]}
       />
 
+      {streakRewardLabel(stats) && <p className={styles.streakHint}>{streakRewardLabel(stats)}</p>}
+
       {subscription && (
         <div className={styles.energyRow}>
           <EnergyBalance
@@ -134,6 +148,12 @@ export function ProfileScreen({
             breakdown={subscription.energy}
             onClick={onOpenSubscription}
           />
+          <p className={styles.energyHint}>
+            Энергия — это разблокировки: одна открывает расклад целиком, карты вместе с
+            толкованием. Столько же стоит дополнительная карта или уточняющий вопрос.
+            Одна энергия начисляется бесплатно каждый день, остальное дают подписка и
+            приглашённые друзья. Карта дня бесплатна.
+          </p>
         </div>
       )}
 
@@ -161,26 +181,6 @@ export function ProfileScreen({
           <span className={styles.chevron} aria-hidden="true">
             ›
           </span>
-        </button>
-      </div>
-
-      <div className={styles.interestsSection}>
-        <label className={styles.interestsLabel} htmlFor="profile-interests">
-          Ваши темы
-        </label>
-        <p className={styles.interestsHint}>
-          Учитываются в AI-толковании расклада — например: отношения, карьера, переезд
-        </p>
-        <textarea
-          id="profile-interests"
-          className={styles.interestsInput}
-          value={interests}
-          maxLength={500}
-          rows={2}
-          onChange={(e) => setInterests(e.target.value)}
-        />
-        <button type="button" className={styles.saveButton} onClick={handleSaveInterests}>
-          {saveState === "saving" ? "Сохранение…" : saveState === "saved" ? "Сохранено ✓" : "Сохранить"}
         </button>
       </div>
 

@@ -45,3 +45,7 @@ class DrawSpreadResponse(BaseModel):
     # since this card was drawn ends and a new one becomes available.
     # Null for every other spread type, which has no cooldown.
     next_available_at: dt.datetime | None = None
+    # Сколько энергии начислено за серию дней подряд, если этот расклад
+    # довёл её до порога (app/streaks.py). None — обычный случай: порог
+    # не пройден или за него уже платили.
+    streak_bonus: int | None = None

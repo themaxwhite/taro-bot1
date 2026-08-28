@@ -32,4 +32,7 @@ export interface HistoryEntry {
 export interface ProfileStats {
   totalSpreads: number;
   daysStreak: number;
+  /** Ближайший непройденный порог серии и его награда; null — все пройдены. */
+  nextRewardDay: number | null;
+  nextRewardEnergy: number | null;
 }

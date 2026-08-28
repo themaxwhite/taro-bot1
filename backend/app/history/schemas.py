@@ -31,3 +31,8 @@ class HistoryEntry(BaseModel):
 class ProfileStats(BaseModel):
     total_spreads: int
     days_streak: int
+    # Ближайший непройденный порог серии и его награда — чтобы профиль
+    # показывал, ради чего эта цифра растёт. Оба None, когда все пороги
+    # текущей серии уже выданы.
+    next_reward_day: int | None = None
+    next_reward_energy: int | None = None

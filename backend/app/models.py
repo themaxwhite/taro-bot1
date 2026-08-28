@@ -58,6 +58,12 @@ class User(Base):
     # subscription's quota it survives the end of a billing period — so
     # it is deliberately spent last, once everything perishable is gone.
     purchased_energy: Mapped[int] = mapped_column(Integer, default=0)
+    # Длина серии дней подряд, за которую уже выдана награда
+    # (app/streaks.py::STREAK_REWARDS). Ноль — в текущей серии наград
+    # ещё не было. Хранится именно длина, а не дата: если серия короче
+    # записанной, значит она успела оборваться и начаться заново, и
+    # пороги можно проходить снова.
+    streak_reward_day: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     # One-time onboarding (gender + zodiac sign), collected before the
     # user ever sees the main menu (see api/history.py::complete_onboarding).
     # Both null until it's done; the frontend gates on that, not on a

@@ -29,6 +29,8 @@ interface HistoryEntryDTO {
 interface ProfileStatsDTO {
   total_spreads: number;
   days_streak: number;
+  next_reward_day: number | null;
+  next_reward_energy: number | null;
 }
 
 async function authedFetch(path: string): Promise<Response> {
@@ -76,7 +78,12 @@ export async function fetchHistory(): Promise<HistoryEntry[]> {
 export async function fetchProfileStats(): Promise<ProfileStats> {
   const response = await authedFetch("/api/profile/stats");
   const data = (await response.json()) as ProfileStatsDTO;
-  return { totalSpreads: data.total_spreads, daysStreak: data.days_streak };
+  return {
+    totalSpreads: data.total_spreads,
+    daysStreak: data.days_streak,
+    nextRewardDay: data.next_reward_day,
+    nextRewardEnergy: data.next_reward_energy,
+  };
 }
 
 export type Gender = "male" | "female";
@@ -134,10 +141,6 @@ async function authedPatch(path: string, body: unknown): Promise<void> {
   if (!response.ok) {
     throw new SpreadsApiError(`Сервер вернул ошибку (${response.status}).`);
   }
-}
-
-export async function updateInterests(interests: string): Promise<void> {
-  await authedPatch("/api/profile/interests", { interests });
 }
 
 export async function updateNotifications(enabled: boolean): Promise<void> {
