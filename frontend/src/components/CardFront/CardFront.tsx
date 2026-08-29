@@ -7,9 +7,17 @@ interface CardFrontProps {
   card: DrawnCard;
 }
 
-const DEAL_STAGGER_MS = 90;
-const FLIP_BASE_DELAY_MS = 450;
-const FLIP_STAGGER_MS = 150;
+// Темп открытия. Замедлен намеренно: за расклад заплачено, и он должен
+// раскрываться, а не мигнуть.
+//
+// Шаг (210 мс) короче самого звука переворота (420 мс), так что на
+// многокарточных раскладах шорохи накладываются друг на друга. Это
+// допустимо именно потому, что звук стал плавным: у мягких наплывов
+// наложение читается как шелест колоды, тогда как прежние резкие
+// всплески в том же темпе слились бы в трескотню.
+const DEAL_STAGGER_MS = 110;
+const FLIP_BASE_DELAY_MS = 620;
+const FLIP_STAGGER_MS = 210;
 
 function prefersReducedMotion() {
   return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
