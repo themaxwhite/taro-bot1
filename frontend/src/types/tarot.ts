@@ -14,7 +14,9 @@ export type SpreadId =
   | "work"
   | "crossroads"
   | "mirror"
-  | "month";
+  | "month"
+  | "week"
+  | "path";
 
 export interface SpreadType {
   id: SpreadId;
@@ -73,6 +75,18 @@ export const SPREAD_TYPES: SpreadType[] = [
     cardCount: 4,
   },
   {
+    id: "week",
+    title: "Неделя",
+    description: "Карта на каждый день — от понедельника до воскресенья",
+    cardCount: 7,
+  },
+  {
+    id: "path",
+    title: "Путь",
+    description: "Откуда идёте, что ведёт, что держит и куда это приведёт",
+    cardCount: 6,
+  },
+  {
     id: "celtic-cross",
     title: "Кельтский крест",
     description: "Классический глубокий расклад на любой вопрос — 10 карт",
@@ -107,10 +121,10 @@ export interface SpreadGroup {
 }
 
 const GROUP_ORDER: { title: string; ids: SpreadId[] }[] = [
-  { title: "Что впереди", ids: ["yes-no", "future", "month"] },
+  { title: "Что впереди", ids: ["yes-no", "future", "week", "month"] },
   { title: "Отношения", ids: ["love", "compatibility"] },
   { title: "Дело и выбор", ids: ["work", "crossroads"] },
-  { title: "Глубокий разбор", ids: ["mirror", "horseshoe", "celtic-cross"] },
+  { title: "Глубокий разбор", ids: ["mirror", "path", "horseshoe", "celtic-cross"] },
 ];
 
 /**

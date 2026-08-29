@@ -14,6 +14,8 @@ class SpreadId(str, Enum):
     CROSSROADS = "crossroads"
     MIRROR = "mirror"
     MONTH = "month"
+    WEEK = "week"
+    PATH = "path"
 
 
 @dataclass(frozen=True)
@@ -131,6 +133,35 @@ SPREADS: dict[SpreadId, SpreadConfig] = {
             "Каким вас видят другие",
             "Что вы прячете",
             "Что стоит принять",
+        ),
+    ),
+    SpreadId.WEEK: SpreadConfig(
+        id=SpreadId.WEEK,
+        title="Неделя",
+        card_count=7,
+        position_labels=(
+            "Понедельник",
+            "Вторник",
+            "Среда",
+            "Четверг",
+            "Пятница",
+            "Суббота",
+            "Воскресенье",
+        ),
+    ),
+    SpreadId.PATH: SpreadConfig(
+        id=SpreadId.PATH,
+        title="Путь",
+        card_count=6,
+        # Не про ситуацию, как «Кельтский крест», и не про себя, как
+        # «Зеркало», а про движение: откуда, куда и что мешает идти.
+        position_labels=(
+            "Откуда вы идёте",
+            "Где вы сейчас",
+            "Что вас ведёт",
+            "Что держит",
+            "Следующий шаг",
+            "Куда это приведёт",
         ),
     ),
     SpreadId.MONTH: SpreadConfig(

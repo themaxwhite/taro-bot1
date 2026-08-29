@@ -21,6 +21,8 @@ const SPREAD_GLYPHS: Record<SpreadType["id"], string> = {
   crossroads: "🔀",
   mirror: "🪞",
   month: "🌙",
+  week: "🗓",
+  path: "🧭",
 };
 
 function cardsWord(n: number): string {
