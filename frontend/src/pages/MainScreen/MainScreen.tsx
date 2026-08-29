@@ -11,7 +11,6 @@ import { DailyCardCooldown } from "../../components/DailyCardCooldown/DailyCardC
 import { LoveNudgeBanner } from "../../components/LoveNudgeBanner/LoveNudgeBanner";
 import { SpreadList } from "../../components/SpreadList/SpreadList";
 import { EnergyBalance } from "../../components/EnergyBalance/EnergyBalance";
-import { DailyStory } from "../../components/DailyStory/DailyStory";
 import { getSubscriptionStatus } from "../../services/subscriptionsApi";
 import type { EnergyBreakdown } from "../../types/energy";
 import { MysticalBackground } from "../../components/MysticalBackground/MysticalBackground";
@@ -106,7 +105,6 @@ export function MainScreen({
           onSelect={onSelectSpread}
         />
       ))}
-      <DailyStory />
     </div>
   );
 }

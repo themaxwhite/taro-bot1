@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.ai.client import generate_text
-from app.ai.fallback import daily_message_for, fallback_interpretation, fallback_story
+from app.ai.fallback import daily_message_for, fallback_interpretation
 from app.api.deps import get_current_user
 from app.api.subscriptions import require_quota
 from app.config import settings
@@ -16,7 +16,7 @@ from app.db import get_db
 from app.tarot.schemas import DrawnCard
 from app.tarot.visibility import stored_cards
 from app.moderation import ensure_question_allowed
-from app.models import DailyMessage, DailyStory, SpreadFollowUp, SpreadRecord, Subscription, User
+from app.models import DailyMessage, SpreadFollowUp, SpreadRecord, Subscription, User
 from app.subscriptions import FREE_TEXT_TIERS
 from app.spreads import SpreadId
 
@@ -61,12 +61,6 @@ class FollowUpResponse(BaseModel):
     answer: str
 
 
-class DailyStoryResponse(BaseModel):
-    author: str
-    spread_title: str
-    text: str
-
-
 @router.get("/daily-message", response_model=DailyMessageResponse)
 async def get_daily_message(db: Session = Depends(get_db)) -> DailyMessageResponse:
     today = dt.datetime.utcnow().date()
@@ -91,74 +85,6 @@ async def get_daily_message(db: Session = Depends(get_db)) -> DailyMessageRespon
     db.add(DailyMessage(date=key, text=text))
     db.commit()
     return DailyMessageResponse(text=text)
-
-
-@router.get("/daily-story", response_model=DailyStoryResponse)
-async def get_daily_story(db: Session = Depends(get_db)) -> DailyStoryResponse:
-    """
-    Одна выдуманная история дня, общая для всех и закэшированная на
-    календарные сутки (UTC) — как и «фраза дня», чтобы это стоило один
-    вызов модели в сутки, а не один на каждое открытие приложения.
-
-    Истории вымышленные. Интерфейс говорит об этом прямо (см.
-    frontend DailyStory), и промпт ниже тоже требует не выдавать текст за
-    реальный отзыв: сочинённая история, поданная как настоящая, — это
-    обман пользователя, а не украшение витрины.
-    """
-    today = dt.datetime.utcnow().date()
-    key = today.isoformat()
-
-    cached = db.get(DailyStory, key)
-    if cached is not None:
-        return DailyStoryResponse(author=cached.author, spread_title=cached.spread_title, text=cached.text)
-
-    generated = await generate_text(
-        system_prompt=(
-            "Ты пишешь короткую вымышленную историю для приложения с раскладами "
-            "таро — от лица человека, который однажды сделал расклад. Пиши на "
-            "русском языке, от первого лица, 60-90 слов, обычным текстом. "
-            "История должна быть житейской и правдоподобной: конкретная мелочь "
-            "из жизни, а не чудо и не исполнившееся пророчество. Карты в ней "
-            "помогают человеку заметить то, что он и так знал, но не признавал "
-            "— они ничего не предсказывают. Не обещай удачу, не давай советов, "
-            "не рекламируй приложение, не используй смайлики и кавычки-ёлочки "
-            "вокруг всего текста. Обязательно закончи мысль законченным "
-            "предложением.\n\n"
-            "Ответь ровно тремя строками:\n"
-            "Имя, возраст\n"
-            "Название расклада\n"
-            "Текст истории"
-        ),
-        user_prompt=(
-            "Придумай историю на сегодня. Расклад выбери из списка: Карта дня, "
-            "Любовь, Будущее, Кельтский крест, Да или нет, Подкова, Совместимость."
-        ),
-        max_tokens=700,
-    )
-
-    author, spread_title, text = _parse_story(generated) if generated else fallback_story(today.timetuple().tm_yday)
-
-    db.add(DailyStory(date=key, author=author, spread_title=spread_title, text=text))
-    db.commit()
-    return DailyStoryResponse(author=author, spread_title=spread_title, text=text)
-
-
-def _parse_story(raw: str) -> tuple[str, str, str]:
-    """
-    Разбирает три строки ответа модели, а если формат не соблюдён —
-    откатывается на запасную историю, а не показывает пользователю сырой
-    вывод модели.
-    """
-    lines = [line.strip() for line in raw.strip().splitlines() if line.strip()]
-    if len(lines) < 3:
-        return fallback_story(dt.datetime.utcnow().timetuple().tm_yday)
-    author, spread_title, *rest = lines
-    text = " ".join(rest)
-    # Длины должны укладываться в колонки (см. models.py::DailyStory) —
-    # иначе вставка упадёт уже после того, как за генерацию заплачено.
-    if not text or len(author) > 80 or len(spread_title) > 80:
-        return fallback_story(dt.datetime.utcnow().timetuple().tm_yday)
-    return author, spread_title, text[:1200]
 
 
 @router.post("/spreads/{spread_record_id}/interpret", response_model=InterpretationResponse)

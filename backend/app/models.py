@@ -128,28 +128,6 @@ class DailyMessage(Base):
     text: Mapped[str] = mapped_column(String(500))
 
 
-class DailyStory(Base):
-    """
-    Короткая выдуманная история «от человека, который сделал расклад»,
-    одна на календарные сутки (UTC) и общая для всех — как и
-    DailyMessage, чтобы генерация стоила один вызов модели в день, а не
-    один на каждого посетителя.
-
-    Истории вымышленные, и это не деталь реализации, а обязательство:
-    выдавать сочинённый отзыв за настоящий — обман пользователя. Поэтому
-    рядом с ней в интерфейсе стоит пометка, а `author` намеренно только
-    имя и возраст, без фотографии и фамилии, чтобы её нельзя было
-    принять за реальный профиль.
-    """
-
-    __tablename__ = "daily_stories"
-
-    date: Mapped[str] = mapped_column(String(10), primary_key=True)  # "YYYY-MM-DD"
-    author: Mapped[str] = mapped_column(String(80))
-    spread_title: Mapped[str] = mapped_column(String(80))
-    text: Mapped[str] = mapped_column(String(1200))
-
-
 class SpreadFollowUp(Base):
     """
     One paid follow-up question ("Какие риски?", "Что в будущем?", ...,
