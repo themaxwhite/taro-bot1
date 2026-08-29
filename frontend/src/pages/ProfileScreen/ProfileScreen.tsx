@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { useTelegramUser } from "../../hooks/useTelegramUser";
-import type { ProfileStats } from "../../types/history";
+import type { ProfileInsights, ProfileStats } from "../../types/history";
 import type { Theme } from "../../hooks/useTheme";
 import { TIER_TITLES, type SubscriptionStatus } from "../../types/subscription";
 import {
   fetchProfileStats,
+  fetchProfileInsights,
   fetchProfile,
   updateNotifications,
   type ZodiacSign,
@@ -17,6 +18,9 @@ import { StatRow } from "../../components/StatRow/StatRow";
 import { Switch } from "../../components/Switch/Switch";
 import { MysticalBackground } from "../../components/MysticalBackground/MysticalBackground";
 import { IdentityCard } from "../../components/IdentityCard/IdentityCard";
+import { ActivityCalendar } from "../../components/ActivityCalendar/ActivityCalendar";
+import { DeckStats } from "../../components/DeckStats/DeckStats";
+import { Achievements } from "../../components/Achievements/Achievements";
 import { isSoundEnabled, playTap, setSoundEnabled } from "../../feedback/sound";
 import styles from "./ProfileScreen.module.css";
 
@@ -76,6 +80,10 @@ export function ProfileScreen({
 }: ProfileScreenProps) {
   const { firstName, username, photoUrl } = useTelegramUser();
   const [stats, setStats] = useState<ProfileStats | null>(null);
+  // Сводка грузится отдельным запросом: она заметно тяжелее трёх чисел в
+  // шапке (разбирает карты всех раскладов), и её задержка не должна
+  // держать остальной экран.
+  const [insights, setInsights] = useState<ProfileInsights | null>(null);
   const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [zodiacSign, setZodiacSign] = useState<ZodiacSign | null>(null);
@@ -88,6 +96,13 @@ export function ProfileScreen({
 
   useEffect(() => {
     let cancelled = false;
+    fetchProfileInsights()
+      .then((data) => {
+        if (!cancelled) setInsights(data);
+      })
+      .catch(() => {
+        // Не критично: блоки статистики просто не появятся.
+      });
     fetchProfileStats()
       .then((data) => {
         if (!cancelled) setStats(data);
@@ -171,6 +186,20 @@ export function ProfileScreen({
             приглашённые друзья. Карта дня бесплатна.
           </p>
         </div>
+      )}
+
+      {insights && (
+        <>
+          <div className={styles.insightsBlock}>
+            <ActivityCalendar
+              activity={insights.activity}
+              from={insights.activityFrom}
+              to={insights.activityTo}
+            />
+          </div>
+          <DeckStats insights={insights} />
+          <Achievements achievements={insights.achievements} />
+        </>
       )}
 
       <IdentityCard

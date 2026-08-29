@@ -1,4 +1,4 @@
-import type { HistoryEntry, ProfileStats } from "../types/history";
+import type { HistoryEntry, ProfileInsights, ProfileStats } from "../types/history";
 import { SpreadsApiError } from "./spreadsApi";
 
 const API_BASE_URL: string =
@@ -162,4 +162,32 @@ export async function updateZodiac(zodiacSign: ZodiacSign): Promise<void> {
 /** `null` снимает выбор карты-покровителя. */
 export async function updatePatronCard(patronCard: string | null): Promise<void> {
   await authedPatch("/api/profile/patron-card", { patron_card: patronCard });
+}
+
+export async function fetchProfileInsights(): Promise<ProfileInsights> {
+  const response = await authedFetch("/api/profile/insights");
+  const data = (await response.json()) as {
+    activity: { date: string; count: number }[];
+    activity_from: string;
+    activity_to: string;
+    top_cards: { card_id: string; name: string; count: number }[];
+    total_cards: number;
+    reversed_share: number;
+    major_share: number;
+    favorite_spread: string | null;
+    favorite_spread_count: number;
+    achievements: { id: string; title: string; description: string; glyph: string; unlocked: boolean }[];
+  };
+  return {
+    activity: data.activity,
+    activityFrom: data.activity_from,
+    activityTo: data.activity_to,
+    topCards: data.top_cards.map((c) => ({ cardId: c.card_id, name: c.name, count: c.count })),
+    totalCards: data.total_cards,
+    reversedShare: data.reversed_share,
+    majorShare: data.major_share,
+    favoriteSpread: data.favorite_spread,
+    favoriteSpreadCount: data.favorite_spread_count,
+    achievements: data.achievements,
+  };
 }

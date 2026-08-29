@@ -36,3 +36,39 @@ class ProfileStats(BaseModel):
     # текущей серии уже выданы.
     next_reward_day: int | None = None
     next_reward_energy: int | None = None
+
+
+class ActivityDay(BaseModel):
+    date: str  # "YYYY-MM-DD"
+    count: int
+
+
+class TopCard(BaseModel):
+    card_id: str
+    name: str
+    count: int
+
+
+class AchievementEntry(BaseModel):
+    id: str
+    title: str
+    description: str
+    glyph: str
+    unlocked: bool
+
+
+class ProfileInsights(BaseModel):
+    """Сводка для профиля — см. app/insights.py."""
+
+    # Только дни, в которые расклады были: пустых в окне большинство, и
+    # сетку по датам фронтенд достраивает сам.
+    activity: list[ActivityDay]
+    activity_from: str
+    activity_to: str
+    top_cards: list[TopCard]
+    total_cards: int
+    reversed_share: int
+    major_share: int
+    favorite_spread: str | None
+    favorite_spread_count: int
+    achievements: list[AchievementEntry]

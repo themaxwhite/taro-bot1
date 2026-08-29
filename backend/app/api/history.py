@@ -11,7 +11,16 @@ from app.api.deps import get_current_user
 from app.config import settings
 from app.db import get_db
 from app.tarot.visibility import card_count, visible_cards
-from app.history.schemas import FollowUpEntry, HistoryEntry, ProfileStats
+from app.history.schemas import (
+    AchievementEntry,
+    ActivityDay,
+    FollowUpEntry,
+    HistoryEntry,
+    ProfileInsights,
+    ProfileStats,
+    TopCard,
+)
+from app.insights import achievements, activity_by_day, deck_stats
 from app.models import SpreadRecord, User
 from app.streaks import days_streak, next_reward
 from app.tarot.cards import MAJOR_ARCANA_IDS
@@ -127,6 +136,36 @@ def _profile_response(user: User) -> ProfileResponse:
         zodiac_sign=user.zodiac_sign,
         patron_card=user.patron_card,
         is_admin=user.telegram_id in settings.admin_telegram_id_set,
+    )
+
+
+@router.get("/profile/insights", response_model=ProfileInsights)
+def get_profile_insights(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ProfileInsights:
+    """
+    Карта активности, статистика колоды и достижения — всё считается по
+    уже сохранённым раскладам (app/insights.py), без единой новой
+    колонки.
+
+    Вынесено из /profile/stats отдельным вызовом: та отдаёт три числа для
+    шапки и должна оставаться дешёвой, а здесь разбирается JSON всех
+    раскладов пользователя.
+    """
+    counts, start, end = activity_by_day(db, user.telegram_id)
+    stats = deck_stats(db, user.telegram_id)
+    return ProfileInsights(
+        activity=[ActivityDay(date=day, count=count) for day, count in sorted(counts.items())],
+        activity_from=start.isoformat(),
+        activity_to=end.isoformat(),
+        top_cards=[TopCard(**c) for c in stats["top_cards"]],
+        total_cards=stats["total_cards"],
+        reversed_share=stats["reversed_share"],
+        major_share=stats["major_share"],
+        favorite_spread=stats["favorite_spread"],
+        favorite_spread_count=stats["favorite_spread_count"],
+        achievements=[AchievementEntry(**vars(a)) for a in achievements(db, user)],
     )
 
 

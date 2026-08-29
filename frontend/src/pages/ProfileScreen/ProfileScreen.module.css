@@ -97,6 +97,10 @@
   font-size: 18px;
 }
 
+.insightsBlock {
+  margin-top: 14px;
+}
+
 .streakHint {
   margin: 10px 16px 0;
   font-size: 12.5px;

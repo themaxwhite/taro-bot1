@@ -36,3 +36,37 @@ export interface ProfileStats {
   nextRewardDay: number | null;
   nextRewardEnergy: number | null;
 }
+
+/** Mirrors backend/app/history/schemas.py::ProfileInsights. */
+export interface ActivityDay {
+  date: string;
+  count: number;
+}
+
+export interface TopCard {
+  cardId: string;
+  name: string;
+  count: number;
+}
+
+export interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  glyph: string;
+  unlocked: boolean;
+}
+
+export interface ProfileInsights {
+  /** Только дни, в которые расклады были — сетку достраиваем сами. */
+  activity: ActivityDay[];
+  activityFrom: string;
+  activityTo: string;
+  topCards: TopCard[];
+  totalCards: number;
+  reversedShare: number;
+  majorShare: number;
+  favoriteSpread: string | null;
+  favoriteSpreadCount: number;
+  achievements: Achievement[];
+}

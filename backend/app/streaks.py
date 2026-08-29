@@ -56,6 +56,28 @@ def days_streak(db: Session, user_id: int) -> int:
     return streak
 
 
+def longest_streak(db: Session, user_id: int) -> int:
+    """
+    Самая длинная серия за всё время, а не текущая.
+
+    Нужна достижениям: бейдж за неделю подряд, снятый в тот день, когда
+    человек пропустил, — это наказание за уже сделанное. Достижение
+    фиксирует, что событие было, и обратно не отбирается.
+    """
+    timestamps = db.execute(
+        select(SpreadRecord.created_at).where(SpreadRecord.user_id == user_id)
+    ).scalars().all()
+    if not timestamps:
+        return 0
+
+    days = sorted({ts.date() for ts in timestamps})
+    best = current = 1
+    for previous, day in zip(days, days[1:]):
+        current = current + 1 if day - previous == dt.timedelta(days=1) else 1
+        best = max(best, current)
+    return best
+
+
 def next_reward(streak: int, rewarded_day: int) -> tuple[int, int] | None:
     """
     Ближайший непройденный порог как (день серии, сколько энергии), или

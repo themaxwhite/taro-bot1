@@ -1,0 +1,85 @@
+.card {
+  margin: 10px 16px 0;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+}
+
+.heading {
+  margin: 0 0 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-accent-strong);
+}
+
+.top {
+  display: flex;
+  gap: 10px;
+}
+
+.topCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.thumb {
+  width: 100%;
+  max-width: 74px;
+  aspect-ratio: 100 / 171;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+}
+
+.topName {
+  margin-top: 6px;
+  font-size: 11.5px;
+  line-height: 1.3;
+  text-align: center;
+  /* Названия вроде «Верховная Жрица» длиннее колонки — перенос, а не
+     обрезка: обрезанное имя карты не опознаётся. */
+  overflow-wrap: anywhere;
+}
+
+.topCount {
+  font-size: 10.5px;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.facts {
+  display: flex;
+  gap: 8px;
+  margin: 14px 0 0;
+}
+
+.fact {
+  flex: 1;
+  text-align: center;
+}
+
+.factLabel {
+  font-size: 10.5px;
+  color: var(--color-text-muted);
+  line-height: 1.3;
+}
+
+.factValue {
+  margin: 2px 0 0;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+}
+
+.favorite {
+  margin: 12px 0 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
