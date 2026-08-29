@@ -12,3 +12,32 @@
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 12px;
 }
+
+/* Плитки проявляются лесенкой при открытии экрана.
+   
+   Держим коротко: 240 мс на плитку и 30 мс шага. Экран открывают часто,
+   и анимация, которую замечаешь, на пятый раз превращается в задержку.
+   Здесь она заметна ровно настолько, чтобы сетка «собралась», а не
+   выпала готовой. */
+.list > * {
+  animation: list-in 0.24s ease-out both;
+}
+
+.list > *:nth-child(1) { animation-delay: 0ms; }
+.list > *:nth-child(2) { animation-delay: 30ms; }
+.list > *:nth-child(3) { animation-delay: 60ms; }
+.list > *:nth-child(4) { animation-delay: 90ms; }
+
+@keyframes list-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* У кого включено «уменьшить движение» — сетка появляется сразу. */
+@media (prefers-reduced-motion: reduce) {
+  .list > * {
+    animation: none;
+  }
+}

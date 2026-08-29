@@ -33,24 +33,28 @@
 /* .item's own font-size (set per nth-child below) is reused purely as
    a sizing unit for the SVG icon inside it — there's no text content
    anymore, just an icon scaled to match. */
+/* Размеры глифов ниже заданы числами намеренно: это размер декоративной
+   картинки, а не текста, и текстовой шкале он не подчиняется. Разнобой
+   величин — то, из чего у звёздного поля берётся глубина; сведённые к
+   четырём ступеням глифы выстраиваются в плоскую сетку. */
 .item svg {
   display: block;
   width: 1em;
   height: 1em;
 }
 
-.item:nth-child(1)  { left: 5%;  font-size: var(--text-lead); animation-delay: 0s;    animation-duration: 18s; }
-.item:nth-child(2)  { left: 15%; font-size: var(--text-caption); animation-delay: 2.5s;  animation-duration: 15s; }
-.item:nth-child(3)  { left: 28%; font-size: var(--text-base); animation-delay: 5s;    animation-duration: 20s; }
-.item:nth-child(4)  { left: 40%; font-size: var(--text-micro);  animation-delay: 1s;    animation-duration: 14s; }
-.item:nth-child(5)  { left: 52%; font-size: var(--text-lead); animation-delay: 7s;    animation-duration: 19s; }
-.item:nth-child(6)  { left: 63%; font-size: var(--text-micro); animation-delay: 3.5s;  animation-duration: 16s; }
-.item:nth-child(7)  { left: 74%; font-size: var(--text-base); animation-delay: 9s;    animation-duration: 21s; }
-.item:nth-child(8)  { left: 85%; font-size: var(--text-caption); animation-delay: 0.5s;  animation-duration: 17s; }
-.item:nth-child(9)  { left: 10%; font-size: var(--text-caption); animation-delay: 11s;   animation-duration: 22s; }
-.item:nth-child(10) { left: 35%; font-size: var(--text-micro);  animation-delay: 6s;    animation-duration: 15s; }
-.item:nth-child(11) { left: 60%; font-size: var(--text-base); animation-delay: 13s;   animation-duration: 18s; }
-.item:nth-child(12) { left: 90%; font-size: var(--text-micro); animation-delay: 4s;    animation-duration: 20s; }
+.item:nth-child(1)  { left: 5%;  font-size: 17px; animation-delay: 0s;    animation-duration: 18s; }
+.item:nth-child(2)  { left: 15%; font-size: 11px; animation-delay: 2.5s;  animation-duration: 15s; }
+.item:nth-child(3)  { left: 28%; font-size: 14px; animation-delay: 5s;    animation-duration: 20s; }
+.item:nth-child(4)  { left: 40%; font-size: 9px;  animation-delay: 1s;    animation-duration: 14s; }
+.item:nth-child(5)  { left: 52%; font-size: 19px; animation-delay: 7s;    animation-duration: 19s; }
+.item:nth-child(6)  { left: 63%; font-size: 10px; animation-delay: 3.5s;  animation-duration: 16s; }
+.item:nth-child(7)  { left: 74%; font-size: 15px; animation-delay: 9s;    animation-duration: 21s; }
+.item:nth-child(8)  { left: 85%; font-size: 12px; animation-delay: 0.5s;  animation-duration: 17s; }
+.item:nth-child(9)  { left: 10%; font-size: 13px; animation-delay: 11s;   animation-duration: 22s; }
+.item:nth-child(10) { left: 35%; font-size: 8px;  animation-delay: 6s;    animation-duration: 15s; }
+.item:nth-child(11) { left: 60%; font-size: 16px; animation-delay: 13s;   animation-duration: 18s; }
+.item:nth-child(12) { left: 90%; font-size: 10px; animation-delay: 4s;    animation-duration: 20s; }
 
 @keyframes mystical-drift {
   0% {
