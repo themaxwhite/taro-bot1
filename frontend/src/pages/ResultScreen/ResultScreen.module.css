@@ -159,14 +159,53 @@
   color: var(--color-text-muted);
 }
 
+/*
+ * Толкование — то, ради чего расклад открывают, и подано оно должно быть
+ * как страница, а не как системное сообщение.
+ *
+ * Отсюда всё: интерлиньяж книжный, а не интерфейсный; сверху золотая
+ * черта, отделяющая текст от карт; буквица шрифтом Playfair, которым в
+ * приложении набраны все заголовки. Буквица делает главное — превращает
+ * абзац в начало чего-то, а не в продолжение экрана.
+ */
 .interpretation {
-  padding: 16px;
+  position: relative;
+  padding: 22px 18px 20px;
   border-radius: var(--radius-md);
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
   font-size: var(--text-base);
-  line-height: 1.55;
+  line-height: 1.72;
   white-space: pre-wrap;
+  box-shadow: var(--shadow-md);
+}
+
+/* Золотая черта поверху — та же, что кантом у плиток. */
+.interpretation::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  background: var(--gradient-aurum);
+  opacity: 0.8;
+}
+
+/*
+ * Буквица. ::first-letter применяется к самому блоку, поэтому работает
+ * и на тексте, пришедшем от модели, — размечать его не нужно.
+ *
+ * Осторожно с pre-wrap: перевод строки в начале ответа сделал бы первой
+ * «буквой» пробел. Поэтому текст на бэкенде приходит уже обрезанным
+ * (strip), а здесь ничего дополнительно не чистится.
+ */
+.interpretation::first-letter {
+  float: left;
+  margin: 4px 8px 0 0;
+  font-family: var(--font-display);
+  font-size: 44px;
+  line-height: 0.82;
+  color: var(--color-accent-strong);
 }
 
 .footer {

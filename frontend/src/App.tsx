@@ -103,98 +103,112 @@ function App() {
     return <OnboardingScreen onComplete={() => setOnboarding("done")} />;
   }
 
-  if (screen.name === "spread") {
-    return (
-      <SpreadScreen
-        spreadId={screen.spreadId}
-        onBack={back}
-        onCardsSelected={(spreadId, question) => {
-          // The deck-selection gesture itself is cosmetic — the actual
-          // cards are resolved by the backend Tarot Engine on the result
-          // screen. The question the user typed does travel along,
-          // though: it's stored with the spread and used later for the
-          // paid AI interpretation.
-          setScreen({ name: "result", spreadId, question });
-        }}
-      />
-    );
-  }
+  // Ветки экранов вынесены в отдельную функцию, чтобы обёртку с
+  // анимацией перехода поставить один раз, а не повторять её в каждом
+  // из десятка `return`.
+  function renderScreen() {
+    if (screen.name === "spread") {
+      return (
+        <SpreadScreen
+          spreadId={screen.spreadId}
+          onBack={back}
+          onCardsSelected={(spreadId, question) => {
+            // The deck-selection gesture itself is cosmetic — the actual
+            // cards are resolved by the backend Tarot Engine on the result
+            // screen. The question the user typed does travel along,
+            // though: it's stored with the spread and used later for the
+            // paid AI interpretation.
+            setScreen({ name: "result", spreadId, question });
+          }}
+        />
+      );
+    }
 
-  if (screen.name === "result") {
-    return (
-      <ResultScreen
-        spreadId={screen.spreadId}
-        question={screen.question}
-        onBack={back}
-        onDone={goHome}
-        onNeedSubscription={() => setScreen({ name: "subscription" })}
-      />
-    );
-  }
+    if (screen.name === "result") {
+      return (
+        <ResultScreen
+          spreadId={screen.spreadId}
+          question={screen.question}
+          onBack={back}
+          onDone={goHome}
+          onNeedSubscription={() => setScreen({ name: "subscription" })}
+        />
+      );
+    }
 
-  if (screen.name === "history") {
-    return <HistoryScreen onBack={back} onOpenEntry={(entry) => setScreen({ name: "historyDetail", entry })} />;
-  }
+    if (screen.name === "history") {
+      return <HistoryScreen onBack={back} onOpenEntry={(entry) => setScreen({ name: "historyDetail", entry })} />;
+    }
 
-  if (screen.name === "historyDetail") {
-    return (
-      <HistoryDetailScreen
-        entry={screen.entry}
-        onBack={back}
-        onNeedSubscription={() => setScreen({ name: "subscription" })}
-      />
-    );
-  }
+    if (screen.name === "historyDetail") {
+      return (
+        <HistoryDetailScreen
+          entry={screen.entry}
+          onBack={back}
+          onNeedSubscription={() => setScreen({ name: "subscription" })}
+        />
+      );
+    }
 
-  if (screen.name === "profile") {
+    if (screen.name === "profile") {
+      return (
+        <ProfileScreen
+          onBack={back}
+          onOpenSubscription={() => setScreen({ name: "subscription" })}
+          onOpenTerms={() => setScreen({ name: "terms" })}
+          onOpenGuide={() => setScreen({ name: "guide" })}
+          onOpenReferral={() => setScreen({ name: "referral" })}
+          onOpenAdmin={() => setScreen({ name: "admin" })}
+          theme={theme.theme}
+          onToggleTheme={theme.toggle}
+        />
+      );
+    }
+
+    if (screen.name === "admin") {
+      return <AdminScreen onBack={back} />;
+    }
+
+    if (screen.name === "subscription") {
+      return <SubscriptionScreen onBack={back} />;
+    }
+
+    if (screen.name === "chat") {
+      return (
+        <ChatScreen onBack={back} onNeedEnergy={() => setScreen({ name: "subscription" })} />
+      );
+    }
+
+    if (screen.name === "guide") {
+      return <GuideScreen onBack={back} />;
+    }
+
+    if (screen.name === "terms") {
+      return <TermsScreen onBack={back} />;
+    }
+
+    if (screen.name === "referral") {
+      return <ReferralScreen onBack={back} />;
+    }
+
     return (
-      <ProfileScreen
-        onBack={back}
+      <MainScreen
+        onSelectSpread={(spreadId) => setScreen({ name: "spread", spreadId })}
+        onOpenHistory={() => setScreen({ name: "history" })}
+        onOpenProfile={() => setScreen({ name: "profile" })}
         onOpenSubscription={() => setScreen({ name: "subscription" })}
-        onOpenTerms={() => setScreen({ name: "terms" })}
-        onOpenGuide={() => setScreen({ name: "guide" })}
-        onOpenReferral={() => setScreen({ name: "referral" })}
-        onOpenAdmin={() => setScreen({ name: "admin" })}
-        theme={theme.theme}
-        onToggleTheme={theme.toggle}
-      />
-    );
-  }
+        onOpenChat={() => setScreen({ name: "chat" })}
+        />
+      );
+    }
 
-  if (screen.name === "admin") {
-    return <AdminScreen onBack={back} />;
-  }
-
-  if (screen.name === "subscription") {
-    return <SubscriptionScreen onBack={back} />;
-  }
-
-  if (screen.name === "chat") {
-    return (
-      <ChatScreen onBack={back} onNeedEnergy={() => setScreen({ name: "subscription" })} />
-    );
-  }
-
-  if (screen.name === "guide") {
-    return <GuideScreen onBack={back} />;
-  }
-
-  if (screen.name === "terms") {
-    return <TermsScreen onBack={back} />;
-  }
-
-  if (screen.name === "referral") {
-    return <ReferralScreen onBack={back} />;
-  }
-
+  // key на имени экрана заставляет React заменить узел целиком, а не
+  // обновить его на месте, — без этого CSS-анимация появления не
+  // перезапускалась бы при переходе.
   return (
-    <MainScreen
-      onSelectSpread={(spreadId) => setScreen({ name: "spread", spreadId })}
-      onOpenHistory={() => setScreen({ name: "history" })}
-      onOpenProfile={() => setScreen({ name: "profile" })}
-      onOpenSubscription={() => setScreen({ name: "subscription" })}
-      onOpenChat={() => setScreen({ name: "chat" })}
-    />
+    <div key={screen.name} className={styles.screenEnter}>
+      {renderScreen()}
+    </div>
   );
 }
 

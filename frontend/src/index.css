@@ -120,7 +120,28 @@ body,
 }
 
 body {
-  background: var(--color-bg);
+  /* Не плоская заливка, а свет сверху и сгущение к низу.
+     
+     Тёплое золотое сияние в верхней трети — как от свечи над столом с
+     картами; тёмный осадок внизу закрывает страницу и не даёт ей
+     растворяться в пустоте. Фиксировано относительно окна
+     (background-attachment), поэтому свет остаётся на месте, когда
+     страницу листают, — иначе он уезжал бы вверх вместе с контентом и
+     эффект пропадал бы на длинных экранах. */
+  background-color: var(--color-bg);
+  background-image:
+    radial-gradient(
+      120% 55% at 50% -10%,
+      color-mix(in srgb, var(--color-accent) 22%, transparent) 0%,
+      transparent 70%
+    ),
+    radial-gradient(
+      140% 45% at 50% 108%,
+      color-mix(in srgb, #2a1c10 30%, transparent) 0%,
+      transparent 70%
+    );
+  background-attachment: fixed;
+  background-repeat: no-repeat;
   color: var(--color-text);
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
