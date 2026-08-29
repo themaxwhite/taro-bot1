@@ -10,7 +10,7 @@
   color: var(--color-text);
   text-align: center;
   touch-action: manipulation;
-  box-shadow: 0 4px 14px -8px rgba(58, 47, 34, 0.25);
+  box-shadow: var(--shadow-md);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 

@@ -16,7 +16,7 @@
 .empty {
   padding: 40px 24px 0;
   text-align: center;
-  font-size: 14px;
+  font-size: var(--text-base);
   color: var(--color-text-muted);
 }
 
@@ -35,7 +35,7 @@
 
 .sectionTitle {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--text-base);
   font-weight: 700;
   font-family: var(--font-display);
   color: var(--color-text-muted);
@@ -60,7 +60,7 @@
 }
 
 .cardValue {
-  font-size: 20px;
+  font-size: var(--text-title);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }

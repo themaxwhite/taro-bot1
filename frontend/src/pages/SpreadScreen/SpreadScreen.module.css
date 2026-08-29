@@ -9,7 +9,7 @@
 .description {
   margin: 0;
   padding: 0 16px 20px;
-  font-size: 14px;
+  font-size: var(--text-base);
   color: var(--color-text-muted);
 }
 
@@ -29,7 +29,7 @@
   background: var(--color-bg-elevated);
   color: var(--color-text);
   font-family: inherit;
-  font-size: 14px;
+  font-size: var(--text-base);
   resize: none;
 }
 
@@ -119,7 +119,7 @@
 
 .guideText {
   margin: 3px 0 0;
-  font-size: 13.5px;
+  font-size: var(--text-body);
   line-height: 1.5;
   color: var(--color-text);
 }

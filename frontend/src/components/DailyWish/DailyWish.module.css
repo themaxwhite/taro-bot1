@@ -11,14 +11,14 @@
 
 .icon {
   color: var(--color-accent);
-  font-size: 14px;
+  font-size: var(--text-base);
   line-height: 1.5;
   flex-shrink: 0;
 }
 
 .text {
   margin: 0;
-  font-size: 13.5px;
+  font-size: var(--text-body);
   line-height: 1.5;
   color: var(--color-text-muted);
   font-style: italic;

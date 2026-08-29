@@ -9,7 +9,7 @@
 .card {
   width: 84px;
   aspect-ratio: 100 / 170;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   border: 1px solid var(--color-border);
   /* Чуть приглушены — видно, что это не сама карта, а её обратная

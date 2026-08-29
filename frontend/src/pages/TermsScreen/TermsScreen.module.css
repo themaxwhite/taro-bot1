@@ -11,7 +11,7 @@
 
 .updated {
   margin: 0 0 20px;
-  font-size: 12.5px;
+  font-size: var(--text-small);
   color: var(--color-text-muted);
   text-align: center;
 }
@@ -30,7 +30,7 @@
 
 .paragraph {
   margin: 0 0 10px;
-  font-size: 14px;
+  font-size: var(--text-base);
   line-height: 1.55;
   color: var(--color-text);
 }
@@ -44,7 +44,7 @@
 }
 
 .list li {
-  font-size: 14px;
+  font-size: var(--text-base);
   line-height: 1.5;
   color: var(--color-text);
 }

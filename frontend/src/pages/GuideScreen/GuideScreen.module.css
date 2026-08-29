@@ -14,12 +14,10 @@
 /* Значок вынесен в колонку слева от текста: так разделы читаются как
    список, а не как сплошная простыня, и глазом легко найти нужный. */
 .section {
+  composes: card from "../../styles/shared.module.css";
   display: flex;
   gap: 14px;
   padding: 16px;
-  border-radius: var(--radius-md);
-  background: var(--color-bg-elevated);
-  border: 1px solid var(--color-border);
 }
 
 .glyph {
@@ -40,7 +38,7 @@
 
 .paragraph {
   margin: 0 0 8px;
-  font-size: 13.5px;
+  font-size: var(--text-body);
   line-height: 1.5;
   color: var(--color-text-muted);
 }

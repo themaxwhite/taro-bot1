@@ -16,7 +16,7 @@
 .empty {
   padding: 40px 24px 0;
   text-align: center;
-  font-size: 14px;
+  font-size: var(--text-base);
   color: var(--color-text-muted);
 }
 

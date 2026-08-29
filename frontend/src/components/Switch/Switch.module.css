@@ -3,7 +3,7 @@
   flex-shrink: 0;
   width: 46px;
   height: 27px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: none;
   padding: 2px;
   background: var(--color-bg-elevated-active);
@@ -21,7 +21,7 @@
   height: 23px;
   border-radius: 50%;
   background: var(--color-bg-elevated);
-  box-shadow: 0 1px 3px rgba(58, 47, 34, 0.3);
+  box-shadow: var(--shadow-sm);
   transition: transform 0.2s ease;
 }
 

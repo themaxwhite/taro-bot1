@@ -25,7 +25,7 @@
 .thumbnail {
   width: 28px;
   aspect-ratio: 2 / 3;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   object-fit: cover;
   box-shadow: 0 2px 4px -1px rgba(58, 47, 34, 0.35);
   border: 1px solid var(--color-bg-elevated);
@@ -42,7 +42,7 @@
   width: 28px;
   aspect-ratio: 2 / 3;
   margin-left: -14px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   background: var(--color-bg-elevated-active);
   border: 1px solid var(--color-bg-elevated);
   font-size: 10px;
@@ -82,5 +82,5 @@
 .chevron {
   flex-shrink: 0;
   color: var(--color-text-muted);
-  font-size: 16px;
+  font-size: var(--text-lead);
 }

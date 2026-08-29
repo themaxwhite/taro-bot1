@@ -27,7 +27,7 @@
   flex-shrink: 0;
   width: 34px;
   text-align: center;
-  font-size: 20px;
+  font-size: var(--text-title);
   color: var(--color-accent-strong);
 }
 
@@ -36,7 +36,7 @@
 .rowThumb {
   flex-shrink: 0;
   width: 34px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   border: 1px solid var(--color-accent);
 }
 
@@ -61,7 +61,7 @@
 .chevron {
   flex-shrink: 0;
   color: var(--color-text-muted);
-  font-size: 20px;
+  font-size: var(--text-title);
   transition: transform 0.2s ease;
 }
 
@@ -92,7 +92,7 @@
 }
 
 .zodiacSymbol {
-  font-size: 20px;
+  font-size: var(--text-title);
   color: var(--color-accent-strong);
 }
 
@@ -111,7 +111,7 @@
 
 .hint {
   margin: 0;
-  font-size: 12.5px;
+  font-size: var(--text-small);
   line-height: 1.45;
   color: var(--color-text-muted);
 }

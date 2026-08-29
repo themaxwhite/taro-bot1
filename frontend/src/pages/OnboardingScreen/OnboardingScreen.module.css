@@ -61,7 +61,7 @@
 }
 
 .subtitle {
-  font-size: 14px;
+  font-size: var(--text-base);
   color: var(--color-text-muted);
   text-align: center;
   margin: 0 0 28px;
@@ -147,7 +147,7 @@
 }
 
 .zodiacTitle {
-  font-size: 11.5px;
+  font-size: var(--text-caption);
   font-weight: 600;
 }
 

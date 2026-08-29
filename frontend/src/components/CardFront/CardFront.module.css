@@ -22,7 +22,7 @@
   position: relative;
   width: 100%;
   aspect-ratio: 2 / 3;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   box-shadow: 0 14px 26px -14px rgba(156, 122, 63, 0.4);
   transition: transform 0.2s ease;
   padding: 0;
@@ -63,7 +63,7 @@
 .flipFront {
   position: absolute;
   inset: 0;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
@@ -146,7 +146,7 @@
 .overlayCard {
   width: min(78vw, 320px);
   aspect-ratio: 2 / 3;
-  border-radius: 14px;
+  border-radius: var(--radius-md);
   overflow: hidden;
   box-shadow: 0 24px 48px -20px rgba(0, 0, 0, 0.6);
 }
@@ -163,7 +163,7 @@
 }
 
 .overlayLabel {
-  font-size: 14px;
+  font-size: var(--text-base);
   color: var(--color-text-inverse, #fff);
   text-align: center;
   max-width: 80vw;
