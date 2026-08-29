@@ -72,3 +72,12 @@ class ProfileInsights(BaseModel):
     favorite_spread: str | None
     favorite_spread_count: int
     achievements: list[AchievementEntry]
+
+
+class UntriedSpreads(BaseModel):
+    """Расклады, которых пользователь ещё ни разу не делал."""
+
+    # Порядок показа выбирает фронтенд: очередь плиток на главной задана
+    # там (types/tarot.ts), и повторять её здесь значило бы завести
+    # второй источник правды о том, что показывать раньше.
+    spread_ids: list[str]

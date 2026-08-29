@@ -191,3 +191,14 @@ export async function fetchProfileInsights(): Promise<ProfileInsights> {
     achievements: data.achievements,
   };
 }
+
+/**
+ * Расклады, которых пользователь ещё не делал, — для подсказки внизу
+ * главной. Порядок показа выбираем здесь: очередь плиток задана в
+ * types/tarot.ts, и сервер её намеренно не дублирует.
+ */
+export async function fetchUntriedSpreads(): Promise<string[]> {
+  const response = await authedFetch("/api/profile/untried-spreads");
+  const data = (await response.json()) as { spread_ids: string[] };
+  return data.spread_ids;
+}

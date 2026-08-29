@@ -22,7 +22,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models import SpreadRecord, User
-from app.spreads import SPREADS
+from app.spreads import CHOOSABLE_SPREADS, SPREADS
 from app.streaks import longest_streak
 
 # Окно карты активности. 98 дней — это 14 недель, но столбцов на экране
@@ -120,11 +120,17 @@ def achievements(db: Session, user: User) -> list[Achievement]:
         select(func.count()).select_from(SpreadRecord).where(SpreadRecord.user_id == user.telegram_id)
     ).scalar_one()
 
-    distinct_spreads = db.execute(
-        select(func.count(func.distinct(SpreadRecord.spread_id))).where(
-            SpreadRecord.user_id == user.telegram_id
-        )
-    ).scalar_one()
+    # Считаем только выбираемые расклады: «Карта дня» бесплатна и
+    # вытягивается почти случайно, так что засчитывать её в «все
+    # расклады» — значит удешевить достижение. Тот же набор использует
+    # подсказка «чего вы ещё не пробовали».
+    choosable_ids = {s.value for s in CHOOSABLE_SPREADS}
+    tried_spreads = set(
+        db.execute(
+            select(SpreadRecord.spread_id).where(SpreadRecord.user_id == user.telegram_id).distinct()
+        ).scalars().all()
+    )
+    distinct_spreads = len(tried_spreads & choosable_ids)
 
     invited = db.execute(
         select(func.count()).select_from(User).where(User.referred_by == user.telegram_id)
@@ -141,9 +147,9 @@ def achievements(db: Session, user: User) -> list[Achievement]:
         Achievement(
             "every-spread",
             "Все расклады",
-            f"Опробованы все {len(SPREADS)} видов",
+            f"Опробованы все {len(CHOOSABLE_SPREADS)} видов",
             "🗺",
-            distinct_spreads >= len(SPREADS),
+            distinct_spreads >= len(CHOOSABLE_SPREADS),
         ),
         Achievement("inviter", "Позвал друга", "Кто-то пришёл по вашей ссылке", "🎁", invited >= 1),
     ]

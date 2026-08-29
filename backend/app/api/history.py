@@ -19,8 +19,10 @@ from app.history.schemas import (
     ProfileInsights,
     ProfileStats,
     TopCard,
+    UntriedSpreads,
 )
 from app.insights import achievements, activity_by_day, deck_stats
+from app.spreads import CHOOSABLE_SPREADS
 from app.models import SpreadRecord, User
 from app.streaks import days_streak, next_reward
 from app.tarot.cards import MAJOR_ARCANA_IDS
@@ -136,6 +138,32 @@ def _profile_response(user: User) -> ProfileResponse:
         zodiac_sign=user.zodiac_sign,
         patron_card=user.patron_card,
         is_admin=user.telegram_id in settings.admin_telegram_id_set,
+    )
+
+
+@router.get("/profile/untried-spreads", response_model=UntriedSpreads)
+def get_untried_spreads(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> UntriedSpreads:
+    """
+    Чего человек ещё не пробовал — для подсказки внизу главной.
+
+    Отдельно от /profile/insights и намеренно дешёвое: это один DISTINCT
+    по индексируемой колонке, и вызывает его главный экран, который
+    открывают чаще всех остальных вместе взятых. Тянуть ради одной
+    строчки разбор карт всех раскладов было бы расточительно.
+
+    «Карта дня» исключена: она бесплатна, лежит отдельным баннером выше
+    и предлагать её как неопробованную бессмысленно.
+    """
+    tried = set(
+        db.execute(
+            select(SpreadRecord.spread_id).where(SpreadRecord.user_id == user.telegram_id).distinct()
+        ).scalars().all()
+    )
+    return UntriedSpreads(
+        spread_ids=[s.value for s in CHOOSABLE_SPREADS if s.value not in tried]
     )
 
 
