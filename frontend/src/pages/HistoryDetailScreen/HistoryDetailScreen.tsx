@@ -10,6 +10,7 @@ import { LockedCards } from "../../components/LockedCards/LockedCards";
 import { ThinkingOverlay } from "../../components/ThinkingOverlay/ThinkingOverlay";
 import { FollowUpQuestions } from "../../components/FollowUpQuestions/FollowUpQuestions";
 import resultStyles from "../ResultScreen/ResultScreen.module.css";
+import { isSpeechSupported, primeVoices, speak, stopSpeech } from "../../feedback/speech";
 import styles from "./HistoryDetailScreen.module.css";
 
 interface HistoryDetailScreenProps {
@@ -33,6 +34,24 @@ export function HistoryDetailScreen({ entry, onBack, onNeedSubscription }: Histo
   const [cards, setCards] = useState(entry.cards);
   const [unlocked, setUnlocked] = useState(entry.unlocked);
   const [interpretState, setInterpretState] = useState<ActionState>({ status: "idle" });
+  const [speaking, setSpeaking] = useState(false);
+
+  // То же, что на экране результата: прогреть список голосов заранее и
+  // оборвать чтение при уходе, иначе голос продолжит поверх следующего
+  // экрана.
+  useEffect(() => {
+    primeVoices();
+    return stopSpeech;
+  }, []);
+
+  function toggleSpeech(text: string) {
+    if (speaking) {
+      stopSpeech();
+      setSpeaking(false);
+      return;
+    }
+    if (speak(text, () => setSpeaking(false))) setSpeaking(true);
+  }
   const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
 
   function refreshSubscription() {
@@ -98,6 +117,15 @@ export function HistoryDetailScreen({ entry, onBack, onNeedSubscription }: Histo
         {interpretation ? (
           <>
             <div className={resultStyles.interpretation}>{interpretation}</div>
+            {isSpeechSupported() && (
+              <button
+                type="button"
+                className={resultStyles.listenButton}
+                onClick={() => toggleSpeech(interpretation)}
+              >
+                {speaking ? "◼ Остановить" : "▶ Послушать толкование"}
+              </button>
+            )}
             <FollowUpQuestions
               spreadRecordId={entry.id}
               initialAnswers={entry.followUps}
