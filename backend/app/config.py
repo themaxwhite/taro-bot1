@@ -23,12 +23,9 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./tarot.db"
 
     # API keys for the AI interpretation feature and the daily motivating
-    # message (app/ai/client.py), tried in order: Gemini (free tier, no
-    # billing account needed) -> Groq (also free, separate infra/quota
-    # from Google — a fallback for when Gemini's free-tier rate limit is
-    # hit) -> Anthropic (pay-as-you-go, tried last). All optional for
-    # local dev — both features degrade to a static fallback if none are set.
-    gemini_api_key: str | None = None
+    # message (app/ai/client.py), tried in order: Groq (free) ->
+    # Anthropic (pay-as-you-go, tried last). Both optional for local dev
+    # — the features degrade to a static fallback if neither is set.
     groq_api_key: str | None = None
     anthropic_api_key: str | None = None
 

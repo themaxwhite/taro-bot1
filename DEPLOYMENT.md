@@ -119,7 +119,7 @@ curl -X POST "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook" \
 - [x] Экран результата, подключённый к API — готово
 - [x] Валидация Telegram `initData` — готово
 - [x] Персистентность истории (SQLite) — история/профиль читают реальные данные, не моки
-- [x] AI-толкование расклада, дневное пожелание — готово (нужен `GEMINI_API_KEY` или `ANTHROPIC_API_KEY`, иначе статичный fallback)
+- [x] AI-толкование расклада, дневное пожелание — готово (нужен `GROQ_API_KEY` или `ANTHROPIC_API_KEY`, иначе статичный fallback)
 - [x] Подписка на ЮKassa (тарифы «Плюс»/«Премиум»/«Магистр», квота на толкование и
       доп. карту) — готово на backend+frontend, нужны только реальные
       `YOOKASSA_SHOP_ID`/`YOOKASSA_SECRET_KEY`

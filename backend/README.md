@@ -144,7 +144,7 @@ python -m alembic check            # модели и миграции не ра�
 ### `GET /api/daily-message`
 Одна мотивирующая фраза дня, кэшируется на календарные сутки (UTC) в таблице
 `daily_messages` — одна и та же для всех пользователей, генерируется через
-Gemini или Anthropic API (если задан `GEMINI_API_KEY` или `ANTHROPIC_API_KEY`),
+Groq или Anthropic API (если задан `GROQ_API_KEY` или `ANTHROPIC_API_KEY`),
 иначе берётся из статичного списка в `app/ai/fallback.py`.
 
 ### `POST /api/spreads/{id}/interpret`

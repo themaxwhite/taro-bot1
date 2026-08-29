@@ -167,10 +167,10 @@ def _add_missing_columns() -> None:
 
 # Below this length, a cached daily_messages row can only be a
 # truncated/broken generation (a real one-sentence motivating message
-# is always much longer) — e.g. Gemini's "thinking" mode once ate
-# nearly all of a small maxOutputTokens budget and left just "До"
-# cached for the whole day (see app/ai/client.py's thinkingConfig
-# fix). One bad row like that would otherwise stick around, shown to
+# is always much longer) — a reasoning model can eat nearly all of a
+# small max-tokens budget on hidden "thinking" and leave just "До"
+# cached for the whole day, which is what happened in production and is
+# why the Groq call caps reasoning_effort. One bad row would stick around, shown to
 # every visitor, until its date key rolls over at UTC midnight — this
 # clears it out immediately so the next request regenerates it.
 _MIN_DAILY_MESSAGE_LENGTH = 20
