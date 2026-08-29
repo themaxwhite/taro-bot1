@@ -5,57 +5,51 @@
   align-items: center;
   gap: 6px;
   padding: 20px 12px 16px;
-  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  /* Не ровная заливка, а очень слабый золотой свет из верхнего левого
-     угла — как если бы плитку подсвечивало сбоку. Разница почти
-     неуловима на глаз поштучно, но десять плиток перестают выглядеть
-     листом бумаги в клетку. */
-  /* Отсвет градиента, севший сверху и растворяющийся к середине
-     плитки. Взят из того же токена, поэтому меняется вместе с
-     баннером. */
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--color-accent) 14%, transparent) 0%,
-      transparent 55%
-    ),
-    radial-gradient(
-      130% 80% at 85% 0%,
-      color-mix(in srgb, #b3382a 10%, transparent) 0%,
-      transparent 55%
-    ),
-    var(--color-bg-elevated);
   color: var(--color-text);
   text-align: center;
-  overflow: hidden;
   touch-action: manipulation;
   box-shadow: var(--shadow-md);
   transition:
     transform 0.15s ease,
-    box-shadow 0.15s ease,
-    border-color 0.15s ease;
-}
+    box-shadow 0.15s ease;
 
-/* Кромка тем же градиентом, что залит баннер карты дня, — родство
-   видно, но плитка не спорит с героем экрана: у неё это полоса в два
-   пикселя, а не заливка, и она не мерцает. Десять анимированных
-   градиентов на экране грели бы батарею и растащили бы внимание. */
-.card::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto;
-  height: 2px;
-  background: var(--gradient-aurum);
-  opacity: 0.75;
+  /* Градиентная рамка по всему периметру.
+     
+     Обычный border градиентом залить нельзя, поэтому два слоя фона с
+     разной областью обрезки: верхние клипуются по padding-box (то есть
+     внутрь рамки) и рисуют саму плитку, нижний — по border-box, и его
+     видно ровно в полосе рамки. Прозрачная граница задаёт её толщину.
+     
+     Порядок слоёв важен: первым идёт то, что сверху. Отсвет градиента
+     лежит поверх заливки, заливка перекрывает градиент рамки внутри
+     плитки, и наружу остаётся только кант. */
+  border: 1.5px solid transparent;
+  background:
+    linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--color-accent) 14%, transparent) 0%,
+        transparent 55%
+      )
+      padding-box,
+    radial-gradient(
+        130% 80% at 85% 0%,
+        color-mix(in srgb, #b3382a 10%, transparent) 0%,
+        transparent 55%
+      )
+      padding-box,
+    linear-gradient(var(--color-bg-elevated), var(--color-bg-elevated)) padding-box,
+    var(--gradient-aurum) border-box;
 }
 
 .card:active {
   transform: scale(0.97);
-  background: var(--color-bg-elevated-active);
-  border-color: var(--color-accent);
-  /* На нажатии плитка не проваливается, а загорается: тень меняется на
-     золотое свечение того же размера. */
+  /* Заливку меняем на нажатую, рамку сохраняем: перечислять слои заново
+     обязательно — background это shorthand, и короткая запись стёрла бы
+     градиент вместе с ним. */
+  background:
+    linear-gradient(var(--color-bg-elevated-active), var(--color-bg-elevated-active)) padding-box,
+    var(--gradient-aurum) border-box;
   box-shadow: 0 6px 20px -8px rgba(140, 51, 34, 0.5);
 }
 
