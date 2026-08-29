@@ -100,6 +100,7 @@ export function MainScreen({
       <DailyWish />
       {dailyCardCooldown && <DailyCardCooldown nextAvailableAt={dailyCardCooldown} />}
       <DailyCardBanner onClick={() => onSelectSpread("daily-card")} />
+      <ChatBanner onOpen={onOpenChat} />
       <LoveNudgeBanner gender={gender} onSelectSpread={onSelectSpread} />
       {groups.map((group) => (
         <SpreadList
@@ -109,8 +110,6 @@ export function MainScreen({
           onSelect={onSelectSpread}
         />
       ))}
-
-      <ChatBanner onOpen={onOpenChat} />
 
       <SpreadSuggestion onSelectSpread={onSelectSpread} />
     </div>
