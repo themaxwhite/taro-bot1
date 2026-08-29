@@ -4,6 +4,7 @@ import { ScreenHeader } from "../../components/ScreenHeader/ScreenHeader";
 import { Deck } from "../../components/Deck/Deck";
 import { checkQuestion } from "../../services/spreadsApi";
 import { MysticalBackground } from "../../components/MysticalBackground/MysticalBackground";
+import { SPREAD_GUIDES } from "../../content/spreadGuides";
 import styles from "./SpreadScreen.module.css";
 
 interface SpreadScreenProps {
@@ -16,8 +17,35 @@ interface SpreadScreenProps {
 // full 78-card tarot deck (keeps the grid usable on small screens).
 const VISUAL_DECK_SIZE = 20;
 
+// Справка сворачивается на этом устройстве и больше не разворачивается
+// сама: первый раз она нужна, на десятый — мешает между человеком и
+// колодой. localStorage может быть недоступен (приватное окно, отказ от
+// хранилища), поэтому любое обращение обёрнуто — тогда справка просто
+// открыта, как в первый раз.
+const GUIDE_SEEN_KEY = "tarot:spread-guide-collapsed";
+
+function guideCollapsed(spreadId: SpreadId): boolean {
+  try {
+    return (localStorage.getItem(GUIDE_SEEN_KEY) ?? "").split(",").includes(spreadId);
+  } catch {
+    return false;
+  }
+}
+
+function rememberCollapsed(spreadId: SpreadId): void {
+  try {
+    const seen = new Set((localStorage.getItem(GUIDE_SEEN_KEY) ?? "").split(",").filter(Boolean));
+    seen.add(spreadId);
+    localStorage.setItem(GUIDE_SEEN_KEY, [...seen].join(","));
+  } catch {
+    // Не смогли запомнить — справка снова откроется, это не поломка.
+  }
+}
+
 export function SpreadScreen({ spreadId, onBack, onCardsSelected }: SpreadScreenProps) {
   const spread = SPREAD_TYPES.find((s) => s.id === spreadId);
+  const guide = SPREAD_GUIDES[spreadId];
+  const [guideOpen, setGuideOpen] = useState(() => !guideCollapsed(spreadId));
   const [question, setQuestion] = useState("");
   // Текст отказа от бэкенда, если вопрос попал под ограничения
   // (backend/app/moderation.py). Проверка серверная — здесь только
@@ -40,6 +68,35 @@ export function SpreadScreen({ spreadId, onBack, onCardsSelected }: SpreadScreen
       <MysticalBackground density="subtle" />
       <ScreenHeader title={spread.title} onBack={onBack} />
       <p className={styles.description}>{spread.description}</p>
+
+      <div className={styles.guide}>
+        <button
+          type="button"
+          className={styles.guideToggle}
+          aria-expanded={guideOpen}
+          onClick={() => {
+            const next = !guideOpen;
+            setGuideOpen(next);
+            if (!next) rememberCollapsed(spreadId);
+          }}
+        >
+          <span>Как работать с этим раскладом</span>
+          <span className={`${styles.guideChevron} ${guideOpen ? styles.guideChevronOpen : ""}`} aria-hidden="true">
+            ›
+          </span>
+        </button>
+
+        {guideOpen && (
+          <dl className={styles.guideBody}>
+            <dt className={styles.guideTerm}>Для чего</dt>
+            <dd className={styles.guideText}>{guide.about}</dd>
+            <dt className={styles.guideTerm}>Что спросить</dt>
+            <dd className={styles.guideText}>{guide.ask}</dd>
+            <dt className={styles.guideTerm}>Как читать</dt>
+            <dd className={styles.guideText}>{guide.read}</dd>
+          </dl>
+        )}
+      </div>
 
       {/* Ни подписи, ни примера: подсказка навязывала формулировку, и
           люди переписывали пример вместо собственного вопроса. Экранная

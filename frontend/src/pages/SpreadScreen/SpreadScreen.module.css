@@ -66,3 +66,71 @@
   font-size: 13px;
   color: var(--color-danger, #c0392b);
 }
+
+/* --- Справка по раскладу ------------------------------------------ */
+
+.guide {
+  margin: 0 16px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-elevated);
+  overflow: hidden;
+}
+
+.guideToggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 11px 14px;
+  border: none;
+  background: transparent;
+  color: var(--color-accent-strong);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  touch-action: manipulation;
+}
+
+.guideChevron {
+  font-size: 18px;
+  transition: transform 0.2s ease;
+}
+
+.guideChevronOpen {
+  transform: rotate(90deg);
+}
+
+.guideBody {
+  margin: 0;
+  padding: 0 14px 14px;
+  animation: guide-in 0.25s ease both;
+}
+
+.guideTerm {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-top: 10px;
+}
+
+.guideText {
+  margin: 3px 0 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--color-text);
+}
+
+@keyframes guide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
