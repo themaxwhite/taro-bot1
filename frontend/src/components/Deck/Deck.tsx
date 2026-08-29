@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { DeckCard } from "../DeckCard/DeckCard";
 import { SelectionCounter } from "../SelectionCounter/SelectionCounter";
 import { ShufflingDeck } from "../ShufflingDeck/ShufflingDeck";
+import { hapticSuccess, hapticTap } from "../../feedback/haptics";
+import { playTap } from "../../feedback/sound";
 import styles from "./Deck.module.css";
 
 interface DeckProps {
@@ -56,12 +58,17 @@ export function Deck({ totalCards, requiredCount, onSelectionComplete }: DeckPro
       if (prev.length >= requiredCount) {
         return prev;
       }
+      // Отклик только на реальный выбор: на попытке взять лишнюю карту
+      // или на снятии выбора подтверждать нечего.
+      hapticTap();
+      playTap();
       return [...prev, index];
     });
   };
 
   const handleContinue = () => {
     if (isComplete) {
+      hapticSuccess();
       onSelectionComplete(selected);
     }
   };

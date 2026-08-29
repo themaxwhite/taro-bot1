@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { DrawnCard } from "../../types/result";
+import { playFlip } from "../../feedback/sound";
 import styles from "./CardFront.module.css";
 
 interface CardFrontProps {
@@ -27,10 +28,12 @@ export function CardFront({ card }: CardFrontProps) {
   useEffect(() => {
     if (prefersReducedMotion()) return;
     const dealTimer = setTimeout(() => setDealt(true), card.position * DEAL_STAGGER_MS);
-    const flipTimer = setTimeout(
-      () => setRevealed(true),
-      FLIP_BASE_DELAY_MS + card.position * FLIP_STAGGER_MS,
-    );
+    const flipTimer = setTimeout(() => {
+      setRevealed(true);
+      // Звук привязан к самому перевороту, а не к загрузке экрана:
+      // карты открываются лесенкой, и шорох должен идти той же лесенкой.
+      playFlip();
+    }, FLIP_BASE_DELAY_MS + card.position * FLIP_STAGGER_MS);
     return () => {
       clearTimeout(dealTimer);
       clearTimeout(flipTimer);

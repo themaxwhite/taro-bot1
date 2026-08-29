@@ -65,6 +65,9 @@ interface TelegramWebApp {
   isVersionAtLeast: (version: string) => boolean;
   BackButton: TelegramBackButton;
   MainButton: TelegramMainButton;
+  // Bot API 6.1+. Отсутствует в старых клиентах — вызовы закрыты
+  // проверкой версии в feedback/haptics.ts.
+  HapticFeedback?: TelegramHapticFeedback;
   viewportHeight: number;
   ready: () => void;
   expand: () => void;
@@ -78,6 +81,12 @@ interface TelegramWebApp {
     left: number;
     right: number;
   };
+}
+
+interface TelegramHapticFeedback {
+  impactOccurred: (style: "light" | "medium" | "heavy" | "rigid" | "soft") => void;
+  notificationOccurred: (type: "error" | "success" | "warning") => void;
+  selectionChanged: () => void;
 }
 
 interface Window {

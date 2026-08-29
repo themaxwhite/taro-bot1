@@ -13,6 +13,8 @@ import { ThinkingOverlay } from "../../components/ThinkingOverlay/ThinkingOverla
 import { Spinner } from "../../components/Spinner/Spinner";
 import { MysticalBackground } from "../../components/MysticalBackground/MysticalBackground";
 import { FollowUpQuestions } from "../../components/FollowUpQuestions/FollowUpQuestions";
+import { hapticSuccess } from "../../feedback/haptics";
+import { playReveal } from "../../feedback/sound";
 import styles from "./ResultScreen.module.css";
 
 interface ResultScreenProps {
@@ -81,6 +83,9 @@ export function ResultScreen({ spreadId, question, onBack, onDone, onNeedSubscri
         prev.status === "success" ? { status: "success", data: { ...prev.data, cards, unlocked: true } } : prev,
       );
       setInterpretState({ status: "idle" });
+      // Момент, за который заплачено: расклад открылся целиком.
+      hapticSuccess();
+      playReveal();
       refreshSubscription();
     } catch (error) {
       const message = error instanceof SpreadsApiError ? error.message : "Не удалось получить толкование.";
