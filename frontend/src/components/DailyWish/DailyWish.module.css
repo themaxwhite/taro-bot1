@@ -18,7 +18,7 @@
 
 .text {
   margin: 0;
-  font-size: var(--text-body);
+  font-size: var(--text-base);
   line-height: 1.5;
   color: var(--color-text-muted);
   font-style: italic;

@@ -11,14 +11,14 @@
 
 .updated {
   margin: 0 0 20px;
-  font-size: var(--text-small);
+  font-size: var(--text-caption);
   color: var(--color-text-muted);
   text-align: center;
 }
 
 .heading {
   margin: 24px 0 8px;
-  font-size: 15px;
+  font-size: var(--text-lead);
   font-weight: 700;
   font-family: var(--font-display);
   color: var(--color-text);

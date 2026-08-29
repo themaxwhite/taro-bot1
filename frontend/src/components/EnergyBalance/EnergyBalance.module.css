@@ -79,7 +79,7 @@
   width: 100%;
   border-radius: var(--radius-md);
   padding: 14px 16px;
-  font-size: 15px;
+  font-size: var(--text-lead);
 }
 
 .detailed .track {
@@ -120,11 +120,11 @@
 }
 
 .caption {
-  font-size: var(--text-small);
+  font-size: var(--text-caption);
   color: var(--color-accent-strong);
 }
 
 .hint {
-  font-size: var(--text-small);
+  font-size: var(--text-caption);
   color: var(--color-text-muted);
 }

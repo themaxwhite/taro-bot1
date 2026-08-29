@@ -23,7 +23,7 @@
   border: 1px solid var(--color-border);
   background: var(--color-bg-elevated);
   color: var(--color-text);
-  font-size: 18px;
+  font-size: var(--text-lg);
   display: flex;
   align-items: center;
   justify-content: center;

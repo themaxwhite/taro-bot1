@@ -9,7 +9,7 @@
   /* Название длиннее прежнего «Tarot», а по бокам две круглых кнопки по
      40px — на узких экранах места впритык, поэтому запрещаем перенос. */
   white-space: nowrap;
-  font-size: 15px;
+  font-size: var(--text-lead);
   font-weight: 600;
   font-family: var(--font-display);
   letter-spacing: 0.12em;
@@ -24,7 +24,7 @@
   border: 1px solid var(--color-border);
   background: var(--color-bg-elevated);
   color: var(--color-text);
-  font-size: 18px;
+  font-size: var(--text-lg);
   display: flex;
   align-items: center;
   justify-content: center;

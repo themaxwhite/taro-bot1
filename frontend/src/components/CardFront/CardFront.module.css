@@ -86,7 +86,7 @@
 
 .position {
   margin-top: 4px;
-  font-size: 12px;
+  font-size: var(--text-caption);
   font-weight: 600;
   color: var(--color-text-muted);
   text-align: center;
@@ -95,7 +95,7 @@
 }
 
 .orientation {
-  font-size: 10.5px;
+  font-size: var(--text-micro);
   color: var(--color-accent);
   text-transform: uppercase;
   letter-spacing: 0.04em;

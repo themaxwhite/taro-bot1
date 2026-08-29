@@ -16,7 +16,7 @@
 .questionLabel {
   display: block;
   padding: 0 16px 6px;
-  font-size: var(--text-body);
+  font-size: var(--text-base);
   color: var(--color-text-muted);
 }
 
@@ -63,7 +63,7 @@
 
 .questionError {
   margin: 6px 16px 0;
-  font-size: var(--text-body);
+  font-size: var(--text-base);
   color: var(--color-danger, #c0392b);
 }
 
@@ -87,14 +87,14 @@
   border: none;
   background: transparent;
   color: var(--color-accent-strong);
-  font-size: var(--text-body);
+  font-size: var(--text-base);
   font-weight: 600;
   text-align: left;
   touch-action: manipulation;
 }
 
 .guideChevron {
-  font-size: 18px;
+  font-size: var(--text-lg);
   transition: transform 0.2s ease;
 }
 
@@ -109,7 +109,7 @@
 }
 
 .guideTerm {
-  font-size: 11px;
+  font-size: var(--text-caption);
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -119,7 +119,7 @@
 
 .guideText {
   margin: 3px 0 0;
-  font-size: var(--text-body);
+  font-size: var(--text-base);
   line-height: 1.5;
   color: var(--color-text);
 }

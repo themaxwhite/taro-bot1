@@ -66,6 +66,6 @@
 }
 
 .cardLabel {
-  font-size: 12px;
+  font-size: var(--text-caption);
   color: var(--color-text-muted);
 }
