@@ -11,11 +11,19 @@
      угла — как если бы плитку подсвечивало сбоку. Разница почти
      неуловима на глаз поштучно, но десять плиток перестают выглядеть
      листом бумаги в клетку. */
+  /* Отсвет градиента, севший сверху и растворяющийся к середине
+     плитки. Взят из того же токена, поэтому меняется вместе с
+     баннером. */
   background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-accent) 14%, transparent) 0%,
+      transparent 55%
+    ),
     radial-gradient(
-      120% 90% at 12% 0%,
-      color-mix(in srgb, var(--color-accent) 12%, transparent) 0%,
-      transparent 60%
+      130% 80% at 85% 0%,
+      color-mix(in srgb, #b3382a 10%, transparent) 0%,
+      transparent 55%
     ),
     var(--color-bg-elevated);
   color: var(--color-text);
@@ -29,19 +37,17 @@
     border-color 0.15s ease;
 }
 
-/* Золотой отблеск по верхней кромке. Тоньше рамки и виден только на
-   свету — держит форму плитки, когда фон и карточка почти одного тона. */
+/* Кромка тем же градиентом, что залит баннер карты дня, — родство
+   видно, но плитка не спорит с героем экрана: у неё это полоса в два
+   пикселя, а не заливка, и она не мерцает. Десять анимированных
+   градиентов на экране грели бы батарею и растащили бы внимание. */
 .card::before {
   content: "";
   position: absolute;
   inset: 0 0 auto;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    color-mix(in srgb, var(--color-accent) 55%, transparent),
-    transparent
-  );
+  height: 2px;
+  background: var(--gradient-aurum);
+  opacity: 0.75;
 }
 
 .card:active {
@@ -50,7 +56,7 @@
   border-color: var(--color-accent);
   /* На нажатии плитка не проваливается, а загорается: тень меняется на
      золотое свечение того же размера. */
-  box-shadow: 0 4px 16px -6px color-mix(in srgb, var(--color-accent-strong) 55%, transparent);
+  box-shadow: 0 6px 20px -8px rgba(140, 51, 34, 0.5);
 }
 
 .glyph {

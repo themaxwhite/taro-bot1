@@ -22,9 +22,10 @@
   margin: 0 16px 20px;
   padding: 15px 16px;
   border-radius: var(--radius-md);
+  position: relative;
+  overflow: hidden;
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
-  border-left: 3px solid var(--color-accent);
   text-align: left;
   color: var(--color-text);
   font: inherit;
@@ -32,6 +33,21 @@
   transition:
     transform 0.16s ease,
     background-color 0.16s ease;
+}
+
+/* Полоса слева — тем же фирменным градиентом, что у карты дня и у кромки
+   плиток. Золото значит «платное»; бирюза у баннера про отношения
+   остаётся плоской, потому что это подсказка, а не покупка.
+
+   Псевдоэлементом, а не border-left: градиент в рамке требует двух
+   слоёв фона с разным background-clip, и тогда он неизбежно затрагивает
+   все четыре стороны. Здесь нужна ровно одна. */
+.banner::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--gradient-aurum);
 }
 
 .banner:active {

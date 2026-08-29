@@ -7,14 +7,7 @@
   padding: 20px;
   border: none;
   border-radius: var(--radius-lg);
-  background: linear-gradient(
-    115deg,
-    #d9a441 0%,
-    #b3382a 24%,
-    #e8c268 48%,
-    #8f2f22 72%,
-    #d9a441 100%
-  );
+  background: var(--gradient-aurum);
   background-size: 260% 260%;
   animation: banner-shimmer 9s ease-in-out infinite;
   color: #fdf6ea;
