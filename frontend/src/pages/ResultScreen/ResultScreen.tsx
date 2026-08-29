@@ -15,7 +15,6 @@ import { MysticalBackground } from "../../components/MysticalBackground/Mystical
 import { FollowUpQuestions } from "../../components/FollowUpQuestions/FollowUpQuestions";
 import { hapticSuccess } from "../../feedback/haptics";
 import { playReveal } from "../../feedback/sound";
-import { isSpeechSupported, primeVoices, speak, stopSpeech } from "../../feedback/speech";
 import styles from "./ResultScreen.module.css";
 
 interface ResultScreenProps {
@@ -42,7 +41,6 @@ export function ResultScreen({ spreadId, question, onBack, onDone, onNeedSubscri
   const [interpretState, setInterpretState] = useState<ActionState>({ status: "idle" });
   const [extraCardState, setExtraCardState] = useState<ActionState>({ status: "idle" });
   const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
-  const [speaking, setSpeaking] = useState(false);
   const spread = SPREAD_TYPES.find((s) => s.id === spreadId);
 
   function refreshSubscription() {
@@ -55,25 +53,6 @@ export function ResultScreen({ spreadId, question, onBack, onDone, onNeedSubscri
   }
 
   useEffect(refreshSubscription, []);
-
-  // Прогрев списка голосов при открытии и остановка чтения при уходе:
-  // SpeechSynthesis живёт в документе, а не в компоненте, и без этого
-  // голос продолжал бы читать толкование поверх следующего экрана.
-  useEffect(() => {
-    primeVoices();
-    return stopSpeech;
-  }, []);
-
-  function toggleSpeech(text: string) {
-    if (speaking) {
-      stopSpeech();
-      setSpeaking(false);
-      return;
-    }
-    // speak() возвращает false, если синтез недоступен — тогда кнопка не
-    // должна притворяться, будто что-то читает.
-    if (speak(text, () => setSpeaking(false))) setSpeaking(true);
-  }
 
   const isPremium = subscription?.tier === "premium" || subscription?.tier === "admin";
 
@@ -201,15 +180,6 @@ export function ResultScreen({ spreadId, question, onBack, onDone, onNeedSubscri
             {interpretation ? (
               <>
                 <div className={styles.interpretation}>{interpretation}</div>
-                {isSpeechSupported() && (
-                  <button
-                    type="button"
-                    className={styles.listenButton}
-                    onClick={() => toggleSpeech(interpretation)}
-                  >
-                    {speaking ? "◼ Остановить" : "▶ Послушать толкование"}
-                  </button>
-                )}
                 <FollowUpQuestions
                   spreadRecordId={state.data.id}
                   isPremium={isPremium}
