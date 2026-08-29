@@ -9,7 +9,7 @@ const links = [
   { href: "#draw", label: "Вытянуть карту" },
   { href: "#deck", label: "Колода" },
   { href: "#reviews", label: "Отзывы" },
-  { href: "#stars", label: "Stars" },
+  { href: "#pricing", label: "Оплата" },
   { href: "#faq", label: "Вопросы" },
 ];
 
