@@ -1,16 +1,30 @@
+/*
+ * Второй уровень иерархии главного экрана.
+ *
+ * Верхний занят карточкой карты дня — градиент, крупный радиус, цветная
+ * тень. Спорить с ней нельзя: карта дня бесплатна и она то, ради чего
+ * возвращаются каждый день.
+ *
+ * Поэтому здесь тот же приём, что у баннера про отношения: спокойная
+ * карточка с цветной полосой слева. Отличается только цвет полосы —
+ * золото против бирюзы, платное против подсказки. Два баннера так
+ * читаются как одна система, а не как две случайные плиты.
+ *
+ * Раньше здесь была сплошная золотая рамка и фон bg-elevated-active.
+ * Рамка тянула внимание на себя вперёд героя, а «активный» фон в покое
+ * означал, что нажатию некуда темнеть.
+ */
 .banner {
   display: flex;
   align-items: center;
   gap: 12px;
   width: calc(100% - 32px);
-  /* Тот же ритм, что у соседних баннеров на главной. */
   margin: 0 16px 20px;
   padding: 15px 16px;
   border-radius: var(--radius-md);
-  /* Заметнее обычной карточки: это единственное место в приложении, где
-     можно спросить что угодно, и теряться среди плиток оно не должно. */
-  background: var(--color-bg-elevated-active);
-  border: 1px solid var(--color-accent);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-accent);
   text-align: left;
   color: var(--color-text);
   font: inherit;
@@ -22,6 +36,7 @@
 
 .banner:active {
   transform: scale(0.985);
+  background: var(--color-bg-elevated-active);
 }
 
 .glyph {
@@ -51,8 +66,12 @@
 .price {
   margin-left: auto;
   flex-shrink: 0;
-  font-size: var(--text-base);
+  padding: 4px 9px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+  font-size: var(--text-caption);
   font-weight: 700;
   color: var(--color-accent-strong);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
