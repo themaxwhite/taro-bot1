@@ -47,7 +47,10 @@ export function ChatScreen({ onBack, onNeedEnergy }: ChatScreenProps) {
   // ответа. Разговор, открывшийся на первом сообщении месячной
   // давности, выглядит сломанным.
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: messages.length > 0 ? "smooth" : "auto" });
+    // Во время генерации прокрутка мгновенная: `messages` меняется на
+    // каждом куске текста, и плавная анимация просто не успевала бы
+    // завершиться, накладываясь сама на себя.
+    bottomRef.current?.scrollIntoView({ behavior: asking ? "auto" : "smooth" });
   }, [messages, asking]);
 
   async function handleAsk() {
@@ -58,14 +61,45 @@ export function ChatScreen({ onBack, onNeedEnergy }: ChatScreenProps) {
     setAsking(true);
     setError(null);
     setNeedsEnergy(false);
+
+    // Вопрос и пустой ответ добавляются сразу, до первого куска: реплика
+    // собеседника должна встать на место мгновенно, а ответ — расти в уже
+    // готовом пузыре, а не появиться потом целиком. Временные
+    // отрицательные id не конфликтуют с настоящими и заменяются на них,
+    // когда сервер пришлёт `done`.
+    const questionKey = -Date.now();
+    const answerKey = questionKey - 1;
+    setMessages((prev) => [
+      ...prev,
+      { id: questionKey, role: "user", text: trimmed },
+      { id: answerKey, role: "assistant", text: "" },
+    ]);
+    setQuestion("");
+
     try {
-      const result = await askTarologist(trimmed);
-      setMessages((prev) => [...prev, result.question, result.answer]);
+      const result = await askTarologist(trimmed, (piece) => {
+        setMessages((prev) =>
+          prev.map((m) => (m.id === answerKey ? { ...m, text: m.text + piece } : m)),
+        );
+      });
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === questionKey
+            ? { ...m, id: result.questionId }
+            : m.id === answerKey
+              ? { ...m, id: result.answerId }
+              : m,
+        ),
+      );
       setBalance(result.balance);
-      setQuestion("");
     } catch (e) {
       const message = e instanceof SpreadsApiError ? e.message : "Не удалось отправить вопрос.";
       setError(message);
+      // Убираем обе временные реплики: за оборванный ответ не списано,
+      // и оставлять его в переписке значило бы показать оплаченным то,
+      // чего не было.
+      setMessages((prev) => prev.filter((m) => m.id !== questionKey && m.id !== answerKey));
+      setQuestion(trimmed);
       // 402 — единственный случай, из которого есть выход прямо отсюда:
       // показываем путь к пополнению, а не только текст отказа.
       if (e instanceof SpreadsApiError && e.status === 402) setNeedsEnergy(true);
@@ -108,19 +142,23 @@ export function ChatScreen({ onBack, onNeedEnergy }: ChatScreenProps) {
             key={message.id}
             className={`${styles.bubble} ${
               message.role === "user" ? styles.fromUser : styles.fromTarologist
-            }`}
+            } ${message.text === "" ? styles.thinking : ""}`}
           >
-            {message.text}
+            {/* Пустой пузырь ответа существует с момента отправки, и до
+                первого куска текста в нём бьются три точки. Отдельного
+                «думающего» пузыря нет: иначе он и растущий ответ стояли
+                бы в ленте одновременно. */}
+            {message.text === "" ? (
+              <>
+                <span className={styles.dot} />
+                <span className={styles.dot} />
+                <span className={styles.dot} />
+              </>
+            ) : (
+              message.text
+            )}
           </div>
         ))}
-
-        {asking && (
-          <div className={`${styles.bubble} ${styles.fromTarologist} ${styles.thinking}`}>
-            <span className={styles.dot} />
-            <span className={styles.dot} />
-            <span className={styles.dot} />
-          </div>
-        )}
 
         <div ref={bottomRef} />
       </div>
@@ -148,7 +186,7 @@ export function ChatScreen({ onBack, onNeedEnergy }: ChatScreenProps) {
       </div>
       <p className={styles.hint}>
         {asking
-          ? "Таролог думает — иногда это занимает до минуты"
+          ? "Таролог отвечает — текст появляется по мере того, как он его пишет"
           : `Вопрос стоит ✦ ${cost}. У вас ✦ ${balance}`}
       </p>
     </div>

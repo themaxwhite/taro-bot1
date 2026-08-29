@@ -17,6 +17,7 @@ fallback, it is latency.
 """
 
 import asyncio
+import json
 import logging
 
 import httpx
@@ -201,3 +202,71 @@ async def generate_chat_reply(
             logger.exception("Groq chat call failed")
             return None
     return None
+
+
+async def stream_chat_reply(
+    system_prompt: str,
+    messages: list[dict[str, str]],
+    max_tokens: int = 500,
+):
+    """
+    То же, что generate_chat_reply, но текст отдаётся кусками по мере
+    генерации.
+
+    Смысл именно в ощущении времени. Ответ целиком приходит за несколько
+    секунд, а на бесплатном тарифе бывает и дольше; первые слова при этом
+    готовы почти сразу. Дождаться всего и потом «печатать» на экране —
+    значит сложить два ожидания вместо того, чтобы убрать одно.
+
+    Генератор бросает RuntimeError, если поток оборвался или Groq не
+    ответил: вызывающая сторона по этому признаку решает, брать ли плату.
+    """
+    if not settings.groq_api_key:
+        raise RuntimeError("GROQ_API_KEY не задан")
+
+    for delay in (*_CHAT_RETRY_DELAYS, None):
+        try:
+            async with httpx.AsyncClient(timeout=_CHAT_TIMEOUT) as client:
+                async with client.stream(
+                    "POST",
+                    _GROQ_API_URL,
+                    headers={
+                        "Authorization": f"Bearer {settings.groq_api_key}",
+                        "content-type": "application/json",
+                    },
+                    json={
+                        "model": _GROQ_MODEL,
+                        "max_tokens": max_tokens,
+                        "reasoning_effort": _GROQ_REASONING_EFFORT,
+                        "stream": True,
+                        "messages": [{"role": "system", "content": system_prompt}, *messages],
+                    },
+                ) as response:
+                    # Ждём и пробуем снова только на исчерпанном лимите —
+                    # остальные ошибки повтором не лечатся.
+                    if response.status_code == 429 and delay is not None:
+                        logger.warning("Groq rate limit on chat stream, retrying in %ss", delay)
+                        await asyncio.sleep(delay)
+                        continue
+                    response.raise_for_status()
+
+                    async for line in response.aiter_lines():
+                        if not line.startswith("data: "):
+                            continue
+                        payload = line[6:].strip()
+                        if payload == "[DONE]":
+                            return
+                        try:
+                            delta = json.loads(payload)["choices"][0].get("delta", {})
+                        except (ValueError, KeyError, IndexError):
+                            # Один битый кусок не повод рвать весь ответ.
+                            continue
+                        piece = delta.get("content")
+                        if piece:
+                            yield piece
+                    return
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("Groq chat stream failed")
+            raise RuntimeError("поток от Groq оборвался") from exc
+
+    raise RuntimeError("Groq не ответил после повторов")

@@ -12,7 +12,7 @@
    снимается плата. Обратный порядок означал бы, что за отказ Groq
    человек платит пять единиц и не получает ничего.
 2. Только Groq, без ухода на платный Anthropic (см.
-   ai/client.py::generate_chat_reply). Чат — самое частое по числу
+   ai/client.py::stream_chat_reply). Чат — самое частое по числу
    вызовов место в приложении, и молчаливый переход на платный ключ
    выставил бы счёт, которого никто не заказывал.
 3. Таролог видит последний расклад, знак зодиака и карту-покровителя.
@@ -21,19 +21,23 @@
 """
 
 import json
+import logging
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.ai.client import generate_chat_reply
+from app.ai.client import stream_chat_reply
 from app.api.deps import get_current_user
 from app.api.subscriptions import available_unlocks, require_quota
-from app.db import get_db
+from app.db import SessionLocal, get_db
 from app.energy import CHAT_QUESTION_COST
 from app.models import ChatMessage, SpreadRecord, User
 from app.moderation import ensure_question_allowed
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
@@ -45,17 +49,31 @@ _HISTORY_FOR_CONTEXT = 10
 # старое человеку полезно, даже если таролог этого уже не помнит.
 _HISTORY_FOR_SCREEN = 100
 
+# Промпт написан от запретов, а не от пожеланий. «Пиши тепло и
+# по-человечески» модель понимает как разрешение на ещё один слой
+# вежливых оборотов; перечисленные ниже конкретные обороты она узнаёт и
+# обходит. Отсюда и список «чего не делай» — он длиннее, чем описание
+# самого голоса, и это намеренно.
 _SYSTEM_PROMPT = (
-    "Ты — таролог в мини-приложении «Tarot Aurum». Отвечаешь в чате, "
-    "по-русски, тепло и по-человечески, 60-120 слов обычным текстом без "
-    "заголовков и списков. Говори как живой человек, а не как справочник: "
-    "без канцелярита, без оборотов вроде «важно отметить», без разбора "
-    "значений карт по пунктам. Опирайся на карты, если они даны в "
-    "контексте, и на то, что человек рассказывал раньше. Не предсказывай "
-    "будущее как факт, не давай медицинских, юридических и финансовых "
-    "советов, не ставь диагнозов. Если вопрос не про таро — ответь "
-    "по-человечески и мягко верни разговор к картам. Заканчивай мысль "
-    "законченным предложением."
+    "Ты — таролог, к которому пришли с вопросом. Не бот-помощник и не "
+    "энциклопедия, а человек, который много лет читает карты и говорит "
+    "просто. "
+    "Пиши по-русски, 60-120 слов, сплошным текстом. Отвечай на то, что "
+    "человек спросил на самом деле, а не на тему вообще. Короткие фразы "
+    "вперемешку с длинными, как в живой речи. Можно начать с наблюдения о "
+    "конкретной карте, можно со встречного вопроса. Можно сомневаться и "
+    "говорить «не знаю». "
+    "Чего не делай никогда. Не начинай с «Важно понимать», «Стоит "
+    "отметить», «Таро — это инструмент самопознания» и прочих вступлений "
+    "ни о чём. Не пересказывай значения карт по очереди, будто "
+    "зачитываешь справочник, — говори, во что они складываются вместе. Не "
+    "заканчивай дежурным «прислушайтесь к себе», «доверьтесь интуиции», "
+    "«всё в ваших руках». Не начинай два ответа подряд одинаково. Не "
+    "объясняй, что ты ИИ, и не извиняйся за формат. "
+    "Границы: не предсказывай будущее как свершившийся факт, не давай "
+    "медицинских, юридических и финансовых советов, не ставь диагнозов. "
+    "Если спрашивают не про таро — ответь по-человечески и мягко верни "
+    "разговор к картам. Всегда заканчивай законченным предложением."
 )
 
 
@@ -75,12 +93,6 @@ class ChatHistoryResponse(BaseModel):
 
 class AskRequest(BaseModel):
     question: str = Field(min_length=1, max_length=1000)
-
-
-class AskResponse(BaseModel):
-    question: ChatMessageResponse
-    answer: ChatMessageResponse
-    balance: int
 
 
 def _history(db: Session, user_id: int, limit: int) -> list[ChatMessage]:
@@ -161,12 +173,17 @@ def get_chat(
     )
 
 
-@router.post("", response_model=AskResponse)
+def _event(payload: dict) -> str:
+    """Одно сообщение Server-Sent Events."""
+    return "data: " + json.dumps(payload, ensure_ascii=False) + "\n\n"
+
+
+@router.post("")
 async def ask(
     body: AskRequest,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> AskResponse:
+) -> StreamingResponse:
     question = body.question.strip()
     if not question:
         raise HTTPException(status_code=400, detail="Вопрос пустой.")
@@ -197,26 +214,71 @@ async def ask(
         history.insert(0, {"role": "system", "content": context})
     history.append({"role": "user", "content": question})
 
-    answer = await generate_chat_reply(_SYSTEM_PROMPT, history)
-    if answer is None:
-        # Ничего не списано: платить за неответ человек не должен.
-        raise HTTPException(
-            status_code=503,
-            detail="Таролог сейчас не отвечает. Попробуйте через минуту — энергия не списана.",
-        )
+    user_id = user.telegram_id
 
-    require_quota(db, user, cost=CHAT_QUESTION_COST)
+    async def stream():
+        """
+        Отдаёт ответ кусками, а в конце — списание и сохранение.
 
-    question_row = ChatMessage(user_id=user.telegram_id, role="user", text=question)
-    answer_row = ChatMessage(user_id=user.telegram_id, role="assistant", text=answer[:4000])
-    db.add(question_row)
-    db.add(answer_row)
-    db.commit()
-    db.refresh(question_row)
-    db.refresh(answer_row)
+        Своя сессия БД, а не та, что пришла зависимостью: сессия запроса
+        закрывается, когда обработчик вернул ответ, а генератор работает
+        уже после этого. Пользоваться закрытой сессией здесь — верный
+        способ получить загадочную ошибку в момент записи.
+        """
+        pieces: list[str] = []
+        try:
+            async for piece in stream_chat_reply(_SYSTEM_PROMPT, history):
+                pieces.append(piece)
+                yield _event({"type": "chunk", "text": piece})
+        except RuntimeError:
+            logger.exception("Chat stream failed")
+            # Ничего не списано: платить за оборванный ответ человек не
+            # должен, даже если часть текста он успел увидеть.
+            yield _event(
+                {
+                    "type": "error",
+                    "detail": "Таролог не договорил. Попробуйте ещё раз — энергия не списана.",
+                }
+            )
+            return
 
-    return AskResponse(
-        question=ChatMessageResponse(id=question_row.id, role="user", text=question_row.text),
-        answer=ChatMessageResponse(id=answer_row.id, role="assistant", text=answer_row.text),
-        balance=available_unlocks(db, user),
+        answer = "".join(pieces).strip()
+        if not answer:
+            yield _event(
+                {
+                    "type": "error",
+                    "detail": "Таролог сейчас не отвечает. Попробуйте через минуту — энергия не списана.",
+                }
+            )
+            return
+
+        with SessionLocal() as session:
+            owner = session.get(User, user_id)
+            require_quota(session, owner, cost=CHAT_QUESTION_COST)
+            question_row = ChatMessage(user_id=user_id, role="user", text=question)
+            answer_row = ChatMessage(user_id=user_id, role="assistant", text=answer[:4000])
+            session.add(question_row)
+            session.add(answer_row)
+            session.commit()
+            session.refresh(question_row)
+            session.refresh(answer_row)
+            yield _event(
+                {
+                    "type": "done",
+                    "question_id": question_row.id,
+                    "answer_id": answer_row.id,
+                    "balance": available_unlocks(session, owner),
+                }
+            )
+
+    return StreamingResponse(
+        stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            # Без этого обратный прокси накапливает ответ целиком и
+            # отдаёт разом — то есть ровно убивает то, ради чего сделан
+            # стриминг.
+            "X-Accel-Buffering": "no",
+        },
     )
