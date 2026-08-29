@@ -71,6 +71,12 @@ class User(Base):
     # with only one of the two set.
     gender: Mapped[str | None] = mapped_column(String(16), nullable=True)
     zodiac_sign: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    # Карта-покровитель: один из 22 старших арканов, который пользователь
+    # выбирает себе сам (api/history.py::update_patron_card). Хранится
+    # id карты из app/tarot/cards.py — то же значение, что и в раскладах,
+    # чтобы картинку можно было собрать тем же путём. None — не выбрана;
+    # это не обязательный шаг и в онбординг он не входит.
+    patron_card: Mapped[str | None] = mapped_column(String(32), nullable=True)
     created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow)
 
     spreads: Mapped[list["SpreadRecord"]] = relationship(back_populates="user", cascade="all, delete-orphan")

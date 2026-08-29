@@ -98,6 +98,7 @@ interface ProfileDTO {
   notifications_enabled: boolean;
   gender: Gender | null;
   zodiac_sign: ZodiacSign | null;
+  patron_card: string | null;
   is_admin: boolean;
 }
 
@@ -106,6 +107,8 @@ export interface Profile {
   notificationsEnabled: boolean;
   gender: Gender | null;
   zodiacSign: ZodiacSign | null;
+  /** id старшего аркана из колоды, например "major-01"; null — не выбрана. */
+  patronCard: string | null;
   isAdmin: boolean;
 }
 
@@ -115,6 +118,7 @@ function toProfile(data: ProfileDTO): Profile {
     notificationsEnabled: data.notifications_enabled,
     gender: data.gender,
     zodiacSign: data.zodiac_sign,
+    patronCard: data.patron_card,
     isAdmin: data.is_admin,
   };
 }
@@ -149,4 +153,13 @@ export async function updateNotifications(enabled: boolean): Promise<void> {
 
 export async function completeOnboarding(gender: Gender, zodiacSign: ZodiacSign): Promise<void> {
   await authedPatch("/api/profile/onboarding", { gender, zodiac_sign: zodiacSign });
+}
+
+export async function updateZodiac(zodiacSign: ZodiacSign): Promise<void> {
+  await authedPatch("/api/profile/zodiac", { zodiac_sign: zodiacSign });
+}
+
+/** `null` снимает выбор карты-покровителя. */
+export async function updatePatronCard(patronCard: string | null): Promise<void> {
+  await authedPatch("/api/profile/patron-card", { patron_card: patronCard });
 }

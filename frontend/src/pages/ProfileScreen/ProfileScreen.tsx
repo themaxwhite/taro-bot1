@@ -3,7 +3,12 @@ import { useTelegramUser } from "../../hooks/useTelegramUser";
 import type { ProfileStats } from "../../types/history";
 import type { Theme } from "../../hooks/useTheme";
 import { TIER_TITLES, type SubscriptionStatus } from "../../types/subscription";
-import { fetchProfileStats, fetchProfile, updateNotifications } from "../../services/historyApi";
+import {
+  fetchProfileStats,
+  fetchProfile,
+  updateNotifications,
+  type ZodiacSign,
+} from "../../services/historyApi";
 import { getSubscriptionStatus } from "../../services/subscriptionsApi";
 import { EnergyBalance } from "../../components/EnergyBalance/EnergyBalance";
 import { ScreenHeader } from "../../components/ScreenHeader/ScreenHeader";
@@ -11,6 +16,8 @@ import { Avatar } from "../../components/Avatar/Avatar";
 import { StatRow } from "../../components/StatRow/StatRow";
 import { Switch } from "../../components/Switch/Switch";
 import { MysticalBackground } from "../../components/MysticalBackground/MysticalBackground";
+import { IdentityCard } from "../../components/IdentityCard/IdentityCard";
+import { isSoundEnabled, playTap, setSoundEnabled } from "../../feedback/sound";
 import styles from "./ProfileScreen.module.css";
 
 interface ProfileScreenProps {
@@ -71,6 +78,11 @@ export function ProfileScreen({
   const [stats, setStats] = useState<ProfileStats | null>(null);
   const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [zodiacSign, setZodiacSign] = useState<ZodiacSign | null>(null);
+  const [patronCard, setPatronCard] = useState<string | null>(null);
+  // Живёт в localStorage, а не на сервере: это свойство устройства, а не
+  // человека — со звуком дома и без звука в метро один и тот же аккаунт.
+  const [soundOn, setSoundOn] = useState(isSoundEnabled);
   const [notificationsBusy, setNotificationsBusy] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -87,6 +99,8 @@ export function ProfileScreen({
       .then((data) => {
         if (!cancelled) {
           setNotificationsEnabled(data.notificationsEnabled);
+          setZodiacSign(data.zodiacSign);
+          setPatronCard(data.patronCard);
           setIsAdmin(data.isAdmin);
         }
       })
@@ -159,6 +173,15 @@ export function ProfileScreen({
         </div>
       )}
 
+      <IdentityCard
+        zodiacSign={zodiacSign}
+        patronCard={patronCard}
+        onChange={(next) => {
+          if (next.zodiacSign !== undefined) setZodiacSign(next.zodiacSign);
+          if (next.patronCard !== undefined) setPatronCard(next.patronCard);
+        }}
+      />
+
       <div className={`${styles.settingsList} ${styles.subscriptionRow}`}>
         <button
           type="button"
@@ -197,6 +220,22 @@ export function ProfileScreen({
             onChange={handleToggleNotifications}
             disabled={notificationsBusy}
             ariaLabel="Напоминание о карте дня"
+          />
+        </div>
+        <div className={styles.settingsItem}>
+          <span className={styles.settingsIcon} aria-hidden="true">
+            🔉
+          </span>
+          <span className={styles.settingsLabel}>Звук карт</span>
+          <Switch
+            checked={soundOn}
+            onChange={(next) => {
+              setSoundEnabled(next);
+              setSoundOn(next);
+              // Включили — сразу слышно, что именно включили.
+              if (next) playTap();
+            }}
+            ariaLabel="Звук карт"
           />
         </div>
         <div className={styles.settingsItem}>

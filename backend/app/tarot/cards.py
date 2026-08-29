@@ -83,3 +83,9 @@ MINOR_ARCANA: list[Card] = _build_minor_arcana()
 FULL_DECK: list[Card] = MAJOR_ARCANA + MINOR_ARCANA
 
 assert len(FULL_DECK) == 78, f"Expected 78 cards, got {len(FULL_DECK)}"
+
+
+# Идентификаторы старших арканов — из самой колоды, а не вторым списком
+# рядом: карта-покровитель (api/history.py::update_patron_card) должна
+# проверяться по тому же набору, из которого карты выпадают в раскладах.
+MAJOR_ARCANA_IDS: frozenset[str] = frozenset(c.id for c in FULL_DECK if c.id.startswith("major-"))
