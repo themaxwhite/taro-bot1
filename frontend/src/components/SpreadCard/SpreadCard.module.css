@@ -19,14 +19,10 @@
   background: var(--color-bg-elevated-active);
 }
 
-/* Иконка — контурный SVG в currentColor (components/SpreadIcon), а не
-   эмодзи: цвет задаётся здесь, а не зашит в шрифт платформы. */
 .glyph {
-  display: block;
-  width: 40px;
-  height: 40px;
+  font-size: 30px;
+  line-height: 1;
   margin-bottom: 2px;
-  color: var(--color-accent-strong);
 }
 
 .title {

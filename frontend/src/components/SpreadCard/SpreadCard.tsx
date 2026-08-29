@@ -1,12 +1,27 @@
 import type { SpreadType } from "../../types/tarot";
 import { hapticTap } from "../../feedback/haptics";
-import { SpreadIcon } from "../SpreadIcon/SpreadIcon";
 import styles from "./SpreadCard.module.css";
 
 interface SpreadCardProps {
   spread: SpreadType;
   onSelect: (id: SpreadType["id"]) => void;
 }
+
+// Purely decorative per-spread glyph — no meaning attached server-side,
+// just a quick visual identity for each tile in the grid.
+const SPREAD_GLYPHS: Record<SpreadType["id"], string> = {
+  "daily-card": "🔮",
+  "yes-no": "❓",
+  love: "💞",
+  future: "🔭",
+  "celtic-cross": "🃏",
+  horseshoe: "🍀",
+  compatibility: "💑",
+  work: "💼",
+  crossroads: "🔀",
+  mirror: "🪞",
+  month: "🌙",
+};
 
 function cardsWord(n: number): string {
   const mod10 = n % 10;
@@ -26,7 +41,9 @@ export function SpreadCard({ spread, onSelect }: SpreadCardProps) {
         onSelect(spread.id);
       }}
     >
-      <SpreadIcon spreadId={spread.id} className={styles.glyph} />
+      <span className={styles.glyph} aria-hidden="true">
+        {SPREAD_GLYPHS[spread.id]}
+      </span>
       <span className={styles.title}>{spread.title}</span>
       <span className={styles.count}>
         {spread.cardCount} {cardsWord(spread.cardCount)}
