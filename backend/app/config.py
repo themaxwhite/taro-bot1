@@ -29,16 +29,24 @@ class Settings(BaseSettings):
     groq_api_key: str | None = None
     anthropic_api_key: str | None = None
 
-    # ЮKassa (YooKassa) credentials — shopId + secret key from your
-    # merchant dashboard (requires a registered business; see
-    # DEPLOYMENT.md). Subscription purchases are unavailable (a clear
-    # error, not a crash) when either is unset, same pattern as the AI
-    # keys above.
-    yookassa_shop_id: str | None = None
-    yookassa_secret_key: str | None = None
+    # FreeKassa credentials — the shop id and both secret words from
+    # the merchant dashboard (see DEPLOYMENT.md). Subscription and
+    # energy purchases are unavailable (a clear error, not a crash)
+    # when any of the three is unset, same pattern as the AI keys above.
+    #
+    # The two secret words are not interchangeable and must not be
+    # swapped: the first signs the payment URL we send the user to, and
+    # so is effectively public — anyone who receives a payment link can
+    # work with it. The second signs FreeKassa's callback, and is the
+    # only thing standing between the app and anyone on the internet
+    # marking any payment as settled. Treat #2 the way you would a
+    # database password.
+    freekassa_merchant_id: str | None = None
+    freekassa_secret_word_1: str | None = None
+    freekassa_secret_word_2: str | None = None
 
     # A single testing/admin code that grants full subscription access
-    # without going through ЮKassa (POST /api/subscriptions/redeem-promo)
+    # without going through FreeKassa (POST /api/subscriptions/redeem-promo)
     # — meant for the app owner to test paid features in real Telegram
     # before a merchant account exists. Unset disables redemption
     # entirely (any code is rejected).
@@ -73,7 +81,7 @@ class Settings(BaseSettings):
 
     # DEV ONLY — lets the paid features (spread interpretation, extra
     # card) skip the subscription-quota check, so they can be tested
-    # without wiring up ЮKassa. Must be False (the default) in any real
+    # without wiring up FreeKassa. Must be False (the default) in any real
     # deployment; see app/api/subscriptions.py::require_quota. Set
     # SKIP_PAYMENT_CHECK=true to flip.
     skip_payment_check: bool = False

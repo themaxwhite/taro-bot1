@@ -1,7 +1,9 @@
 import datetime as dt
 import logging
+from decimal import Decimal, InvalidOperation
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -11,8 +13,8 @@ from app.db import get_db
 from app.models import Subscription, SubscriptionPayment, User
 from app.energy import DAILY_FREE_ENERGY, ENERGY_PACKS
 from app.subscriptions import SUPPORT_CHAT_TIERS, TIERS, SubscriptionTier, purchasable_tiers
-from app.yookassa.client import YooKassaError, create_payment, get_payment
-from app.yookassa.client import is_configured as is_yookassa_configured
+from app.freekassa.client import CALLBACK_IPS, FreeKassaError, build_payment_url, verify_callback
+from app.freekassa.client import is_configured as is_freekassa_configured
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +26,11 @@ class CreatePaymentRequest(BaseModel):
 
 
 class CreatePaymentResponse(BaseModel):
+    # Имя поля осталось от ЮKassa и специально не менялось: его читает
+    # фронтенд (services/subscriptionsApi.ts), а смысл тот же — адрес,
+    # куда отправить пользователя платить.
     confirmation_url: str
+    # Наш собственный id платежа, он же номер заказа для платёжки.
     payment_id: str
 
 

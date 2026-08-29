@@ -179,22 +179,38 @@ class Subscription(Base):
 
 class SubscriptionPayment(Base):
     """
-    One ЮKassa payment attempt. Created in "pending" status when a payment
-    is initiated; flipped to "succeeded" once the webhook re-verifies the
-    payment directly against the ЮKassa API (see app/yookassa/client.py —
-    the webhook body itself is never trusted).
+    One payment attempt. Created in "pending" status when a payment is
+    initiated; flipped to "succeeded" once the payment provider's
+    callback arrives and its signature checks out (see
+    app/freekassa/client.py::verify_callback).
 
     Covers both things that can be bought: a subscription (`kind` =
     "subscription", `tier` says which one) and a pack of energy (`kind` =
     "energy", `energy_amount` says how much). The table keeps its
     original name because renaming it would mean migrating a table that
     holds real payment history for no functional gain.
+
+    Note the row's own `id` doubles as the order number sent to
+    FreeKassa, which is why a payment row is written and flushed *before*
+    the user is sent anywhere — the callback carries that id back and
+    nothing else identifies the purchase.
     """
 
     __tablename__ = "subscription_payments"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    yookassa_payment_id: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    # Which payment provider handled this row. Historical rows predate
+    # the switch and are all "yookassa"; new ones are "freekassa". Kept
+    # because the two number their payments differently, so reading an
+    # id without knowing the provider tells you nothing.
+    provider: Mapped[str] = mapped_column(String(16), default="freekassa", server_default="yookassa")
+    # The provider's own id for this payment. Null until it settles:
+    # unlike ЮKassa, which minted an id when the payment was created,
+    # FreeKassa only reveals its operation number ("intid") in the
+    # callback — before that, the row is identified by `id` alone.
+    provider_payment_id: Mapped[str | None] = mapped_column(
+        String(64), unique=True, index=True, nullable=True
+    )
     user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.telegram_id"))
     # "subscription" | "energy". Existing rows all predate energy packs,
     # hence the default.

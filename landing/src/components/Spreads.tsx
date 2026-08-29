@@ -1,11 +1,15 @@
-import { useState } from "react";
 import { Reveal, Section, SectionIntro } from "./primitives";
 
-/* Все тринадцать раскладов приложения (backend/app/spreads.py). Первые
-   три показываются сразу, остальные раскрываются по кнопке: тринадцать
-   карточек подряд — это стена, через которую никто не пролистает, а
-   три ничего не говорят о размере колоды раскладов. */
-const spreads = [
+/* Все тринадцать раскладов приложения (backend/app/spreads.py).
+   Названия и число карт сверены с ним. */
+type Spread = {
+  card: string;
+  name: string;
+  cards: string;
+  text: string;
+};
+
+const spreads: Spread[] = [
   {
     card: "/cards/major-19.webp",
     name: "Карта дня",
@@ -86,80 +90,97 @@ const spreads = [
   },
 ];
 
-const PREVIEW_COUNT = 3;
-
+/**
+ * Расклады едут двумя лентами навстречу друг другу — тем же приёмом, что
+ * и отзывы.
+ *
+ * Так снимаются обе беды прежней вёрстки: сетка из трёх карточек занижала
+ * продукт вчетверо, а показать все тринадцать разом значило поставить
+ * стену, через которую никто не пролистает. Движение показывает всё, не
+ * требуя ни прокрутки, ни нажатия.
+ *
+ * Кнопка «показать все» отсюда убрана: раскрывать больше нечего — мимо и
+ * так проезжают все тринадцать.
+ */
 export function Spreads() {
-  const [expanded, setExpanded] = useState(false);
-  const hidden = spreads.length - PREVIEW_COUNT;
+  const half = Math.ceil(spreads.length / 2);
+  const top = spreads.slice(0, half);
+  const bottom = spreads.slice(half);
 
   return (
-    <Section id="spreads">
-      <SectionIntro eyebrow="Расклады" title="Тринадцать раскладов на любой вопрос">
-        От карты дня и быстрого «да или нет» до Кельтского креста. Карта дня
-        бесплатна всегда, остальные открываются за энергию — одна приходит
-        каждые сутки.
-      </SectionIntro>
-
-      <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {/* Рисуются все тринадцать, лишние скрыты атрибутом hidden, а не
-            выброшены из разметки. Страница пререндерится ради поиска
-            (scripts/prerender.mjs), и расклады, появляющиеся только по
-            клику, в готовый HTML бы не попали — десять из тринадцати
-            остались бы невидимы для поисковика. */}
-        {spreads.map((spread, i) => (
-          <Reveal
-            key={spread.name}
-            index={i < PREVIEW_COUNT ? i : i - PREVIEW_COUNT}
-            delay={80}
-            className={!expanded && i >= PREVIEW_COUNT ? "hidden" : ""}
-          >
-            <article className="panel group relative flex h-full flex-col overflow-hidden rounded-3xl p-7 transition duration-500 hover:-translate-y-1.5 hover:border-hairline-strong hover:shadow-[0_40px_80px_-50px_var(--gold)]">
-              <img
-                src={spread.card}
-                alt=""
-                width={480}
-                height={720}
-                loading="lazy"
-                decoding="async"
-                className="card-art mb-6 w-24 rounded-xl border border-hairline shadow-[0_18px_36px_-20px_#000] transition duration-500 group-hover:-translate-y-1 group-hover:rotate-6"
-              />
-              <h3 className="font-display text-2xl text-ink">{spread.name}</h3>
-              <p className="mt-1 text-xs font-semibold tracking-[0.18em] text-gold-strong uppercase">
-                {spread.cards}
-              </p>
-              <p className="mt-4 text-[15px] leading-relaxed text-ink-muted">
-                {spread.text}
-              </p>
-              <span className="sheen pointer-events-none absolute inset-0 rounded-3xl" />
-            </article>
-          </Reveal>
-        ))}
+    <Section id="spreads" className="!px-0">
+      <div className="mx-auto w-full max-w-6xl px-5 sm:px-8">
+        <SectionIntro eyebrow="Расклады" title="Тринадцать раскладов на любой вопрос">
+          От карты дня и быстрого «да или нет» до Кельтского креста. Карта дня
+          бесплатна всегда, остальные открываются за энергию — одна приходит
+          каждые сутки.
+        </SectionIntro>
       </div>
 
-      <div className="mt-10 flex justify-center">
-        <button
-          type="button"
-          onClick={() => setExpanded((open) => !open)}
-          aria-expanded={expanded}
-          className="group inline-flex items-center gap-2.5 rounded-full border border-hairline px-6 py-3.5 text-base font-medium text-ink transition duration-300 hover:-translate-y-0.5 hover:border-hairline-strong hover:bg-surface"
-        >
-          {expanded ? "Свернуть" : `Показать все ${spreads.length} раскладов`}
-          <span
-            aria-hidden="true"
-            className={`text-gold transition-transform duration-300 ${
-              expanded ? "-translate-y-0.5 rotate-180" : "group-hover:translate-y-0.5"
-            }`}
-          >
-            ↓
-          </span>
-        </button>
-      </div>
-
-      {!expanded && (
-        <p className="mt-4 text-center text-[13px] text-ink-faint">
-          Ещё {hidden}: работа, выбор между вариантами, неделя, месяц, Кельтский крест
-        </p>
-      )}
+      <Reveal delay={140}>
+        <div className="mt-12 space-y-6 [mask-image:linear-gradient(90deg,transparent,#000_6%,#000_94%,transparent)]">
+          {/* Разные длительности, чтобы ленты не шли в такт и рисунок
+              движения не повторялся каждые несколько секунд. */}
+          <Marquee items={top} duration={74} />
+          <Marquee items={bottom} duration={88} reverse />
+        </div>
+      </Reveal>
     </Section>
+  );
+}
+
+function Marquee({
+  items,
+  duration,
+  reverse = false,
+}: {
+  items: Spread[];
+  duration: number;
+  reverse?: boolean;
+}) {
+  return (
+    <div className="group flex overflow-hidden">
+      {/* Список отрисован дважды: первая копия уезжает ровно на свою
+          ширину, вторая заходит следом — петля без шва. Вторая копия
+          скрыта от скринридера, иначе он прочитает расклады дважды. */}
+      {[0, 1].map((copy) => (
+        <ul
+          key={copy}
+          aria-hidden={copy === 1}
+          className="flex shrink-0 gap-4 pr-4 group-hover:[animation-play-state:paused] sm:gap-6 sm:pr-6"
+          style={{
+            animation: `${reverse ? "marquee-reverse" : "marquee"} ${duration}s linear infinite`,
+          }}
+        >
+          {items.map((spread) => (
+            <li key={spread.name} className="w-[264px] sm:w-[320px]">
+              <Card spread={spread} />
+            </li>
+          ))}
+        </ul>
+      ))}
+    </div>
+  );
+}
+
+function Card({ spread }: { spread: Spread }) {
+  return (
+    <article className="panel group/card relative flex h-full flex-col overflow-hidden rounded-3xl p-7 transition duration-500 hover:border-hairline-strong hover:shadow-[0_40px_80px_-50px_var(--gold)]">
+      <img
+        src={spread.card}
+        alt=""
+        width={480}
+        height={720}
+        loading="lazy"
+        decoding="async"
+        className="card-art mb-6 w-24 rounded-xl border border-hairline shadow-[0_18px_36px_-20px_#000] transition duration-500 group-hover/card:-translate-y-1 group-hover/card:rotate-6"
+      />
+      <h3 className="font-display text-2xl text-ink">{spread.name}</h3>
+      <p className="mt-1 text-xs font-semibold tracking-[0.18em] text-gold-strong uppercase">
+        {spread.cards}
+      </p>
+      <p className="mt-4 text-[15px] leading-relaxed text-ink-muted">{spread.text}</p>
+      <span className="sheen pointer-events-none absolute inset-0 rounded-3xl" />
+    </article>
   );
 }
