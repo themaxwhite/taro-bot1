@@ -16,7 +16,7 @@
 .questionLabel {
   display: block;
   padding: 0 16px 6px;
-  font-size: 13px;
+  font-size: var(--text-body);
   color: var(--color-text-muted);
 }
 
@@ -63,7 +63,7 @@
 
 .questionError {
   margin: 6px 16px 0;
-  font-size: 13px;
+  font-size: var(--text-body);
   color: var(--color-danger, #c0392b);
 }
 
@@ -87,7 +87,7 @@
   border: none;
   background: transparent;
   color: var(--color-accent-strong);
-  font-size: 13px;
+  font-size: var(--text-body);
   font-weight: 600;
   text-align: left;
   touch-action: manipulation;

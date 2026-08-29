@@ -106,7 +106,7 @@
 
 .meaningTitle {
   margin: 0 0 4px;
-  font-size: 13px;
+  font-size: var(--text-body);
   font-weight: 600;
   font-family: var(--font-display);
   color: var(--color-accent-strong);

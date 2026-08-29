@@ -21,7 +21,7 @@
 }
 
 .username {
-  font-size: 13px;
+  font-size: var(--text-body);
   color: var(--color-text-muted);
 }
 

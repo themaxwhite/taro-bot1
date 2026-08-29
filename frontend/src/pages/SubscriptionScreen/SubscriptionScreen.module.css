@@ -179,7 +179,7 @@
 
 .promoLabel {
   display: block;
-  font-size: 13px;
+  font-size: var(--text-body);
   font-weight: 600;
   color: var(--color-text-muted);
   margin-bottom: 6px;
@@ -228,24 +228,19 @@
 
 .balanceHint {
   margin: 10px 2px 0;
-  font-size: 13px;
+  font-size: var(--text-body);
   line-height: 1.5;
   color: var(--color-text-muted);
 }
 
 .sectionHeading {
+  composes: sectionHeading from "../../styles/shared.module.css";
   margin: 0 2px 2px;
-  font-size: var(--text-base);
-  font-weight: 600;
-  font-family: var(--font-display);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-accent-strong);
 }
 
 .sectionHint {
   margin: 0 2px 12px;
-  font-size: 13px;
+  font-size: var(--text-body);
   color: var(--color-text-muted);
 }
 
@@ -303,7 +298,7 @@
 }
 
 .packPrice {
-  font-size: 13px;
+  font-size: var(--text-body);
   color: var(--color-text-muted);
   text-align: center;
 }

@@ -45,7 +45,7 @@
 .emptyText {
   margin: 0;
   max-width: 32ch;
-  font-size: 13px;
+  font-size: var(--text-body);
   line-height: 1.5;
   color: var(--color-text-muted);
 }
@@ -173,7 +173,7 @@
 
 .error {
   margin: 8px 16px 0;
-  font-size: 13px;
+  font-size: var(--text-body);
   /* Тот же цвет ошибки, что и на остальных экранах. */
   color: #a14338;
   text-align: center;

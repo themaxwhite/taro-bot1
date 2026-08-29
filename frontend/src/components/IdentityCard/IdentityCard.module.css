@@ -169,7 +169,7 @@
   border: 1px solid var(--color-border);
   background: transparent;
   color: var(--color-text-muted);
-  font-size: 13px;
+  font-size: var(--text-body);
   touch-action: manipulation;
 }
 

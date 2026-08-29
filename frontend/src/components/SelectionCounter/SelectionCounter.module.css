@@ -1,6 +1,6 @@
 .counter {
   text-align: center;
-  font-size: 13px;
+  font-size: var(--text-body);
   color: var(--color-text-muted);
   padding: 0 16px 16px;
 }

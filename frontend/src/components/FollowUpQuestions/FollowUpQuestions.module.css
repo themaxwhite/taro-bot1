@@ -6,7 +6,7 @@
 
 .label {
   margin: 4px 0 0;
-  font-size: 13px;
+  font-size: var(--text-body);
   color: var(--color-text-muted);
 }
 
@@ -22,7 +22,7 @@
   border: 1px solid var(--color-border);
   background: var(--color-bg-elevated);
   color: var(--color-text);
-  font-size: 13px;
+  font-size: var(--text-body);
   font-weight: 600;
   touch-action: manipulation;
 }
@@ -44,7 +44,7 @@
 
 .answerTitle {
   margin: 0 0 4px;
-  font-size: 13px;
+  font-size: var(--text-body);
   font-weight: 600;
   font-family: var(--font-display);
   color: var(--color-teal-strong);
@@ -77,7 +77,7 @@
   border: 1px solid var(--color-border);
   background: var(--color-bg-elevated);
   color: var(--color-text);
-  font-size: 13px;
+  font-size: var(--text-body);
   font-weight: 600;
   touch-action: manipulation;
 }
@@ -94,7 +94,7 @@
 
 .customLabel {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--text-body);
   font-weight: 600;
   color: var(--color-accent-strong);
 }
