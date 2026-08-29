@@ -2,7 +2,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import admin, ai, health, history, payments, referral, spreads, subscriptions
+from app.api import admin, ai, chat, health, history, payments, referral, spreads, subscriptions
 from app.config import settings
 from app.db import init_db
 from app.notifications import send_daily_reminders
@@ -50,3 +50,4 @@ app.include_router(payments.router)
 app.include_router(subscriptions.router)
 app.include_router(referral.router)
 app.include_router(admin.router)
+app.include_router(chat.router)

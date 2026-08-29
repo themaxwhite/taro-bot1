@@ -1,0 +1,57 @@
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: calc(100% - 32px);
+  margin: 0 16px 12px;
+  padding: 15px 16px;
+  border-radius: var(--radius-md);
+  /* Заметнее обычной карточки: это единственное место в приложении, где
+     можно спросить что угодно, и теряться среди плиток оно не должно. */
+  background: var(--color-bg-elevated-active);
+  border: 1px solid var(--color-accent);
+  text-align: left;
+  color: var(--color-text);
+  font: inherit;
+  touch-action: manipulation;
+  transition:
+    transform 0.16s ease,
+    background-color 0.16s ease;
+}
+
+.banner:active {
+  transform: scale(0.985);
+}
+
+.glyph {
+  flex-shrink: 0;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: 16px;
+}
+
+.text {
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+}
+
+.price {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-accent-strong);
+  font-variant-numeric: tabular-nums;
+}

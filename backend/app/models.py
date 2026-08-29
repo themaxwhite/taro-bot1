@@ -206,3 +206,26 @@ class SubscriptionPayment(Base):
     amount_rub: Mapped[int] = mapped_column(Integer)
     status: Mapped[str] = mapped_column(String(16), default="pending")  # pending | succeeded | canceled
     created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow)
+
+
+class ChatMessage(Base):
+    """
+    Одна реплика в чате с тарологом — и вопрос пользователя, и ответ
+    модели лежат здесь же, различаясь полем `role`.
+
+    Хранится в базе, а не в памяти клиента, по двум причинам. Диалог
+    оплачен энергией, и потерять его при перезапуске мини-приложения
+    значило бы отобрать купленное. И он же — контекст для следующего
+    вопроса: без сохранённой истории каждый ответ таролога начинался бы
+    со знакомства заново.
+    """
+
+    __tablename__ = "chat_messages"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.telegram_id"), index=True)
+    # "user" | "assistant" — те же роли, что у OpenAI-совместимого API,
+    # чтобы история уходила в модель без перекладывания.
+    role: Mapped[str] = mapped_column(String(16))
+    text: Mapped[str] = mapped_column(String(4000))
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow)

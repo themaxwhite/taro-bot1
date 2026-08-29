@@ -1,0 +1,192 @@
+.screen {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  /* Экран занимает высоту окна целиком: поле ввода прижато вниз, а
+     прокручивается только лента реплик. Иначе composer уезжал бы вверх
+     вместе с длинным разговором. */
+  min-height: 100vh;
+}
+
+.thread {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 8px 16px 4px;
+  overflow-y: auto;
+}
+
+.centerState {
+  display: flex;
+  justify-content: center;
+  padding: 40px 0;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 36px 8px 24px;
+}
+
+.emptyGlyph {
+  font-size: 34px;
+  margin-bottom: 10px;
+}
+
+.emptyTitle {
+  margin: 0 0 6px;
+  font-family: var(--font-display);
+  font-size: 18px;
+}
+
+.emptyText {
+  margin: 0;
+  max-width: 32ch;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.bubble {
+  max-width: 84%;
+  padding: 10px 14px;
+  border-radius: 16px;
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  /* Длинная ссылка или слово без пробелов не должны растягивать пузырь
+     за край экрана. */
+  overflow-wrap: anywhere;
+  animation: bubble-in 0.24s ease-out both;
+}
+
+@keyframes bubble-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.fromUser {
+  align-self: flex-end;
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  border-bottom-right-radius: 5px;
+}
+
+.fromTarologist {
+  align-self: flex-start;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-bottom-left-radius: 5px;
+}
+
+/* Три точки, пока идёт ответ. Ожидание здесь может быть долгим —
+   бесплатный тариф модели, — и молчащий экран читался бы как зависший. */
+.thinking {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  padding: 14px;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-text-muted);
+  animation: dot-pulse 1.2s infinite ease-in-out;
+}
+
+.dot:nth-child(2) {
+  animation-delay: 0.18s;
+}
+
+.dot:nth-child(3) {
+  animation-delay: 0.36s;
+}
+
+@keyframes dot-pulse {
+  0%,
+  60%,
+  100% {
+    opacity: 0.3;
+  }
+  30% {
+    opacity: 1;
+  }
+}
+
+.composer {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  padding: 8px 16px 0;
+}
+
+.input {
+  flex: 1;
+  min-height: 42px;
+  max-height: 120px;
+  padding: 11px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-elevated);
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: 14px;
+  resize: none;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+.send {
+  flex-shrink: 0;
+  min-width: 58px;
+  padding: 12px 14px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  touch-action: manipulation;
+}
+
+.send:disabled {
+  opacity: 0.5;
+}
+
+.hint {
+  margin: 8px 16px 20px;
+  font-size: 12px;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+.error {
+  margin: 8px 16px 0;
+  font-size: 13px;
+  /* Тот же цвет ошибки, что и на остальных экранах. */
+  color: #a14338;
+  text-align: center;
+}
+
+.topUp {
+  align-self: center;
+  margin: 10px 16px 0;
+  padding: 10px 18px;
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-accent-strong);
+  font-size: 13.5px;
+  font-weight: 600;
+}

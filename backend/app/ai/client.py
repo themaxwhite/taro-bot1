@@ -16,6 +16,7 @@ anyway — even got asked. A provider that never succeeds is not a
 fallback, it is latency.
 """
 
+import asyncio
 import logging
 
 import httpx
@@ -132,3 +133,71 @@ async def _generate_via_anthropic(system_prompt: str, user_prompt: str, max_toke
     except Exception:  # noqa: BLE001 — any failure here should degrade, not 500 the request
         logger.exception("Anthropic API call failed")
         return None
+
+
+# --- Чат с тарологом -------------------------------------------------
+#
+# У чата свой путь к модели, и намеренно только через Groq.
+#
+# Обычные фичи при отказе Groq уходят на Anthropic, и это правильно:
+# толкование должно появиться, а разница в цене одного вызова не
+# принципиальна. Чат же — самая частая по числу вызовов вещь в
+# приложении, и тихий переход на платный ключ означал бы счёт, которого
+# никто не заказывал. Поэтому здесь при упоре в лимит мы ждём и пробуем
+# снова: пусть ответ придёт позже, но по бесплатному тарифу.
+
+# Больше общего таймаута: собеседнику простительно подумать, а обрыв на
+# десятой секунде выглядел бы поломкой.
+_CHAT_TIMEOUT = 30.0
+# Groq на бесплатном тарифе отвечает 429, когда лимит исчерпан. Пауза
+# растёт, чтобы вторая попытка не пришла в ту же занятую секунду.
+_CHAT_RETRY_DELAYS = (2.0, 5.0)
+
+
+async def generate_chat_reply(
+    system_prompt: str,
+    messages: list[dict[str, str]],
+    max_tokens: int = 500,
+) -> str | None:
+    """
+    Ответ таролога на диалог целиком. None — если ключа нет или Groq не
+    ответил даже после повторов.
+
+    `messages` — история в формате OpenAI ({"role": ..., "content": ...}),
+    последним идёт свежий вопрос пользователя.
+    """
+    if not settings.groq_api_key:
+        return None
+
+    for attempt, delay in enumerate((*_CHAT_RETRY_DELAYS, None)):
+        try:
+            async with httpx.AsyncClient(timeout=_CHAT_TIMEOUT) as client:
+                response = await client.post(
+                    _GROQ_API_URL,
+                    headers={
+                        "Authorization": f"Bearer {settings.groq_api_key}",
+                        "content-type": "application/json",
+                    },
+                    json={
+                        "model": _GROQ_MODEL,
+                        "max_tokens": max_tokens,
+                        "reasoning_effort": _GROQ_REASONING_EFFORT,
+                        "messages": [{"role": "system", "content": system_prompt}, *messages],
+                    },
+                )
+
+            # Ждём и пробуем снова только на исчерпанном лимите. Прочие
+            # ошибки повтором не лечатся — они повторятся так же.
+            if response.status_code == 429 and delay is not None:
+                logger.warning("Groq rate limit on chat, retrying in %ss (attempt %s)", delay, attempt + 1)
+                await asyncio.sleep(delay)
+                continue
+
+            response.raise_for_status()
+            data = response.json()
+            text = data["choices"][0]["message"]["content"].strip()
+            return text or None
+        except Exception:  # noqa: BLE001 — чат не должен ронять запрос
+            logger.exception("Groq chat call failed")
+            return None
+    return None

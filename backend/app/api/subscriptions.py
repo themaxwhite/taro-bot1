@@ -365,12 +365,18 @@ def available_unlocks(db: Session, user: User) -> int:
     return daily + subscription + user.referral_bonus_quota + user.purchased_energy
 
 
-def require_quota(db: Session, user: User) -> None:
+def require_quota(db: Session, user: User, cost: int = 1) -> None:
     """
-    Raises 402 unless the user has an unlock to spend, otherwise consumes
-    one. Shared by everything that costs: revealing a spread together
-    with its interpretation, an extra card, a follow-up question — one
-    unit each, whichever feature it is.
+    Raises 402 unless the user has `cost` unlocks to spend, otherwise
+    consumes them. Shared by everything that costs: revealing a spread
+    together with its interpretation, an extra card, a follow-up
+    question — one unit each — and a question to the tarot reader in
+    chat, which costs five.
+
+    The whole cost is checked before a single unit is taken. Spending
+    what is there and then failing would leave someone who had three of
+    the five with nothing and no answer — charged for a question that
+    was never asked.
 
     Spending order is "whatever expires soonest, first", so nothing is
     wasted by holding it:
@@ -389,30 +395,39 @@ def require_quota(db: Session, user: User) -> None:
         return
 
     _ensure_energy_refreshed(db, user)
-    if user.energy > 0:
-        user.energy -= 1
-        db.commit()
-        return
+    if available_unlocks(db, user) < cost:
+        raise HTTPException(
+            status_code=402,
+            detail="Не хватает энергии. Пополните баланс или оформите подписку.",
+        )
 
-    sub = db.get(Subscription, user.telegram_id)
-    if sub is not None:
-        _expire_if_due(db, sub)
-        if sub.status == "active" and sub.quota_used < sub.quota_total:
-            sub.quota_used += 1
-            db.commit()
-            return
+    remaining = cost
 
-    if user.referral_bonus_quota > 0:
-        user.referral_bonus_quota -= 1
-        db.commit()
-        return
+    spent = min(user.energy, remaining)
+    user.energy -= spent
+    remaining -= spent
 
-    if user.purchased_energy > 0:
-        user.purchased_energy -= 1
-        db.commit()
-        return
+    if remaining:
+        sub = db.get(Subscription, user.telegram_id)
+        if sub is not None and sub.status == "active":
+            spent = min(sub.quota_total - sub.quota_used, remaining)
+            sub.quota_used += spent
+            remaining -= spent
 
-    raise HTTPException(
-        status_code=402,
-        detail="Не хватает энергии. Пополните баланс или оформите подписку.",
-    )
+    if remaining:
+        spent = min(user.referral_bonus_quota, remaining)
+        user.referral_bonus_quota -= spent
+        remaining -= spent
+
+    if remaining:
+        spent = min(user.purchased_energy, remaining)
+        user.purchased_energy -= spent
+        remaining -= spent
+
+    # available_unlocks() посчитал те же четыре кармана мгновением
+    # раньше, так что остаток здесь невозможен. Проверка — на случай,
+    # если однажды карманы разъедутся: молча недосписать оплаченное
+    # хуже, чем упасть.
+    assert remaining == 0, f"не удалось списать {cost}: осталось {remaining}"
+
+    db.commit()

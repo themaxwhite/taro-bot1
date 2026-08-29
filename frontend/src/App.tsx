@@ -11,6 +11,7 @@ import { ReferralScreen } from "./pages/ReferralScreen/ReferralScreen";
 import { AdminScreen } from "./pages/AdminScreen/AdminScreen";
 import { OnboardingScreen } from "./pages/OnboardingScreen/OnboardingScreen";
 import { GuideScreen } from "./pages/GuideScreen/GuideScreen";
+import { ChatScreen } from "./pages/ChatScreen/ChatScreen";
 import { Spinner } from "./components/Spinner/Spinner";
 import { useTheme } from "./hooks/useTheme";
 import { useReferralCapture } from "./hooks/useReferralCapture";
@@ -43,6 +44,7 @@ type Screen =
   | { name: "subscription" }
   | { name: "terms" }
   | { name: "guide" }
+  | { name: "chat" }
   | { name: "referral" }
   | { name: "admin" };
 
@@ -167,6 +169,12 @@ function App() {
     return <SubscriptionScreen onBack={back} />;
   }
 
+  if (screen.name === "chat") {
+    return (
+      <ChatScreen onBack={back} onNeedEnergy={() => setScreen({ name: "subscription" })} />
+    );
+  }
+
   if (screen.name === "guide") {
     return <GuideScreen onBack={back} />;
   }
@@ -185,6 +193,7 @@ function App() {
       onOpenHistory={() => setScreen({ name: "history" })}
       onOpenProfile={() => setScreen({ name: "profile" })}
       onOpenSubscription={() => setScreen({ name: "subscription" })}
+      onOpenChat={() => setScreen({ name: "chat" })}
     />
   );
 }

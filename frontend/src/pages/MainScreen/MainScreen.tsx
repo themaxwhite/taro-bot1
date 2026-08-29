@@ -12,6 +12,7 @@ import { LoveNudgeBanner } from "../../components/LoveNudgeBanner/LoveNudgeBanne
 import { SpreadList } from "../../components/SpreadList/SpreadList";
 import { EnergyBalance } from "../../components/EnergyBalance/EnergyBalance";
 import { SpreadSuggestion } from "../../components/SpreadSuggestion/SpreadSuggestion";
+import { ChatBanner } from "../../components/ChatBanner/ChatBanner";
 import { getSubscriptionStatus } from "../../services/subscriptionsApi";
 import type { EnergyBreakdown } from "../../types/energy";
 import { MysticalBackground } from "../../components/MysticalBackground/MysticalBackground";
@@ -22,6 +23,7 @@ interface MainScreenProps {
   onOpenHistory: () => void;
   onOpenProfile: () => void;
   onOpenSubscription: () => void;
+  onOpenChat: () => void;
 }
 
 export function MainScreen({
@@ -29,6 +31,7 @@ export function MainScreen({
   onOpenHistory,
   onOpenProfile,
   onOpenSubscription,
+  onOpenChat,
 }: MainScreenProps) {
   const { firstName } = useTelegramUser();
   // Сетка разбита на смысловые разделы (types/tarot.ts::spreadGroups).
@@ -106,6 +109,8 @@ export function MainScreen({
           onSelect={onSelectSpread}
         />
       ))}
+
+      <ChatBanner onOpen={onOpenChat} />
 
       <SpreadSuggestion onSelectSpread={onSelectSpread} />
     </div>
