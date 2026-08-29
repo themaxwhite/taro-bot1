@@ -4,6 +4,7 @@ import { TIER_TITLES } from "../../types/subscription";
 import { SpreadsApiError } from "../../services/spreadsApi";
 import { ScreenHeader } from "../../components/ScreenHeader/ScreenHeader";
 import { Spinner } from "../../components/Spinner/Spinner";
+import { AdminUserLookup } from "../../components/AdminUserLookup/AdminUserLookup";
 import styles from "./AdminScreen.module.css";
 
 interface AdminScreenProps {
@@ -91,6 +92,8 @@ export function AdminScreen({ onBack }: AdminScreenProps) {
   return (
     <div className={styles.screen}>
       <ScreenHeader title="Дашборд" onBack={onBack} />
+
+      <AdminUserLookup />
 
       {state.status === "loading" && (
         <div className={styles.centerState}>
