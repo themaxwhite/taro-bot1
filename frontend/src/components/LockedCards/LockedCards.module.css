@@ -7,6 +7,7 @@
 }
 
 .card {
+  position: relative;
   width: 84px;
   aspect-ratio: 100 / 170;
   border-radius: var(--radius-sm);
@@ -15,6 +16,37 @@
   /* Чуть приглушены — видно, что это не сама карта, а её обратная
      сторона, и что здесь чего-то не хватает. */
   opacity: 0.85;
+  /* Карты дышат: медленное движение вверх-вниз со сдвигом по фазе у
+     соседей. Смысл в том, что расклад уже вытянут и ждёт — рубашки
+     должны читаться как «сейчас откроется», а не как «здесь пусто».
+     Восемь секунд и три пикселя: заметно боковым зрением, но не
+     отвлекает от кнопки разблокировки. */
+  animation: locked-breathe 8s ease-in-out infinite;
+}
+
+.card:nth-child(2) { animation-delay: -1.1s; }
+.card:nth-child(3) { animation-delay: -2.2s; }
+.card:nth-child(4) { animation-delay: -3.3s; }
+.card:nth-child(5) { animation-delay: -4.4s; }
+.card:nth-child(6) { animation-delay: -5.5s; }
+.card:nth-child(7) { animation-delay: -6.6s; }
+
+@keyframes locked-breathe {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.85;
+  }
+  50% {
+    transform: translateY(-3px);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    animation: none;
+  }
 }
 
 .image {

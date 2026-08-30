@@ -84,6 +84,47 @@
   object-fit: cover;
 }
 
+/*
+ * Отблеск по лицу карты — как свет, скользнувший по фольге.
+ *
+ * Проходит один раз, сразу после переворота, и больше не повторяется:
+ * бесконечно бликующая карта превращается в рекламный баннер, а тут
+ * нужен момент, когда карта поймала свет и легла.
+ *
+ * Задержка равна длительности переворота (1,05 с), поэтому блик идёт по
+ * уже показавшемуся лицу, а не по ребру в середине вращения.
+ *
+ * Живёт на .flipFront, у которого уже есть overflow: hidden, — иначе
+ * светлая полоса вылезала бы за скруглённые углы карты.
+ */
+.flipped .flipFront::after {
+  content: "";
+  position: absolute;
+  inset: -30%;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 42%,
+    rgba(255, 240, 205, 0.55) 50%,
+    transparent 58%
+  );
+  transform: translateX(-130%);
+  animation: card-glare 1.1s cubic-bezier(0.3, 0, 0.2, 1) 1.05s both;
+}
+
+@keyframes card-glare {
+  to {
+    transform: translateX(130%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flipped .flipFront::after {
+    animation: none;
+    opacity: 0;
+  }
+}
+
 .position {
   margin-top: 4px;
   font-size: var(--text-caption);
