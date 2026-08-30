@@ -1,4 +1,4 @@
-import { site } from "../site";
+import { hasLegalDetails, site } from "../site";
 import { OpenInTelegram } from "./primitives";
 import { useReveal } from "../hooks/useReveal";
 
@@ -30,41 +30,44 @@ export function Footer() {
           <OpenInTelegram size="lg">Открыть {site.name}</OpenInTelegram>
         </div>
 
-        {/* Блок исполнителя. Платёжные системы при модерации ищут на сайте
-            именно это: кто оказывает услугу, как с ним связаться, где
-            условия и порядок возврата. До этой правки на сайте не было
-            ни одного из четырёх пунктов. */}
         <div className="mt-16 border-t border-hairline pt-10 text-left text-sm text-ink-muted">
-          <div className="grid gap-8 sm:grid-cols-2">
-            <div>
-              <p className="mb-2 text-xs font-semibold tracking-[0.14em] text-gold uppercase">
-                Исполнитель
-              </p>
-              <p className="leading-relaxed">
-                Самозанятый {site.legalName}
-                <br />
-                ИНН {site.inn}
-              </p>
-            </div>
-            <div>
-              <p className="mb-2 text-xs font-semibold tracking-[0.14em] text-gold uppercase">
-                Связь
-              </p>
-              <p className="leading-relaxed">
-                Обращения, претензии и возвраты:
-                <br />
-                <a href={`mailto:${site.email}`} className="text-ink hover:text-gold">
-                  {site.email}
+          {hasLegalDetails && (
+            <>
+              <div className="grid gap-8 sm:grid-cols-2">
+                <div>
+                  <p className="mb-2 text-xs font-semibold tracking-[0.14em] text-gold uppercase">
+                    Исполнитель
+                  </p>
+                  <p className="leading-relaxed">
+                    Самозанятый {site.legalName}
+                    <br />
+                    ИНН {site.inn}
+                  </p>
+                </div>
+                <div>
+                  <p className="mb-2 text-xs font-semibold tracking-[0.14em] text-gold uppercase">
+                    Связь
+                  </p>
+                  <p className="leading-relaxed">
+                    Обращения, претензии и возвраты:
+                    <br />
+                    <a href={`mailto:${site.email}`} className="text-ink hover:text-gold">
+                      {site.email}
+                    </a>
+                  </p>
+                </div>
+              </div>
+
+              <p className="mt-8 leading-relaxed">
+                <a
+                  href="/oferta.html"
+                  className="text-ink underline decoration-hairline-strong underline-offset-4 hover:text-gold"
+                >
+                  Публичная оферта, условия оказания услуг и порядок возврата
                 </a>
               </p>
-            </div>
-          </div>
-
-          <p className="mt-8 leading-relaxed">
-            <a href="/oferta.html" className="text-ink underline decoration-hairline-strong underline-offset-4 hover:text-gold">
-              Публичная оферта, условия оказания услуг и порядок возврата
-            </a>
-          </p>
+            </>
+          )}
 
           <div className="mt-8 flex flex-col gap-3 border-t border-hairline pt-6 sm:flex-row sm:items-center sm:justify-between">
             <p>

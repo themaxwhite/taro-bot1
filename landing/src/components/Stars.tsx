@@ -1,3 +1,4 @@
+import { hasLegalDetails } from "../site";
 import { Reveal, Section, SectionIntro } from "./primitives";
 
 /* Цены и состав сверены с бэкендом: app/subscriptions.py (тарифы),
@@ -110,12 +111,19 @@ export function Stars() {
       <Reveal delay={120}>
         <p className="mt-8 text-sm text-ink-muted">
           Подписка не продлевается автоматически — по окончании оплаченного
-          месяца она просто заканчивается. Условия оказания услуг и порядок
-          возврата — в{" "}
-          <a href="/oferta.html" className="text-ink underline decoration-hairline-strong underline-offset-4 hover:text-gold">
-            публичной оферте
-          </a>
-          .
+          месяца она просто заканчивается.
+          {hasLegalDetails && (
+            <>
+              {" "}Условия оказания услуг и порядок возврата — в{" "}
+              <a
+                href="/oferta.html"
+                className="text-ink underline decoration-hairline-strong underline-offset-4 hover:text-gold"
+              >
+                публичной оферте
+              </a>
+              .
+            </>
+          )}
         </p>
       </Reveal>
     </Section>
