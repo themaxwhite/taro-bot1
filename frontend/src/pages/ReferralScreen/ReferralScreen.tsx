@@ -14,7 +14,7 @@ type LoadState =
   | { status: "error"; message: string }
   | { status: "ready"; referral: ReferralStatus };
 
-const SHARE_TEXT = "Присоединяйся к Tarot Aurum — расклады таро с AI-толкованием и картой дня ✨";
+const SHARE_TEXT = "Присоединяйся к Taro Aurum — расклады таро с AI-толкованием и картой дня ✨";
 
 export function ReferralScreen({ onBack }: ReferralScreenProps) {
   const [state, setState] = useState<LoadState>({ status: "loading" });

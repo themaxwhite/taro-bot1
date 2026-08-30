@@ -27,7 +27,7 @@ async def telegram_webhook(request: Request) -> dict:
     if message.get("text", "").startswith("/start") and settings.mini_app_url:
         await send_app_launch_message(
             chat_id=message["chat"]["id"],
-            text="Tarot Aurum — расклады таро с AI-толкованием и картой дня.",
+            text="Taro Aurum — расклады таро с AI-толкованием и картой дня.",
             button_text="🔮 Начать расклад",
             app_url=settings.mini_app_url,
         )

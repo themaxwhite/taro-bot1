@@ -23,7 +23,7 @@ function prefersReducedMotion() {
   return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-// Illustrated deck ("Tarot Aurum") — one WebP per card, served statically
+// Illustrated deck ("Taro Aurum") — one WebP per card, served statically
 // from /public/cards. The artwork bakes in the card's gold border and its
 // name (in English, as on the plates themselves — the Russian name comes
 // from the backend and is shown separately), so a reversed card flips the

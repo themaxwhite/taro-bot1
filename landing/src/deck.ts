@@ -1,4 +1,4 @@
-/** The subset of the Tarot Aurum deck bundled with the landing. Names and
+/** The subset of the Taro Aurum deck bundled with the landing. Names and
  *  meanings are the app's own (backend/app/tarot/cards.py и meanings.py), so
  *  the demo draw says exactly what the real reading would say. */
 export type DeckCard = {

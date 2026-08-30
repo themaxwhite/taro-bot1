@@ -11,7 +11,7 @@ export function ThinkingOverlay() {
         🔮
       </span>
       <Spinner />
-      <p className={styles.text}>Tarot Aurum думает…</p>
+      <p className={styles.text}>Taro Aurum думает…</p>
     </div>
   );
 }

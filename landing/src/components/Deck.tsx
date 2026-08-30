@@ -17,7 +17,7 @@ export function Deck() {
         <div>
           <SectionIntro
             eyebrow="Колода"
-            title={`Tarot Aurum — все ${site.deckSize} карт нарисованы`}
+            title={`Taro Aurum — все ${site.deckSize} карт нарисованы`}
           >
             Старшие и младшие арканы в едином стиле: тёплый пергамент, бронзовая
             линия и приглушённый шалфейный акцент. Ни одной карты-заглушки и ни

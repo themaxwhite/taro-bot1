@@ -21,7 +21,7 @@ function buildHead() {
     {
       "@context": "https://schema.org",
       "@type": "WebSite",
-      name: "Tarot Aurum",
+      name: "Taro Aurum",
       url,
       inLanguage: "ru-RU",
       description: seo.description,
@@ -29,7 +29,7 @@ function buildHead() {
     {
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
-      name: "Tarot Aurum",
+      name: "Taro Aurum",
       applicationCategory: "LifestyleApplication",
       operatingSystem: "Telegram",
       url,
@@ -68,7 +68,7 @@ function buildHead() {
     `<meta property="og:image:type" content="image/jpeg" />`,
     `<meta property="og:image:width" content="1200" />`,
     `<meta property="og:image:height" content="630" />`,
-    `<meta property="og:image:alt" content="Tarot Aurum — расклады таро в Telegram" />`,
+    `<meta property="og:image:alt" content="Taro Aurum — расклады таро в Telegram" />`,
     `<meta name="twitter:image" content="${image}" />`,
     ...jsonLd.map(
       (block) =>

@@ -1,4 +1,4 @@
-# Tarot Aurum — лендинг
+# Taro Aurum — лендинг
 
 Одностраничный сайт Telegram Mini App с раскладами таро.
 

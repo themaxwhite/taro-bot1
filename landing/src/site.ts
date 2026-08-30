@@ -1,7 +1,7 @@
 /** Everything that changes per deployment lives here, so the page copy never
  *  has to be edited to point the buttons somewhere else. */
 export const site = {
-  name: "Tarot Aurum",
+  name: "Taro Aurum",
   tagline: "Расклады таро в Telegram",
   /* Direct Mini App link (bot username + the short app name from BotFather),
      so the button opens the app itself rather than a chat with the bot. */
