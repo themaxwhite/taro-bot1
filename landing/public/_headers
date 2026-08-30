@@ -7,9 +7,16 @@
 /fonts/*
   Cache-Control: public, max-age=31536000, immutable
 
-# Card art is stable but not fingerprinted — a week is a safe compromise.
+# Card art is not fingerprinted: replacing a plate keeps its filename, so
+# a long max-age means visitors keep the old picture until it expires. A
+# week seemed safe until a card was actually replaced and the site showed
+# the previous art with nothing wrong in the deploy.
+#
+# An hour fresh, then served instantly from cache while it revalidates in
+# the background. Revalidation is a 304 on ~80KB of art, so the cost is
+# negligible next to shipping stale plates for days.
 /cards/*
-  Cache-Control: public, max-age=604800
+  Cache-Control: public, max-age=3600, stale-while-revalidate=86400
 
 /og.jpg
   Cache-Control: public, max-age=604800
