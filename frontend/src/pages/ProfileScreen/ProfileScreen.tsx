@@ -18,9 +18,6 @@ import { StatRow } from "../../components/StatRow/StatRow";
 import { Switch } from "../../components/Switch/Switch";
 import { MysticalBackground } from "../../components/MysticalBackground/MysticalBackground";
 import { IdentityCard } from "../../components/IdentityCard/IdentityCard";
-import { ActivityCalendar } from "../../components/ActivityCalendar/ActivityCalendar";
-import { DeckStats } from "../../components/DeckStats/DeckStats";
-import { Achievements } from "../../components/Achievements/Achievements";
 import { isSoundEnabled, playTap, setSoundEnabled } from "../../feedback/sound";
 import styles from "./ProfileScreen.module.css";
 
@@ -29,6 +26,7 @@ interface ProfileScreenProps {
   onOpenSubscription: () => void;
   onOpenTerms: () => void;
   onOpenGuide: () => void;
+  onOpenStats: () => void;
   onOpenReferral: () => void;
   onOpenAdmin: () => void;
   theme: Theme;
@@ -73,6 +71,7 @@ export function ProfileScreen({
   onOpenSubscription,
   onOpenTerms,
   onOpenGuide,
+  onOpenStats,
   onOpenReferral,
   onOpenAdmin,
   theme,
@@ -162,10 +161,10 @@ export function ProfileScreen({
         stats={[
           { label: "Раскладов", value: stats?.totalSpreads ?? "—" },
           { label: "Дней подряд", value: stats?.daysStreak ?? "—" },
-          // Общий баланс, а не только суточная доля: пользователю важно
-          // «сколько я могу открыть», из какого источника — вторично.
-          // Разбивка ниже, в отдельной строке.
-          { label: "Энергия", value: subscription?.energy.balance ?? "—" },
+          // Энергии здесь намеренно нет: сразу под этой строкой стоит
+          // аккумулятор с разбивкой по источникам, и то же число выше
+          // было просто вторым его написанием.
+          { label: "Карт вытянуто", value: insights?.totalCards ?? "—" },
         ]}
       />
 
@@ -179,27 +178,14 @@ export function ProfileScreen({
             breakdown={subscription.energy}
             onClick={onOpenSubscription}
           />
+          {/* Одна строка вместо прежнего абзаца на четыре: подробное
+              объяснение теперь живёт в «Как это работает», и повторять
+              его здесь значило держать на экране справку, которую
+              читают один раз. */}
           <p className={styles.energyHint}>
-            Энергия — это разблокировки: одна открывает расклад целиком, карты вместе с
-            толкованием. Столько же стоит дополнительная карта или уточняющий вопрос.
-            Одна энергия начисляется бесплатно каждый день, остальное дают подписка и
-            приглашённые друзья. Карта дня бесплатна.
+            Одна энергия открывает расклад целиком. Одна приходит каждый день.
           </p>
         </div>
-      )}
-
-      {insights && (
-        <>
-          <div className={styles.insightsBlock}>
-            <ActivityCalendar
-              activity={insights.activity}
-              from={insights.activityFrom}
-              to={insights.activityTo}
-            />
-          </div>
-          <DeckStats insights={insights} />
-          <Achievements achievements={insights.achievements} />
-        </>
       )}
 
       <IdentityCard
@@ -223,6 +209,15 @@ export function ProfileScreen({
             ⭐
           </span>
           <span className={styles.settingsLabel}>{subscriptionLabel(subscription)}</span>
+          <span className={styles.chevron} aria-hidden="true">
+            ›
+          </span>
+        </button>
+        <button type="button" className={styles.settingsItem} onClick={onOpenStats}>
+          <span className={styles.settingsIcon} aria-hidden="true">
+            📊
+          </span>
+          <span className={styles.settingsLabel}>Статистика и достижения</span>
           <span className={styles.chevron} aria-hidden="true">
             ›
           </span>
