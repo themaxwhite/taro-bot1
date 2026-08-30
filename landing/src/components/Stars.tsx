@@ -1,89 +1,123 @@
-import { OpenInTelegram, Reveal, Section, SectionIntro } from "./primitives";
+import { Reveal, Section, SectionIntro } from "./primitives";
 
 /* Цены и состав сверены с бэкендом: app/subscriptions.py (тарифы),
    app/energy.py (пакеты и суточная энергия).
 
-   Платёжный провайдер сейчас не подключён, поэтому платный блок
-   описан как то, что появится, а не как то, что можно купить: обещать
-   на лендинге кнопку, которой нет в приложении, — худший вид вранья,
-   потому что его обнаруживают уже внутри.
+   Стоимость показана полностью и конкретно — этого требует модерация
+   платёжной системы: на сайте должны быть описание и цена услуги. При
+   этом приём оплаты ещё не подключён, и об этом сказано прямо здесь же,
+   рядом с ценой, а не мелким шрифтом внизу. Обещать работающую кнопку,
+   которой нет в приложении, — худший вид неправды: её обнаруживают уже
+   внутри, после решения заплатить.
 
-   Раньше здесь были Telegram Stars — механики, которой в продукте нет
-   вовсе. */
-const tiers = [
-  {
-    name: "Бесплатно",
-    price: "0",
-    unit: "каждый день",
-    items: [
-      "Карта дня — бесплатно и не тратит энергию",
-      "Одна энергия в сутки: открывает любой расклад целиком",
-      "История раскладов и статистика колоды",
-      "Дневное пожелание",
-    ],
-    cta: false,
-  },
-  {
-    name: "Энергия и подписка",
-    price: "Скоро",
-    unit: "готовим оплату",
-    items: [
-      "Подписка: от 70 до 300 разблокировок в месяц",
-      "Свой вопрос к раскладу своими словами",
-      "Пакет энергии разово, не сгорает",
-      "Оплата пока не подключена — всё бесплатное работает",
-    ],
-    cta: true,
-  },
+   Полный перечень с порядком возврата — в оферте (public/oferta.html). */
+const packs = [
+  { name: "5 энергии", price: "89 ₽" },
+  { name: "15 энергии", price: "199 ₽" },
+  { name: "40 энергии", price: "449 ₽" },
+];
+
+const plans = [
+  { name: "Плюс", detail: "70 разблокировок в месяц", price: "599 ₽" },
+  { name: "Премиум", detail: "160 разблокировок, свой вопрос к раскладу", price: "799 ₽" },
+  { name: "Магистр", detail: "300 разблокировок, свой вопрос, чат с поддержкой", price: "1199 ₽" },
 ];
 
 export function Stars() {
   return (
     <Section id="pricing">
-      <SectionIntro
-        eyebrow="Оплата"
-        title="Каждый день бесплатно, дальше — по желанию"
-      >
-        Расклад открывается за одну энергию, и одна приходит каждые сутки —
-        этого хватает, чтобы пользоваться приложением, ничего не платя.
-        Платные тарифы готовятся, оплата пока не подключена.
+      <SectionIntro eyebrow="Оплата" title="Каждый день бесплатно, дальше — по желанию">
+        Расклад открывается за одну энергию, и одна приходит каждые сутки — этого
+        хватает, чтобы пользоваться приложением, ничего не платя. Ниже — полная
+        стоимость платных возможностей.
       </SectionIntro>
 
-      <div className="mt-14 grid gap-6 lg:grid-cols-2">
-        {tiers.map((tier, i) => (
-          <Reveal key={tier.name} index={i} delay={80} className="h-full">
-          <article
-            className={`group relative flex h-full flex-col overflow-hidden rounded-3xl border p-8 transition duration-300 hover:-translate-y-1.5 ${
-              tier.cta
-                ? "border-gold/70 bg-surface shadow-[0_40px_90px_-50px_var(--gold)] hover:shadow-[0_50px_100px_-50px_var(--gold)]"
-                : "border-hairline bg-surface hover:border-hairline-strong"
-            }`}
-          >
-            <h3 className="font-display text-2xl text-ink">{tier.name}</h3>
+      <Reveal delay={60}>
+        <p className="mt-8 rounded-2xl border border-dashed border-hairline-strong bg-surface/60 px-5 py-4 text-sm text-ink-muted">
+          <span className="font-semibold text-gold">Приём оплаты настраивается.</span>{" "}
+          Цены окончательные, но кнопки покупки в приложении пока неактивны —
+          всё бесплатное при этом работает.
+        </p>
+      </Reveal>
+
+      <div className="mt-10 grid gap-6 lg:grid-cols-3">
+        <Reveal index={0} delay={80} className="h-full">
+          <article className="relative flex h-full flex-col overflow-hidden rounded-3xl border border-hairline bg-surface p-8">
+            <h3 className="font-display text-2xl text-ink">Бесплатно</h3>
             <p className="mt-4 flex items-baseline gap-2">
-              <span className="font-display text-4xl text-gold-strong">
-                {tier.price}
-              </span>
-              <span className="text-sm text-ink-muted">{tier.unit}</span>
+              <span className="font-display text-4xl text-gold-strong">0 ₽</span>
+              <span className="text-sm text-ink-muted">каждый день</span>
             </p>
             <ul className="mt-7 flex-1 space-y-3 text-[15px] text-ink-muted">
-              {tier.items.map((item) => (
+              {[
+                "Карта дня — не тратит энергию",
+                "Одна энергия в сутки: открывает любой расклад целиком",
+                "История раскладов и статистика колоды",
+                "Энергия за приглашённых друзей",
+              ].map((item) => (
                 <li key={item} className="flex gap-3">
                   <CheckGlyph />
                   {item}
                 </li>
               ))}
             </ul>
-            {tier.cta && (
-              <div className="mt-8">
-                <OpenInTelegram size="lg">Попробовать</OpenInTelegram>
-              </div>
-            )}
             <span className="sheen pointer-events-none absolute inset-0 rounded-3xl" />
           </article>
-          </Reveal>
-        ))}
+        </Reveal>
+
+        <Reveal index={1} delay={80} className="h-full">
+          <article className="relative flex h-full flex-col overflow-hidden rounded-3xl border border-hairline bg-surface p-8">
+            <h3 className="font-display text-2xl text-ink">Пакет энергии</h3>
+            <p className="mt-2 text-sm text-ink-muted">Разово, не сгорает</p>
+            <ul className="mt-7 flex-1 space-y-3 text-[15px]">
+              {packs.map((pack) => (
+                <li key={pack.name} className="flex items-baseline justify-between gap-4 border-b border-hairline pb-2.5 text-ink-muted last:border-0">
+                  <span>{pack.name}</span>
+                  <span className="font-display text-lg whitespace-nowrap text-gold-strong tabular-nums">
+                    {pack.price}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <span className="sheen pointer-events-none absolute inset-0 rounded-3xl" />
+          </article>
+        </Reveal>
+
+        <Reveal index={2} delay={80} className="h-full">
+          <article className="relative flex h-full flex-col overflow-hidden rounded-3xl border border-gold/70 bg-surface p-8 shadow-[0_40px_90px_-50px_var(--gold)]">
+            <h3 className="font-display text-2xl text-ink">Подписка</h3>
+            <p className="mt-2 text-sm text-ink-muted">На месяц, продлевается вручную</p>
+            <ul className="mt-7 flex-1 space-y-4 text-[15px]">
+              {plans.map((plan) => (
+                <li key={plan.name} className="border-b border-hairline pb-3 last:border-0">
+                  <span className="flex items-baseline justify-between gap-4">
+                    <span className="text-ink">{plan.name}</span>
+                    <span className="font-display text-lg whitespace-nowrap text-gold-strong tabular-nums">
+                      {plan.price}
+                    </span>
+                  </span>
+                  <span className="mt-0.5 block text-[13px] leading-snug text-ink-muted">
+                    {plan.detail}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <span className="sheen pointer-events-none absolute inset-0 rounded-3xl" />
+          </article>
+        </Reveal>
       </div>
+
+      <Reveal delay={120}>
+        <p className="mt-8 text-sm text-ink-muted">
+          Подписка не продлевается автоматически — по окончании оплаченного
+          месяца она просто заканчивается. Условия оказания услуг и порядок
+          возврата — в{" "}
+          <a href="/oferta.html" className="text-ink underline decoration-hairline-strong underline-offset-4 hover:text-gold">
+            публичной оферте
+          </a>
+          .
+        </p>
+      </Reveal>
     </Section>
   );
 }

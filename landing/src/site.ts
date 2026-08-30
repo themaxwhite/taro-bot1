@@ -8,4 +8,12 @@ export const site = {
   botUrl: "https://t.me/mytarolo1gbot/mytarolog",
   botHandle: "@mytarolo1gbot",
   deckSize: 78,
+
+  /* Реквизиты исполнителя. Платёжная система проверяет их наличие на
+     сайте при модерации, поэтому они выводятся в подвал и в оферту
+     (public/oferta.html — там их нужно вписать вторым местом).
+     ЗАПОЛНИТЬ ПЕРЕД ПОДАЧЕЙ ЗАЯВКИ. */
+  legalName: "[ФИО полностью]",
+  inn: "[ИНН]",
+  email: "[адрес электронной почты]",
 } as const;
