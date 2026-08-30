@@ -61,6 +61,54 @@
   border-color: var(--color-accent);
 }
 
+/*
+ * Золотая волна от выбранной карты — расходится один раз в момент
+ * выбора и гаснет.
+ *
+ * Выбор карты это единственное решение, которое человек принимает во
+ * всём раскладе: дальше всё делают карты. Подъём и тень показывают
+ * результат, но не сам жест, а отклика на касание не было — палец
+ * поднялся, и карта просто оказалась поднятой.
+ *
+ * Кольцо рисуется за карточкой (z-index: -1) и выходит за её границы,
+ * поэтому .card не может прятать переполнение — оно и не прячет.
+ *
+ * Здесь же пробовалось фоновое «дыхание» невыбранных карт и было
+ * отброшено: CSS-анимация перебивает обычные объявления, и постоянно
+ * идущий transform убил бы `.card:active` со scale(0.94) — карта
+ * перестала бы вдавливаться под пальцем. Отклик на жест важнее
+ * атмосферы, а получить и то и другое можно было бы только вынеся
+ * анимацию на обёртку, ради чего ломать разметку не стоит.
+ */
+.selected::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--color-accent);
+  animation: deck-ripple 0.55s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  pointer-events: none;
+}
+
+@keyframes deck-ripple {
+  from {
+    opacity: 0.75;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .selected::after {
+    animation: none;
+    opacity: 0;
+  }
+}
+
 /* :not(.dealPending) so a still-hidden (opacity: 0, pre-deal) card
    stays hidden — otherwise this rule's equal specificity plus later
    source order would win the cascade and show the card at 35% opacity
