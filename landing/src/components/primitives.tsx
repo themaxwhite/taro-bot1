@@ -62,11 +62,17 @@ export function Heading({
   as?: "h1" | "h2";
 }) {
   return (
+    /* Заголовки разделов набраны золотым тиснением (.emboss-gold в
+       index.css): страница про карты в тёмной обложке, и вытисненная
+       фольгой строка держит этот образ лучше, чем ровный светлый текст.
+       Заголовок первого экрана остаётся обычным — там уже есть своя
+       игра, светлая строка против мерцающего золота, и второе золото
+       рядом только сгладило бы контраст. */
     <Tag
-      className={`font-display text-balance text-ink ${
+      className={`font-display text-balance ${
         Tag === "h1"
-          ? "text-4xl leading-[1.08] sm:text-6xl"
-          : "text-[1.7rem] leading-tight sm:text-4xl"
+          ? "text-ink text-4xl leading-[1.08] sm:text-6xl"
+          : "emboss-gold text-[1.7rem] leading-tight sm:text-4xl"
       }`}
     >
       {children}
