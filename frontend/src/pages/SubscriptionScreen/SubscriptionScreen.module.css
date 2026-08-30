@@ -244,6 +244,19 @@
   color: var(--color-text-muted);
 }
 
+/* Плашка о том, что оплата отключена. Стоит один раз над обоими
+   блоками покупки, а не в каждой карточке: повторить это шесть раз
+   значило бы кричать. */
+.paymentsOff {
+  margin: 4px 16px 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--color-surface-muted, rgba(127, 127, 127, 0.08));
+  font-size: var(--text-base);
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
 .packs {
   padding: 16px 16px 8px;
 }

@@ -113,78 +113,9 @@ export async function getEnergyPacks(): Promise<EnergyPack[]> {
   }));
 }
 
-/**
- * Покупка пакета энергии. Тот же путь, что и подписка: ссылка на оплату
- * открывается в системном браузере, а возврат в Telegram не считается
- * доказательством оплаты — ждём, пока вебхук увеличит баланс.
- */
-export async function buyEnergyPack(packId: string): Promise<void> {
-  const webApp = window.Telegram?.WebApp;
-  if (!webApp) {
-    throw new SpreadsApiError("Оплата доступна только внутри Telegram.");
-  }
-
-  const before = (await getSubscriptionStatus()).energy.purchased;
-
-  const response = await api("/api/subscriptions/create-energy-payment", {
-    method: "POST",
-    body: JSON.stringify({ pack_id: packId }),
-  });
-  const { confirmation_url: confirmationUrl } = (await response.json()) as {
-    confirmation_url: string;
-  };
-  webApp.openLink(confirmationUrl, { try_instant_view: false });
-
-  for (let attempt = 0; attempt < 40; attempt += 1) {
-    await new Promise((r) => setTimeout(r, 3000));
-    const status = await getSubscriptionStatus();
-    if (status.energy.purchased > before) return;
-  }
-  throw new SpreadsApiError(
-    "Не удалось подтвердить оплату автоматически. Если деньги списались, откройте профиль ещё раз через минуту.",
-  );
-}
-
 export async function redeemPromoCode(code: string): Promise<void> {
   await api("/api/subscriptions/redeem-promo", {
     method: "POST",
     body: JSON.stringify({ code }),
   });
-}
-
-export async function createSubscriptionPayment(
-  tier: SubscriptionTierId,
-): Promise<{ confirmationUrl: string; paymentId: string }> {
-  const response = await api("/api/subscriptions/create-payment", {
-    method: "POST",
-    body: JSON.stringify({ tier }),
-  });
-  const data = (await response.json()) as { confirmation_url: string; payment_id: string };
-  return { confirmationUrl: data.confirmation_url, paymentId: data.payment_id };
-}
-
-/**
- * Opens the ЮKassa payment page in the system browser (Telegram Mini Apps
- * can't embed an external checkout the way `openInvoice` embeds Stars)
- * and polls subscription status until it becomes active — the redirect
- * back into Telegram after paying isn't itself proof of payment, the
- * webhook flipping the subscription to "active" is the source of truth.
- */
-export async function subscribeToTier(tier: SubscriptionTierId): Promise<void> {
-  const webApp = window.Telegram?.WebApp;
-  if (!webApp) {
-    throw new SpreadsApiError("Оплата доступна только внутри Telegram.");
-  }
-
-  const { confirmationUrl } = await createSubscriptionPayment(tier);
-  webApp.openLink(confirmationUrl, { try_instant_view: false });
-
-  for (let attempt = 0; attempt < 40; attempt += 1) {
-    await new Promise((r) => setTimeout(r, 3000));
-    const status = await getSubscriptionStatus();
-    if (status.status === "active" && status.tier === tier) return;
-  }
-  throw new SpreadsApiError(
-    "Не удалось подтвердить оплату автоматически. Если деньги списались, откройте профиль ещё раз через минуту.",
-  );
 }

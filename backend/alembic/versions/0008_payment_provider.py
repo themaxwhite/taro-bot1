@@ -1,18 +1,22 @@
 """Payments stop being ЮKassa-specific.
 
-The column that held the provider's payment id was named after ЮKassa and
-declared NOT NULL, both of which stop being true with FreeKassa. It is
-renamed to `provider_payment_id` and made nullable, and a `provider`
-column records which service handled each row — historical rows are all
-ЮKassa, which is why that is the server_default rather than the new
-value.
+The column holding the provider's payment id was named after ЮKassa and
+declared NOT NULL, neither of which should outlive that integration. It
+is renamed to `provider_payment_id` and made nullable, and a `provider`
+column records which service handled each row — every existing row is
+ЮKassa, which is why that is the server_default.
+
+This runs even though no payment provider is connected right now. The
+point is precisely that the schema should not be named after a provider
+the app no longer uses, and the next integration should find a table it
+can use as-is rather than another rename.
 
 Nullable matters more than it looks. ЮKassa minted a payment id at
-creation time, so there was always something to store. FreeKassa reveals
-its operation number only in the settlement callback, so between "user
-clicked pay" and "payment arrived" there is genuinely nothing to put
-there, and a placeholder would collide with the unique index the moment
-two payments were pending at once.
+creation time, so there was always something to store. Not every
+provider does: some name the payment only once it settles, leaving
+nothing to store between "user clicked pay" and "payment arrived", and a
+placeholder would collide with the unique index the moment two payments
+were pending at once.
 
 All three statements are metadata-only on Postgres (a rename, a
 DROP NOT NULL, and an ADD COLUMN with a constant default on PG 11+), so

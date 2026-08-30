@@ -12,8 +12,9 @@ async def telegram_webhook(request: Request) -> dict:
     Telegram calls this directly (not from the Mini App) for bot chat
     updates — configure it once via `setWebhook` (see DEPLOYMENT.md).
     Authenticated by the secret token Telegram echoes back in a header,
-    not by user initData. Subscription payment confirmations come from
-    ЮKassa's own webhook instead (see api/subscriptions.py).
+    not by user initData. This is the only webhook the app has: there
+    is no payment provider connected, so nothing confirms purchases
+    (see api/subscriptions.py).
     """
     if settings.telegram_webhook_secret:
         header = request.headers.get("X-Telegram-Bot-Api-Secret-Token")

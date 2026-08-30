@@ -1,37 +1,40 @@
-import datetime as dt
-import logging
-from decimal import Decimal, InvalidOperation
+"""
+Тарифы, энергия и квоты — всё, кроме собственно приёма денег.
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
-from fastapi.responses import PlainTextResponse
+Платёжный провайдер сейчас не подключён: ни ЮKassa, ни FreeKassa, ни
+какого-либо другого. Соответственно здесь нет ни создания платежа, ни
+вебхука о его подтверждении — эндпойнты удалены целиком, а не оставлены
+отвечать ошибкой, чтобы не делать вид, что оплата вот-вот заработает.
+
+Всё остальное живо и осмысленно без них. Квоту выдаёт промокод
+(ADMIN_PROMO_CODE), энергия начисляется посуточно и за приглашённых
+друзей, `require_quota` тратит её в прежнем порядке. Витрина тарифов
+(`/tiers`) и пакетов (`/energy-packs`) тоже осталась: это описание
+продукта, а не кнопка оплаты, и фронтенд рисует по ней карточки без
+возможности купить.
+
+Когда провайдер появится, ему нужны будут ровно три вещи: эндпойнт,
+создающий строку `SubscriptionPayment` в статусе pending, обработчик его
+подтверждения, и вызов `_activate_subscription` (для подписки) либо
+прибавление к `User.purchased_energy` (для пакета) в момент, когда
+оплата подтвердилась. Модель платежа (`app/models.py`) для этого уже
+готова и от конкретной платёжки не зависит.
+"""
+
+import datetime as dt
+
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
 from app.config import settings
 from app.db import get_db
-from app.models import Subscription, SubscriptionPayment, User
+from app.models import Subscription, User
 from app.energy import DAILY_FREE_ENERGY, ENERGY_PACKS
 from app.subscriptions import SUPPORT_CHAT_TIERS, TIERS, SubscriptionTier, purchasable_tiers
-from app.freekassa.client import CALLBACK_IPS, FreeKassaError, build_payment_url, verify_callback
-from app.freekassa.client import is_configured as is_freekassa_configured
-
-logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/subscriptions", tags=["subscriptions"])
-
-
-class CreatePaymentRequest(BaseModel):
-    tier: SubscriptionTier
-
-
-class CreatePaymentResponse(BaseModel):
-    # Имя поля осталось от ЮKassa и специально не менялось: его читает
-    # фронтенд (services/subscriptionsApi.ts), а смысл тот же — адрес,
-    # куда отправить пользователя платить.
-    confirmation_url: str
-    # Наш собственный id платежа, он же номер заказа для платёжки.
-    payment_id: str
 
 
 class SubscriptionStatusResponse(BaseModel):
@@ -77,59 +80,12 @@ class EnergyPackResponse(BaseModel):
     badge: str | None
 
 
-class CreateEnergyPaymentRequest(BaseModel):
-    pack_id: str
-
-
 class RedeemPromoRequest(BaseModel):
     code: str
 
 
 class RedeemPromoResponse(BaseModel):
     ok: bool
-
-
-@router.post("/create-payment", response_model=CreatePaymentResponse)
-async def create_subscription_payment(
-    body: CreatePaymentRequest,
-    user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-) -> CreatePaymentResponse:
-    if not is_yookassa_configured() or not settings.mini_app_url:
-        raise HTTPException(status_code=503, detail="Оплата подписки временно недоступна. Попробуйте позже.")
-
-    tier = TIERS[body.tier]
-    if not tier.purchasable:
-        # Тариф снят с продажи: у действующих подписчиков он продолжает
-        # работать, но оформить его заново нельзя.
-        raise HTTPException(status_code=400, detail="Этот тариф больше не продаётся.")
-
-    try:
-        payment = await create_payment(
-            amount_rub=tier.price_rub,
-            description=f"Подписка «{tier.title}» — Tarot Aurum",
-            return_url=settings.mini_app_url,
-            metadata={"user_id": user.telegram_id, "tier": tier.id.value},
-        )
-    except YooKassaError:
-        logger.exception("Failed to create ЮKassa payment")
-        raise HTTPException(status_code=503, detail="Оплата подписки временно недоступна. Попробуйте позже.") from None
-
-    db.add(
-        SubscriptionPayment(
-            yookassa_payment_id=payment["id"],
-            user_id=user.telegram_id,
-            tier=tier.id.value,
-            amount_rub=tier.price_rub,
-            status="pending",
-        )
-    )
-    db.commit()
-
-    return CreatePaymentResponse(
-        confirmation_url=payment["confirmation"]["confirmation_url"],
-        payment_id=payment["id"],
-    )
 
 
 @router.get("/tiers", response_model=list[TierResponse])
@@ -139,7 +95,9 @@ def list_tiers() -> list[TierResponse]:
 
     Витрину отдаёт backend, а не хардкод на фронтенде: иначе цена на
     экране и цена, по которой реально выставляется счёт, разъезжаются
-    ровно в тот момент, когда их меняют.
+    ровно в тот момент, когда их меняют. Купить прямо сейчас нельзя —
+    платёжный провайдер не подключён, — но список остаётся описанием
+    продукта и источником цен, и им же будет, когда оплата вернётся.
     """
     return [
         TierResponse(
@@ -161,54 +119,6 @@ def list_energy_packs() -> list[EnergyPackResponse]:
         EnergyPackResponse(id=p.id, title=p.title, amount=p.amount, price_rub=p.price_rub, badge=p.badge)
         for p in ENERGY_PACKS.values()
     ]
-
-
-@router.post("/create-energy-payment", response_model=CreatePaymentResponse)
-async def create_energy_payment(
-    body: CreateEnergyPaymentRequest,
-    user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-) -> CreatePaymentResponse:
-    """
-    Same flow as buying a subscription, but what settles is a one-off
-    top-up: the webhook credits `energy_amount` to purchased_energy
-    instead of starting a billing period.
-    """
-    pack = ENERGY_PACKS.get(body.pack_id)
-    if pack is None:
-        raise HTTPException(status_code=400, detail="Неизвестный пакет энергии")
-
-    if not is_yookassa_configured() or not settings.mini_app_url:
-        raise HTTPException(status_code=503, detail="Оплата временно недоступна. Попробуйте позже.")
-
-    try:
-        payment = await create_payment(
-            amount_rub=pack.price_rub,
-            description=f"{pack.title} — Tarot Aurum",
-            return_url=settings.mini_app_url,
-            metadata={"user_id": user.telegram_id, "pack_id": pack.id},
-        )
-    except YooKassaError:
-        logger.exception("Failed to create ЮKassa energy payment")
-        raise HTTPException(status_code=503, detail="Оплата временно недоступна. Попробуйте позже.") from None
-
-    db.add(
-        SubscriptionPayment(
-            yookassa_payment_id=payment["id"],
-            user_id=user.telegram_id,
-            kind="energy",
-            tier="",
-            energy_amount=pack.amount,
-            amount_rub=pack.price_rub,
-            status="pending",
-        )
-    )
-    db.commit()
-
-    return CreatePaymentResponse(
-        confirmation_url=payment["confirmation"]["confirmation_url"],
-        payment_id=payment["id"],
-    )
 
 
 @router.get("/status", response_model=SubscriptionStatusResponse)
@@ -244,49 +154,6 @@ def get_subscription_status(
     )
 
 
-@router.post("/webhook")
-async def subscription_webhook(request: Request, db: Session = Depends(get_db)) -> dict:
-    """
-    ЮKassa calls this on payment status changes (configure the URL once
-    in the merchant dashboard — see DEPLOYMENT.md). The notification body
-    itself is never trusted for the payment status: ЮKassa doesn't sign
-    webhook payloads, so this only uses the body to learn *which* payment
-    to re-check, then asks the ЮKassa API directly for the real status.
-    """
-    body = await request.json()
-    payment_id = (body.get("object") or {}).get("id")
-    if not payment_id:
-        return {"ok": True}
-
-    record = db.query(SubscriptionPayment).filter_by(yookassa_payment_id=payment_id).one_or_none()
-    if record is None or record.status != "pending":
-        return {"ok": True}
-
-    try:
-        payment = await get_payment(payment_id)
-    except YooKassaError:
-        logger.exception("Failed to verify ЮKassa payment %s", payment_id)
-        return {"ok": True}
-
-    if payment.get("status") == "succeeded":
-        record.status = "succeeded"
-        if record.kind == "energy":
-            # Пополнение, а не подписка: просто прибавляем к балансу,
-            # который не сгорает.
-            buyer = db.get(User, record.user_id)
-            if buyer is not None:
-                buyer.purchased_energy += record.energy_amount
-            db.commit()
-        else:
-            tier = TIERS[SubscriptionTier(record.tier)]
-            _activate_subscription(db, record.user_id, tier=tier.id.value, quota_total=tier.monthly_quota, days=30)
-    elif payment.get("status") in ("canceled", "expired"):
-        record.status = "canceled"
-        db.commit()
-
-    return {"ok": True}
-
-
 @router.post("/redeem-promo", response_model=RedeemPromoResponse)
 def redeem_promo(
     body: RedeemPromoRequest,
@@ -295,9 +162,12 @@ def redeem_promo(
 ) -> RedeemPromoResponse:
     """
     A single admin/testing code (ADMIN_PROMO_CODE) that grants full
-    access without going through ЮKassa — meant for the app's own owner
-    to test paid features inside real Telegram before a merchant account
-    exists. Not a general discount-code system.
+    access. Not a general discount-code system.
+
+    With no payment provider connected this is currently the *only* way
+    to get a subscription quota at all, which makes it worth saying
+    plainly: anyone who learns the code gets a year of full access. Keep
+    it unset in any deployment where that matters.
     """
     if not settings.admin_promo_code or body.code.strip() != settings.admin_promo_code:
         raise HTTPException(status_code=400, detail="Неверный промокод")

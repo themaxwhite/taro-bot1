@@ -79,13 +79,21 @@ export interface AdminUserBrief {
 }
 
 export interface AdminPayment {
+  /** Наш id платежа, он же номер заказа в платёжке. */
+  id: number;
   createdAt: string;
   kind: string;
   tier: string;
   energyAmount: number;
   amountRub: number;
   status: string;
-  yookassaPaymentId: string;
+  /** Какая платёжка провела платёж. У всех имеющихся — "yookassa". */
+  provider: string;
+  /**
+   * Id платежа на стороне платёжки. Null у платежа, не доведённого до
+   * конца: свой номер платёжка присваивает только вместе с оплатой.
+   */
+  providerPaymentId: string | null;
 }
 
 export interface AdminEvent {
@@ -160,13 +168,15 @@ export async function fetchAdminUser(telegramId: number): Promise<AdminUserDetai
     [k: string]: unknown;
   };
   const payments = (d.payments as Record<string, unknown>[]).map((p) => ({
+    id: p.id as number,
     createdAt: p.created_at as string,
     kind: p.kind as string,
     tier: p.tier as string,
     energyAmount: p.energy_amount as number,
     amountRub: p.amount_rub as number,
     status: p.status as string,
-    yookassaPaymentId: p.yookassa_payment_id as string,
+    provider: p.provider as string,
+    providerPaymentId: (p.provider_payment_id as string | null) ?? null,
   }));
   const events = (d.events as Record<string, unknown>[]).map((e) => ({
     createdAt: e.created_at as string,

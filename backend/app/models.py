@@ -179,10 +179,13 @@ class Subscription(Base):
 
 class SubscriptionPayment(Base):
     """
-    One payment attempt. Created in "pending" status when a payment is
-    initiated; flipped to "succeeded" once the payment provider's
-    callback arrives and its signature checks out (see
-    app/freekassa/client.py::verify_callback).
+    One payment attempt.
+
+    Nothing writes to this table at the moment: no payment provider is
+    connected (see app/api/subscriptions.py). It is kept, rather than
+    dropped, for two reasons — it holds real payment history from when
+    ЮKassa was connected, and it is the shape the next provider will
+    need, whichever one that turns out to be.
 
     Covers both things that can be bought: a subscription (`kind` =
     "subscription", `tier` says which one) and a pack of energy (`kind` =
@@ -190,24 +193,25 @@ class SubscriptionPayment(Base):
     original name because renaming it would mean migrating a table that
     holds real payment history for no functional gain.
 
-    Note the row's own `id` doubles as the order number sent to
-    FreeKassa, which is why a payment row is written and flushed *before*
-    the user is sent anywhere — the callback carries that id back and
-    nothing else identifies the purchase.
+    The columns are deliberately provider-agnostic. A row is meant to be
+    created in "pending" status before the user is sent off to pay, and
+    flipped to "succeeded" only when the provider confirms — never on the
+    user merely returning to the app.
     """
 
     __tablename__ = "subscription_payments"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    # Which payment provider handled this row. Historical rows predate
-    # the switch and are all "yookassa"; new ones are "freekassa". Kept
-    # because the two number their payments differently, so reading an
-    # id without knowing the provider tells you nothing.
-    provider: Mapped[str] = mapped_column(String(16), default="freekassa", server_default="yookassa")
-    # The provider's own id for this payment. Null until it settles:
-    # unlike ЮKassa, which minted an id when the payment was created,
-    # FreeKassa only reveals its operation number ("intid") in the
-    # callback — before that, the row is identified by `id` alone.
+    # Which payment provider handled this row. Every existing row is
+    # "yookassa", from before the integration was removed — hence the
+    # server_default. There is intentionally no Python-side default: the
+    # next provider must name itself explicitly, because an id means
+    # nothing without knowing who issued it.
+    provider: Mapped[str] = mapped_column(String(16), server_default="yookassa")
+    # The provider's own id for this payment, nullable because not every
+    # provider has one to give at the moment a payment starts: ЮKassa
+    # minted an id up front, others only name the payment once it
+    # settles. Until then a row is identified by `id` alone.
     provider_payment_id: Mapped[str | None] = mapped_column(
         String(64), unique=True, index=True, nullable=True
     )

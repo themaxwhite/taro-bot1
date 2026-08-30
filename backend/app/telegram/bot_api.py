@@ -1,7 +1,7 @@
 """
 Minimal Telegram Bot API client — just the one call the /start handler
-needs. Subscription payments go through ЮKassa instead (see
-app/yookassa/client.py), not Telegram's own Stars currency.
+needs. Notably not payments: the app has no payment provider connected,
+and has never used Telegram's own Stars currency.
 """
 
 import httpx

@@ -143,13 +143,18 @@ class AdminUserBrief(BaseModel):
 
 
 class AdminPayment(BaseModel):
+    # Наш собственный id платежа — и единственный идентификатор у
+    # платежа, который не был доведён до конца: id на стороне платёжки
+    # появляется только вместе с оплатой.
+    id: int
     created_at: dt.datetime
     kind: str
     tier: str
     energy_amount: int
     amount_rub: int
     status: str
-    yookassa_payment_id: str
+    provider: str
+    provider_payment_id: str | None
 
 
 class AdminEvent(BaseModel):
@@ -344,13 +349,15 @@ def get_user_detail(
         ).scalar_one(),
         payments=[
             AdminPayment(
+                id=p.id,
                 created_at=p.created_at,
                 kind=p.kind,
                 tier=p.tier,
                 energy_amount=p.energy_amount,
                 amount_rub=p.amount_rub,
                 status=p.status,
-                yookassa_payment_id=p.yookassa_payment_id,
+                provider=p.provider,
+                provider_payment_id=p.provider_payment_id,
             )
             for p in payments
         ],

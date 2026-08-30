@@ -9,10 +9,9 @@ interface TermsScreenProps {
 // email/phone) are deliberately left out below — the app owner hasn't
 // registered/decided on those yet (individual vs самозанятый/ИП/ООО
 // affects the exact wording). This must be filled in — see the
-// "Оператор и контакты" section — before real ЮKassa payments go live;
+// "Оператор и контакты" section — before any real payments go live;
 // everything else here accurately describes what this app actually
-// does with data (see backend/app/models.py, app/ai/client.py,
-// app/yookassa/client.py).
+// does with data (see backend/app/models.py, app/ai/client.py).
 export function TermsScreen({ onBack }: TermsScreenProps) {
   return (
     <div className={styles.screen}>
@@ -36,8 +35,9 @@ export function TermsScreen({ onBack }: TermsScreenProps) {
           Одна единица энергии открывает расклад целиком (карты вместе с толкованием), а также
           расходуется на дополнительную карту или уточняющий вопрос. Энергию можно получать
           бесплатно раз в сутки, покупать пакетами или получать за приглашённых друзей;
-          подписка даёт запас разблокировок на месяц. Оплата проходит через платёжный сервис
-          ЮKassa. Стоимость пакетов и тарифов указана в приложении на момент покупки.
+          подписка даёт запас разблокировок на месяц. Приём оплаты сейчас не подключён:
+          купить энергию или подписку нельзя, доступно только бесплатное — суточная
+          энергия и энергия за приглашённых друзей.
           «Карта дня» бесплатна и энергию не расходует.
         </p>
         <p className={styles.paragraph}>
@@ -71,8 +71,8 @@ export function TermsScreen({ onBack }: TermsScreenProps) {
           <li>данные профиля: пол, знак зодиака, указанные вами темы интересов;</li>
           <li>содержание раскладов: выпавшие карты, заданные вопросы и полученные толкования;</li>
           <li>
-            сведения об оплате: статус и сумма подписки, идентификатор платежа ЮKassa — сами
-            данные карты нам не передаются и не хранятся, их обрабатывает только ЮKassa;
+            сведения об оплате: статус и сумма подписки — платных операций сейчас нет, а
+            данные карты нам не передавались и не хранятся ни при каких условиях;
           </li>
           <li>
             техническую информацию, которую в обычном порядке получает любой веб-сервис при
@@ -100,8 +100,8 @@ export function TermsScreen({ onBack }: TermsScreenProps) {
           Российской Федерации.
         </p>
         <p className={styles.paragraph}>
-          Для обработки подписки сумма и тип тарифа передаются платёжному сервису ЮKassa. Сервис
-          также размещён на инфраструктуре хостинг-провайдера за пределами Российской Федерации.
+          Платёжному сервису данные сейчас не передаются: приём оплаты не подключён. Сервис
+          размещён на инфраструктуре хостинг-провайдера за пределами Российской Федерации.
           Персональные данные не продаются и не передаются третьим лицам для их собственной
           рекламы.
         </p>

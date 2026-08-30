@@ -179,7 +179,7 @@ export function AdminUserLookup() {
             <ul className={styles.rows}>
               {detail.payments.map((payment) => (
                 <li
-                  key={payment.yookassaPaymentId}
+                  key={payment.id}
                   className={`${styles.row} ${payment.status === "pending" ? styles.rowWarn : ""}`}
                 >
                   <span className={styles.rowWhen}>{formatDate(payment.createdAt)}</span>
@@ -187,7 +187,11 @@ export function AdminUserLookup() {
                     {payment.kind === "energy"
                       ? `Энергия ×${payment.energyAmount}`
                       : `Подписка «${payment.tier}»`}
-                    <span className={styles.rowId}>{payment.yookassaPaymentId}</span>
+                    <span className={styles.rowId}>
+                      {/* У неоплаченного платежа номера в платёжке ещё
+                          нет — показываем свой, по нему его и искать. */}
+                      {payment.providerPaymentId ?? `заказ №${payment.id}`}
+                    </span>
                   </span>
                   <span className={styles.rowValue}>
                     {payment.amountRub} ₽

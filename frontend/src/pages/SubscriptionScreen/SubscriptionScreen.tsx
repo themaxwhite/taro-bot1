@@ -7,10 +7,8 @@ import {
 } from "../../types/subscription";
 import {
   getSubscriptionStatus,
-  subscribeToTier,
   redeemPromoCode,
   getEnergyPacks,
-  buyEnergyPack,
   getTiers,
 } from "../../services/subscriptionsApi";
 import type { EnergyPack } from "../../types/energy";
@@ -29,11 +27,7 @@ type LoadState =
   | { status: "error"; message: string }
   | { status: "ready"; subscription: SubscriptionStatus };
 
-type BuyState = { status: "idle" } | { status: "paying"; tier: SubscriptionTierId } | { status: "error"; message: string };
-
 type PromoState = { status: "idle" } | { status: "checking" } | { status: "error"; message: string };
-
-type PackState = { status: "idle" } | { status: "paying"; packId: string } | { status: "error"; message: string };
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
@@ -62,11 +56,9 @@ function openSupportChat(url: string) {
 
 export function SubscriptionScreen({ onBack }: SubscriptionScreenProps) {
   const [state, setState] = useState<LoadState>({ status: "loading" });
-  const [buyState, setBuyState] = useState<BuyState>({ status: "idle" });
   const [promoCode, setPromoCode] = useState("");
   const [promoState, setPromoState] = useState<PromoState>({ status: "idle" });
   const [packs, setPacks] = useState<EnergyPack[]>([]);
-  const [packState, setPackState] = useState<PackState>({ status: "idle" });
   const [tiers, setTiers] = useState<TierOption[]>([]);
 
   useEffect(() => {
@@ -82,18 +74,6 @@ export function SubscriptionScreen({ onBack }: SubscriptionScreenProps) {
       .catch(() => {});
   }, []);
 
-  async function handleBuyPack(packId: string) {
-    setPackState({ status: "paying", packId });
-    try {
-      await buyEnergyPack(packId);
-      setPackState({ status: "idle" });
-      load();
-    } catch (error) {
-      const message = error instanceof SpreadsApiError ? error.message : "Не удалось пополнить энергию.";
-      setPackState({ status: "error", message });
-    }
-  }
-
   function load() {
     setState({ status: "loading" });
     getSubscriptionStatus()
@@ -105,18 +85,6 @@ export function SubscriptionScreen({ onBack }: SubscriptionScreenProps) {
   }
 
   useEffect(load, []);
-
-  async function handleSubscribe(tier: SubscriptionTierId) {
-    setBuyState({ status: "paying", tier });
-    try {
-      await subscribeToTier(tier);
-      setBuyState({ status: "idle" });
-      load();
-    } catch (error) {
-      const message = error instanceof SpreadsApiError ? error.message : "Не удалось оформить подписку.";
-      setBuyState({ status: "error", message });
-    }
-  }
 
   async function handleRedeemPromo() {
     setPromoState({ status: "checking" });
@@ -182,30 +150,26 @@ export function SubscriptionScreen({ onBack }: SubscriptionScreenProps) {
         </div>
       )}
 
+      {state.status !== "loading" && (packs.length > 0 || tiers.length > 0) && (
+        <p className={styles.paymentsOff}>
+          Оплата сейчас отключена — пополнить энергию и оформить подписку нельзя. Всё
+          остальное работает: карта дня, суточная энергия и энергия за приглашённых друзей.
+        </p>
+      )}
+
       {packs.length > 0 && (
         <div className={styles.packs}>
           <h2 className={styles.sectionHeading}>Пополнить энергию</h2>
           <p className={styles.sectionHint}>Разово, без подписки. Купленная энергия не сгорает.</p>
           <div className={styles.packRow}>
             {packs.map((pack) => (
-              <button
-                key={pack.id}
-                type="button"
-                className={styles.packCard}
-                disabled={packState.status === "paying"}
-                onClick={() => handleBuyPack(pack.id)}
-              >
+              <button key={pack.id} type="button" className={styles.packCard} disabled>
                 {pack.badge && <span className={styles.packBadge}>{pack.badge}</span>}
                 <span className={styles.packAmount}>✦ {pack.amount}</span>
-                <span className={styles.packPrice}>
-                  {packState.status === "paying" && packState.packId === pack.id
-                    ? "Ждём оплату…"
-                    : `${pack.priceRub} ₽`}
-                </span>
+                <span className={styles.packPrice}>{pack.priceRub} ₽</span>
               </button>
             ))}
           </div>
-          {packState.status === "error" && <p className={styles.error}>{packState.message}</p>}
         </div>
       )}
 
@@ -230,24 +194,13 @@ export function SubscriptionScreen({ onBack }: SubscriptionScreenProps) {
                   ))}
                 </ul>
               )}
-              <button
-                type="button"
-                className={styles.tierButton}
-                disabled={buyState.status === "paying" || isActiveTier(tier.id)}
-                onClick={() => handleSubscribe(tier.id)}
-              >
-                {isActiveTier(tier.id)
-                  ? "Уже активен"
-                  : buyState.status === "paying" && buyState.tier === tier.id
-                    ? "Ждём подтверждение оплаты…"
-                    : "Оформить"}
+              <button type="button" className={styles.tierButton} disabled>
+                {isActiveTier(tier.id) ? "Уже активен" : "Пока недоступно"}
               </button>
             </div>
           ))}
         </div>
       )}
-
-      {buyState.status === "error" && <p className={styles.error}>{buyState.message}</p>}
 
       {state.status !== "loading" && (
         <div className={styles.promoSection}>
