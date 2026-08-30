@@ -23,11 +23,11 @@ function prefersReducedMotion() {
   return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-// Illustrated deck ("Tarot Aurum") — one PNG-derived WebP per card, served
-// statically from /public/cards. The artwork already bakes in the card's
-// gold border and its (Russian) name, so reversed cards genuinely flip
-// the whole image, same as a real physical reversed card — we don't
-// duplicate the name as separate text underneath.
+// Illustrated deck ("Tarot Aurum") — one WebP per card, served statically
+// from /public/cards. The artwork bakes in the card's gold border and its
+// name (in English, as on the plates themselves — the Russian name comes
+// from the backend and is shown separately), so a reversed card flips the
+// whole image, the way a real one does.
 export function CardFront({ card }: CardFrontProps) {
   const [zoomed, setZoomed] = useState(false);
   const [dealt, setDealt] = useState(prefersReducedMotion());
