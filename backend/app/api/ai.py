@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.ai.client import generate_text
 from app.ai.fallback import daily_message_for, fallback_interpretation
 from app.api.deps import get_current_user
-from app.api.subscriptions import require_quota
+from app.api.subscriptions import available_unlocks, require_quota
 from app.config import settings
 from app.db import get_db
 from app.tarot.schemas import DrawnCard
@@ -112,12 +112,17 @@ async def interpret_spread(
     # that single unlock buys the whole reading: the cards become
     # visible at the same moment their interpretation does.
     is_daily_card = record.spread_id == SpreadId.DAILY_CARD.value
-    if not is_daily_card:
-        require_quota(db, user)
 
-    if not record.unlocked:
-        record.unlocked = True
-        db.commit()
+    # Проверяем баланс до обращения к модели, а списываем после удачного
+    # ответа. Прежде списание шло первым, и у сбоя провайдера была цена:
+    # человек платил и получал статичную заглушку, она намеренно не
+    # кэшировалась — и следующая попытка списывала снова. Сбой AI тихо
+    # вычерпывал баланс.
+    if not is_daily_card and available_unlocks(db, user) < 1:
+        raise HTTPException(
+            status_code=402,
+            detail="Не хватает энергии. Пополните баланс или оформите подписку.",
+        )
 
     cards = json.loads(record.cards_json)
     card_lines = "\n".join(
@@ -145,16 +150,28 @@ async def interpret_spread(
         ),
         max_tokens=900,
     )
-    text = generated or fallback_interpretation([c["name"] for c in cards], record.spread_title)
+    if generated is None:
+        # Карта дня бесплатна — ей заглушка подходит: лучше показать
+        # общий текст, чем ничего. За платное толкование брать деньги за
+        # заглушку нельзя, поэтому честная ошибка и ноль списаний.
+        if not is_daily_card:
+            raise HTTPException(
+                status_code=503,
+                detail="Толкование сейчас не готовится. Попробуйте через минуту — энергия не списана.",
+            )
+        text = fallback_interpretation([c["name"] for c in cards], record.spread_title)
+    else:
+        text = generated
 
-    # Only persist a real AI result. Caching the static fallback would
-    # permanently strand a paid interpretation behind generic text after a
-    # transient provider outage — leaving it uncached means the next open
-    # (this is a paid feature, so re-calling costs nothing extra) retries
-    # generation instead of repeating the same stale placeholder forever.
+    if not is_daily_card:
+        require_quota(db, user)
+
+    record.unlocked = True
+    # Кэшируем только настоящий ответ модели: заглушка карты дня не
+    # должна навсегда занять место толкования.
     if generated:
         record.interpretation = text
-        db.commit()
+    db.commit()
     return InterpretationResponse(interpretation=text, cards=stored_cards(record))
 
 
@@ -236,7 +253,13 @@ async def ask_follow_up(
     # case, right after the user did exactly that. record.interpretation
     # is used below as optional context, not a precondition.
 
-    require_quota(db, user)
+    # То же, что и в толковании: баланс проверяем сейчас, списываем
+    # после удачного ответа.
+    if available_unlocks(db, user) < 1:
+        raise HTTPException(
+            status_code=402,
+            detail="Не хватает энергии. Пополните баланс или оформите подписку.",
+        )
 
     cards = json.loads(record.cards_json)
     card_lines = "\n".join(
@@ -266,22 +289,29 @@ async def ask_follow_up(
         ),
         max_tokens=250,
     )
-    answer = generated or (
-        "Ответ на уточняющий вопрос сейчас недоступен (не настроен ключ AI-сервиса "
-        "на сервере) — опирайтесь на уже данное толкование расклада."
-    )
-
-    # Same rationale as interpret_spread: only persist a real AI result,
-    # so a transient provider outage doesn't permanently strand this
-    # question behind generic fallback text.
-    if generated:
-        db.add(
-            SpreadFollowUp(
-                spread_record_id=spread_record_id,
-                question_key=question_key,
-                question_label=question_label,
-                answer=answer,
-            )
+    if generated is None:
+        # Прежде здесь стояла заглушка, которая вдобавок сообщала
+        # оплатившему человеку о незаданном ключе на сервере — то есть
+        # брала деньги и показывала служебную причину сбоя.
+        raise HTTPException(
+            status_code=503,
+            detail="Ответ сейчас не готовится. Попробуйте через минуту — энергия не списана.",
         )
-        db.commit()
+
+    answer = generated
+    require_quota(db, user)
+
+    # Проверка `if generated` здесь больше не нужна: до этой строки
+    # доходит только настоящий ответ, иначе выше поднят 503. Сохраняем
+    # безусловно — иначе оплаченный вопрос не попал бы в кэш и следующее
+    # открытие расклада списало бы ещё раз.
+    db.add(
+        SpreadFollowUp(
+            spread_record_id=spread_record_id,
+            question_key=question_key,
+            question_label=question_label,
+            answer=answer,
+        )
+    )
+    db.commit()
     return FollowUpResponse(question_key=question_key, question_label=question_label, answer=answer)
