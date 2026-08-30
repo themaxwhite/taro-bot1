@@ -188,15 +188,6 @@ export function ProfileScreen({
         </div>
       )}
 
-      <IdentityCard
-        zodiacSign={zodiacSign}
-        patronCard={patronCard}
-        onChange={(next) => {
-          if (next.zodiacSign !== undefined) setZodiacSign(next.zodiacSign);
-          if (next.patronCard !== undefined) setPatronCard(next.patronCard);
-        }}
-      />
-
       <div className={`${styles.settingsList} ${styles.subscriptionRow}`}>
         <button
           type="button"
@@ -232,6 +223,15 @@ export function ProfileScreen({
           </span>
         </button>
       </div>
+
+      <IdentityCard
+        zodiacSign={zodiacSign}
+        patronCard={patronCard}
+        onChange={(next) => {
+          if (next.zodiacSign !== undefined) setZodiacSign(next.zodiacSign);
+          if (next.patronCard !== undefined) setPatronCard(next.patronCard);
+        }}
+      />
 
       <div className={styles.settingsList}>
         <div className={styles.settingsItem}>
