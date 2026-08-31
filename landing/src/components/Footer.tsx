@@ -60,7 +60,7 @@ export function Footer() {
 
               <p className="mt-8 leading-relaxed">
                 <a
-                  href="/oferta.html"
+                  href="/oferta"
                   className="text-ink underline decoration-hairline-strong underline-offset-4 hover:text-gold"
                 >
                   Публичная оферта, условия оказания услуг и порядок возврата
@@ -69,7 +69,7 @@ export function Footer() {
 
               <p className="mt-2 leading-relaxed">
                 <a
-                  href="/privacy.html"
+                  href="/privacy"
                   className="text-ink underline decoration-hairline-strong underline-offset-4 hover:text-gold"
                 >
                   Политика обработки персональных данных

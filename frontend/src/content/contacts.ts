@@ -8,7 +8,10 @@
  *
  * При переезде на свой домен адрес меняется здесь и в подвале сайта.
  */
-export const OFFER_URL = "https://taroaurum.online/oferta.html";
+/* Без .html: Cloudflare Pages отвечает на /oferta.html редиректом 308 на
+   /oferta, а встроенный браузер Telegram на этом редиректе спотыкался — по
+   кнопке в профиле не открывалось ничего. */
+export const OFFER_URL = "https://taroaurum.online/oferta";
 
 /**
  * Политика обработки персональных данных — тоже на сайте и по той же
@@ -16,7 +19,7 @@ export const OFFER_URL = "https://taroaurum.online/oferta.html";
  * неограниченному кругу лиц, а экран внутри Telegram этому не отвечает —
  * его не открыть по ссылке из браузера.
  */
-export const PRIVACY_URL = "https://taroaurum.online/privacy.html";
+export const PRIVACY_URL = "https://taroaurum.online/privacy";
 
 /** Открывает оферту во встроенном браузере Telegram, вне него — в новой вкладке. */
 export function openOffer(): void {

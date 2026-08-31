@@ -59,13 +59,13 @@ export function Nav() {
       <div className="border-b border-hairline/60 bg-surface/40">
         <div className="mx-auto flex w-full max-w-6xl items-center gap-4 px-5 py-1.5 text-[11px] sm:gap-6 sm:px-8 sm:text-xs">
           <a
-            href="/oferta.html"
+            href="/oferta"
             className="shrink-0 text-ink-muted underline-offset-4 transition hover:text-ink hover:underline"
           >
             Публичная оферта
           </a>
           <a
-            href="/privacy.html"
+            href="/privacy"
             className="shrink-0 text-ink-muted underline-offset-4 transition hover:text-ink hover:underline"
           >
             Обработка персональных данных

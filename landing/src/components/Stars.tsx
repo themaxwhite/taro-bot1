@@ -116,7 +116,7 @@ export function Stars() {
             <>
               {" "}Условия оказания услуг и порядок возврата — в{" "}
               <a
-                href="/oferta.html"
+                href="/oferta"
                 className="text-ink underline decoration-hairline-strong underline-offset-4 hover:text-gold"
               >
                 публичной оферте
