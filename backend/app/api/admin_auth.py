@@ -32,6 +32,7 @@ https://oauth.telegram.org/.well-known/openid-configuration
 import base64
 import binascii
 import hashlib
+import hmac
 import json
 import logging
 import secrets
@@ -54,19 +55,59 @@ AUTHORIZATION_ENDPOINT = f"{ISSUER}/auth"
 TOKEN_ENDPOINT = f"{ISSUER}/token"
 
 # Сколько живёт начатый, но не завершённый вход. Человек за это время
-# успевает подтвердить вход в Telegram, а брошенные попытки не копятся.
+# успевает подтвердить вход в Telegram, а просроченная попытка повторяется
+# заново.
 FLOW_TTL_SECONDS = 600
 
-# state -> (code_verifier, когда создан). Живёт в памяти процесса: запись
-# нужна на те секунды, что человек подтверждает вход, и переживать
-# перезапуск ей незачем — незаконченный вход просто повторяется.
-_pending: dict[str, tuple[str, float]] = {}
+
+def _state_key() -> bytes:
+    return hashlib.sha256(((settings.telegram_bot_token or "") + ":oauth-state").encode()).digest()
 
 
-def _prune() -> None:
-    deadline = time.time() - FLOW_TTL_SECONDS
-    for state in [s for s, (_, born) in _pending.items() if born < deadline]:
-        _pending.pop(state, None)
+def _pack_state(verifier: str) -> str:
+    """
+    Кладёт code_verifier в сам параметр state и подписывает его.
+
+    Раньше пара state → verifier хранилась в словаре в памяти процесса, и
+    это оказалось ошибкой: между нажатием кнопки и возвратом из Telegram
+    проходит полминуты-минута, и любой перезапуск бэкенда в этот момент —
+    выкатка, переезд контейнера, засыпание — стирал память, а вернувшийся
+    человек получал «неизвестный state». То же самое сломалось бы и от
+    второго экземпляра приложения: запрос ушёл бы в один процесс, а
+    вернулся в другой.
+
+    Подпись держит то же, ради чего нужен state: подделать его нельзя, не
+    зная токена бота, а метка времени ограничивает срок жизни. Хранить на
+    сервере при этом нечего.
+    """
+    payload = json.dumps({"v": verifier, "t": int(time.time())}, separators=(",", ":"))
+    raw = base64.urlsafe_b64encode(payload.encode()).decode().rstrip("=")
+    signature = hmac.new(_state_key(), raw.encode(), hashlib.sha256).hexdigest()[:32]
+    return f"{raw}.{signature}"
+
+
+def _unpack_state(state: str) -> str | None:
+    """Возвращает code_verifier или None, если подпись не сошлась или срок вышел."""
+    parts = state.split(".")
+    if len(parts) != 2:
+        return None
+    raw, signature = parts
+
+    expected = hmac.new(_state_key(), raw.encode(), hashlib.sha256).hexdigest()[:32]
+    if not hmac.compare_digest(expected, signature):
+        return None
+
+    try:
+        payload = json.loads(base64.urlsafe_b64decode(raw + "=" * (-len(raw) % 4)))
+    except (ValueError, binascii.Error):
+        return None
+
+    if not isinstance(payload, dict):
+        return None
+    if time.time() - float(payload.get("t", 0)) > FLOW_TTL_SECONDS:
+        return None
+    verifier = payload.get("v")
+    return verifier if isinstance(verifier, str) else None
 
 
 def _redirect_uri() -> str:
@@ -91,16 +132,13 @@ def start_login() -> RedirectResponse:
     if not settings.telegram_oauth_client_id or not settings.telegram_oauth_client_secret:
         raise HTTPException(status_code=503, detail="Telegram OAuth is not configured")
 
-    _prune()
-
-    state = secrets.token_urlsafe(24)
     verifier = secrets.token_urlsafe(48)
     challenge = (
         base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest())
         .decode()
         .rstrip("=")
     )
-    _pending[state] = (verifier, time.time())
+    state = _pack_state(verifier)
 
     query = urlencode(
         {
@@ -140,13 +178,11 @@ async def finish_login(code: str | None = None, state: str | None = None,
     if not code or not state:
         return RedirectResponse(_panel_url("#error=bad_request"), status_code=302)
 
-    _prune()
-    pending = _pending.pop(state, None)
-    if pending is None:
-        # Неизвестный state — либо вход начали не у нас, либо он протух.
-        logger.warning("Вход отклонён: неизвестный state (истёк или чужой)")
+    verifier = _unpack_state(state)
+    if verifier is None:
+        # Подпись не сошлась или прошло больше десяти минут.
+        logger.warning("Вход отклонён: state не прошёл проверку или истёк")
         return RedirectResponse(_panel_url("#error=expired"), status_code=302)
-    verifier, _ = pending
 
     # Секрет уходит заголовком Basic, а не полем в теле. Описание сервера
     # (/.well-known/openid-configuration) заявляет оба способа, но на
