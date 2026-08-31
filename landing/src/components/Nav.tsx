@@ -51,6 +51,37 @@ export function Nav() {
           : "border-b border-transparent"
       }`}
     >
+      {/* Оферта и политика обработки данных вынесены над навигацией и видны
+          на любом экране, а не только в подвале. Так их находит и человек,
+          который решает, платить ли, и модерация платёжной системы, которая
+          первым делом ищет на сайте ровно эти два документа. Полоска живёт
+          внутри залипающей шапки, то есть не уезжает при прокрутке. */}
+      <div className="border-b border-hairline/60 bg-surface/40">
+        <div className="mx-auto flex w-full max-w-6xl items-center gap-4 px-5 py-1.5 text-[11px] sm:gap-6 sm:px-8 sm:text-xs">
+          <span className="hidden shrink-0 uppercase tracking-[0.14em] text-gold sm:inline">
+            Документы
+          </span>
+          <a
+            href="/oferta.html"
+            className="shrink-0 text-ink-muted underline-offset-4 transition hover:text-ink hover:underline"
+          >
+            Публичная оферта
+          </a>
+          <a
+            href="/privacy.html"
+            className="shrink-0 text-ink-muted underline-offset-4 transition hover:text-ink hover:underline"
+          >
+            Обработка персональных данных
+          </a>
+          <a
+            href={`mailto:${site.email}`}
+            className="ml-auto hidden shrink-0 text-ink-muted underline-offset-4 transition hover:text-ink hover:underline lg:inline"
+          >
+            {site.email}
+          </a>
+        </div>
+      </div>
+
       <nav className="mx-auto flex w-full max-w-6xl items-center gap-4 px-5 py-4 sm:gap-6 sm:px-8">
         <a
           href="#top"
