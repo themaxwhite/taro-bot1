@@ -5,8 +5,8 @@ export const site = {
   tagline: "Расклады таро в Telegram",
   /* Direct Mini App link (bot username + the short app name from BotFather),
      so the button opens the app itself rather than a chat with the bot. */
-  botUrl: "https://t.me/mytarolo1gbot/mytarolog",
-  botHandle: "@mytarolo1gbot",
+  botUrl: "https://t.me/taroaurumbot/httpstarobot1productionup",
+  botHandle: "@taroaurumbot",
   deckSize: 78,
 
   /* Реквизиты исполнителя. Платёжная система проверяет их наличие на
