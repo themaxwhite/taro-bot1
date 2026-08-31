@@ -144,6 +144,7 @@ async def finish_login(code: str | None = None, state: str | None = None,
     pending = _pending.pop(state, None)
     if pending is None:
         # Неизвестный state — либо вход начали не у нас, либо он протух.
+        logger.warning("Вход отклонён: неизвестный state (истёк или чужой)")
         return RedirectResponse(_panel_url("#error=expired"), status_code=302)
     verifier, _ = pending
 
@@ -205,18 +206,28 @@ async def finish_login(code: str | None = None, state: str | None = None,
     claims = _decode_id_token(id_token)
 
     if claims.get("iss") != ISSUER:
+        logger.error("Вход отклонён: чужой issuer %r", claims.get("iss"))
         return RedirectResponse(_panel_url("#error=issuer"), status_code=302)
 
     audience = claims.get("aud")
     audiences = audience if isinstance(audience, list) else [audience]
-    if str(settings.telegram_oauth_client_id) not in [str(a) for a in audiences]:
+    if str(client_id) not in [str(a) for a in audiences]:
+        logger.error(
+            "Вход отклонён: audience %r не совпадает с client_id %s", audience, client_id
+        )
         return RedirectResponse(_panel_url("#error=audience"), status_code=302)
 
     if float(claims.get("exp", 0)) < time.time():
+        logger.error("Вход отклонён: id_token просрочен")
         return RedirectResponse(_panel_url("#error=expired_token"), status_code=302)
 
     raw_subject = str(claims.get("sub", ""))
     if not raw_subject.lstrip("-").isdigit():
+        logger.error(
+            "Вход отклонён: sub=%r не число. Поля токена: %s",
+            raw_subject,
+            sorted(claims.keys()),
+        )
         return RedirectResponse(_panel_url("#error=subject"), status_code=302)
     telegram_id = int(raw_subject)
 
@@ -225,8 +236,14 @@ async def finish_login(code: str | None = None, state: str | None = None,
     # ответят отказом. Иначе панель откроется и будет показывать ошибки
     # вместо честного «доступа нет».
     if telegram_id not in settings.admin_telegram_id_set:
+        logger.warning(
+            "Вход отклонён: %s нет в списке администраторов %s",
+            telegram_id,
+            sorted(settings.admin_telegram_id_set),
+        )
         return RedirectResponse(_panel_url("#error=not_admin"), status_code=302)
 
+    logger.info("Вход выполнен: администратор %s", telegram_id)
     session = issue(telegram_id, settings.telegram_bot_token or "")
     name = claims.get("name") or claims.get("given_name") or ""
     fragment = urlencode({"session": session, "name": name})
