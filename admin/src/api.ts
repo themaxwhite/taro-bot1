@@ -111,7 +111,19 @@ async function request<T>(path: string, session: AdminSession): Promise<T> {
   return (await response.json()) as T;
 }
 
+export type DayStats = {
+  date: string;
+  new_users: number;
+  active_users: number;
+  spreads: number;
+  revenue_rub: number;
+  energy_sold: number;
+};
+
 export const getStats = (session: AdminSession) => request<Stats>("/api/admin/stats", session);
+
+export const getTimeseries = (session: AdminSession, days = 30) =>
+  request<DayStats[]>(`/api/admin/timeseries?days=${days}`, session);
 
 export const searchUsers = (session: AdminSession, query: string) =>
   request<UserBrief[]>(`/api/admin/users?q=${encodeURIComponent(query)}`, session);

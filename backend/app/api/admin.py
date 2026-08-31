@@ -135,6 +135,100 @@ def get_admin_stats(
     )
 
 
+class AdminDayStats(BaseModel):
+    """Один день в ряду. Дни идут подряд, включая пустые."""
+
+    date: str
+    new_users: int
+    active_users: int
+    spreads: int
+    revenue_rub: int
+    energy_sold: int
+
+
+@router.get("/timeseries", response_model=list[AdminDayStats])
+def get_timeseries(
+    days: int = 30,
+    _admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> list[AdminDayStats]:
+    """
+    Активность по дням за последние `days` суток.
+
+    Группировка идёт по календарной дате в UTC — той же, в которой лежат
+    все created_at. Для Москвы это значит, что «день» заканчивается в 3
+    часа ночи; для счётчика тенденций разница несущественная, а честный
+    пересчёт в местное время потребовал бы хранить часовой пояс
+    пользователя, которого у нас нет.
+
+    Пустые дни возвращаются нулями, а не пропускаются: график с дырами
+    врёт сильнее, чем график с нулями.
+    """
+    days = max(1, min(days, 180))
+    end = dt.datetime.utcnow().date()
+    start = end - dt.timedelta(days=days - 1)
+    since = dt.datetime.combine(start, dt.time.min)
+
+    def by_day(query) -> dict[str, int]:
+        # func.date даёт строку в SQLite и date в Postgres — приводим к
+        # строке на нашей стороне, чтобы ключи сходились в обоих случаях.
+        return {str(day): int(value) for day, value in db.execute(query).all()}
+
+    new_users = by_day(
+        select(func.date(User.created_at), func.count())
+        .where(User.created_at >= since)
+        .group_by(func.date(User.created_at))
+    )
+    spreads = by_day(
+        select(func.date(SpreadRecord.created_at), func.count())
+        .where(SpreadRecord.created_at >= since)
+        .group_by(func.date(SpreadRecord.created_at))
+    )
+    active = by_day(
+        select(func.date(SpreadRecord.created_at), func.count(func.distinct(SpreadRecord.user_id)))
+        .where(SpreadRecord.created_at >= since)
+        .group_by(func.date(SpreadRecord.created_at))
+    )
+    revenue = by_day(
+        select(
+            func.date(SubscriptionPayment.created_at),
+            func.coalesce(func.sum(SubscriptionPayment.amount_rub), 0),
+        )
+        .where(
+            SubscriptionPayment.status == "succeeded",
+            SubscriptionPayment.created_at >= since,
+        )
+        .group_by(func.date(SubscriptionPayment.created_at))
+    )
+    energy = by_day(
+        select(
+            func.date(SubscriptionPayment.created_at),
+            func.coalesce(func.sum(SubscriptionPayment.energy_amount), 0),
+        )
+        .where(
+            SubscriptionPayment.status == "succeeded",
+            SubscriptionPayment.kind == "energy",
+            SubscriptionPayment.created_at >= since,
+        )
+        .group_by(func.date(SubscriptionPayment.created_at))
+    )
+
+    result: list[AdminDayStats] = []
+    for offset in range(days):
+        day = str(start + dt.timedelta(days=offset))
+        result.append(
+            AdminDayStats(
+                date=day,
+                new_users=new_users.get(day, 0),
+                active_users=active.get(day, 0),
+                spreads=spreads.get(day, 0),
+                revenue_rub=revenue.get(day, 0),
+                energy_sold=energy.get(day, 0),
+            )
+        )
+    return result
+
+
 # --- Карточка пользователя для поддержки --------------------------------
 #
 # Отвечает на вопрос «у кого что пошло не так»: заплатил и не получил,

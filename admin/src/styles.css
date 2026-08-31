@@ -97,10 +97,86 @@ button.link:hover {
   color: var(--ink);
 }
 
+/* --- Переключатель периода -------------------------------------------- */
+.periods {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+.periods button {
+  border: 1px solid var(--hairline);
+  background: transparent;
+  color: var(--ink-muted);
+  font: inherit;
+  font-size: 0.82rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+.periods button[aria-current="true"] {
+  border-color: var(--hairline-strong);
+  background: var(--surface);
+  color: var(--gold-strong);
+}
+
+/* --- Спарклайны -------------------------------------------------------- */
+.sparks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+.spark {
+  border: 1px solid var(--hairline);
+  border-radius: 0.75rem;
+  background: var(--surface);
+  padding: 0.8rem 0.9rem 0.6rem;
+}
+.spark-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.spark-title {
+  color: var(--ink-muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.spark-total {
+  color: var(--gold-strong);
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+}
+.spark-plot {
+  display: block;
+  width: 100%;
+  height: 44px;
+  margin: 0.5rem 0 0.25rem;
+  overflow: visible;
+}
+/* Столбик тонкий и с закруглённым верхом, посаженный на основание.
+   Наведение подсвечивает столбик и меняет число в шапке — значение на
+   каждом дне не подписываем, иначе карточка превращается в таблицу. */
+.spark-plot .bar {
+  fill: var(--gold);
+  opacity: 0.75;
+}
+.spark-plot .bar:hover,
+.spark-plot .bar.hot {
+  fill: var(--gold-strong);
+  opacity: 1;
+}
+.spark-foot {
+  color: var(--ink-muted);
+  font-size: 0.72rem;
+}
+
 /* --- Плитки со счётчиками --------------------------------------------- */
 .tiles {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
   gap: 0.75rem;
   margin-bottom: 1.5rem;
 }
@@ -108,7 +184,7 @@ button.link:hover {
   border: 1px solid var(--hairline);
   border-radius: 0.75rem;
   background: var(--surface);
-  padding: 0.9rem 1rem;
+  padding: 0.7rem 0.85rem;
 }
 .tile .label {
   color: var(--ink-muted);
@@ -118,7 +194,7 @@ button.link:hover {
 }
 .tile .value {
   margin-top: 0.35rem;
-  font-size: 1.6rem;
+  font-size: 1.35rem;
   font-variant-numeric: tabular-nums;
   color: var(--gold-strong);
 }
