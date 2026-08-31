@@ -58,9 +58,6 @@ export function Nav() {
           внутри залипающей шапки, то есть не уезжает при прокрутке. */}
       <div className="border-b border-hairline/60 bg-surface/40">
         <div className="mx-auto flex w-full max-w-6xl items-center gap-4 px-5 py-1.5 text-[11px] sm:gap-6 sm:px-8 sm:text-xs">
-          <span className="hidden shrink-0 uppercase tracking-[0.14em] text-gold sm:inline">
-            Документы
-          </span>
           <a
             href="/oferta.html"
             className="shrink-0 text-ink-muted underline-offset-4 transition hover:text-ink hover:underline"
