@@ -7,6 +7,7 @@ from app.api.deps import get_current_user
 from app.config import settings
 from app.db import get_db
 from app.models import User
+from app.ratelimit import check_rate_limit
 
 router = APIRouter(prefix="/api/referral", tags=["referral"])
 
@@ -39,6 +40,12 @@ def register_referral(
     set once, so replaying the same start_param on a later app open is a
     harmless no-op rather than a repeated reward.
     """
+    # Каждая попытка ищет пользователя в базе по присланному id, а
+    # start_param приходит из ссылки, то есть подставляется кем угодно.
+    # Без предела это дешёвый способ перебирать чужие идентификаторы по
+    # ответу 404, да и просто нагружать базу.
+    check_rate_limit("referral-register", user.telegram_id, limit=20, window_seconds=3600)
+
     if user.referred_by is not None:
         return RegisterReferralResponse(ok=True)
     if body.referrer_id == user.telegram_id:

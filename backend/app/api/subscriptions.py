@@ -30,6 +30,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user
 from app.config import settings
 from app.db import get_db
+from app.ratelimit import check_rate_limit
 from app.models import Subscription, User
 from app.energy import DAILY_FREE_ENERGY, ENERGY_PACKS
 from app.subscriptions import TIERS, SubscriptionTier, purchasable_tiers
@@ -163,7 +164,14 @@ def redeem_promo(
     to get a subscription quota at all, which makes it worth saying
     plainly: anyone who learns the code gets a year of full access. Keep
     it unset in any deployment where that matters.
+
+    Отсюда же и ограничение частоты: эндпойнт открыт любому владельцу
+    аккаунта Telegram и проверяет секрет сравнением, то есть в чистом виде
+    приглашает к перебору. Пять попыток в час на пользователя оставляют
+    запас тому, кто просто опечатался, и делают перебор бессмысленным.
     """
+    check_rate_limit("redeem-promo", user.telegram_id, limit=5, window_seconds=3600)
+
     if not settings.admin_promo_code or body.code.strip() != settings.admin_promo_code:
         raise HTTPException(status_code=400, detail="Неверный промокод")
 
