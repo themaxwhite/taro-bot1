@@ -1,17 +1,17 @@
 import { ScreenHeader } from "../../components/ScreenHeader/ScreenHeader";
+import { LEGAL, openOffer } from "../../content/contacts";
 import styles from "./TermsScreen.module.css";
 
 interface TermsScreenProps {
   onBack: () => void;
 }
 
-// Operator/contact details (full legal name, taxpayer status, address,
-// email/phone) are deliberately left out below — the app owner hasn't
-// registered/decided on those yet (individual vs самозанятый/ИП/ООО
-// affects the exact wording). This must be filled in — see the
-// "Оператор и контакты" section — before any real payments go live;
-// everything else here accurately describes what this app actually
-// does with data (see backend/app/models.py, app/ai/client.py).
+// Реквизиты оператора выводятся в разделе «Оператор и контакты» и берутся
+// из content/contacts.ts. Порядок оплаты и возврата сюда не копируется:
+// это предмет оферты, а две её редакции — два разных обещания покупателю,
+// поэтому здесь только ссылка на неё. Остальной текст описывает то, что
+// приложение действительно делает с данными (см. backend/app/models.py,
+// app/ai/client.py).
 export function TermsScreen({ onBack }: TermsScreenProps) {
   return (
     <div className={styles.screen}>
@@ -122,8 +122,24 @@ export function TermsScreen({ onBack }: TermsScreenProps) {
 
         <h2 className={styles.heading}>8. Оператор и контакты</h2>
         <p className={styles.paragraph}>
-          Реквизиты оператора персональных данных и контакты для обращений будут опубликованы
-          здесь до начала приёма платежей.
+          Сервис оказывает и персональные данные обрабатывает {LEGAL.name}, ИНН {LEGAL.inn}.
+        </p>
+        <p className={styles.paragraph}>
+          Запросы об обработке данных, их удалении и отзыв согласия, а также любые другие
+          юридически значимые обращения принимаются по адресу{" "}
+          <a className={styles.link} href={`mailto:${LEGAL.email}`}>
+            {LEGAL.email}
+          </a>
+          . Чат поддержки в Telegram отвечает быстрее, но равнозначной заменой этому адресу
+          не является.
+        </p>
+        <p className={styles.paragraph}>
+          Условия оказания платных услуг, порядок оплаты и возврата и полные реквизиты
+          исполнителя изложены в{" "}
+          <button type="button" className={styles.link} onClick={openOffer}>
+            публичной оферте
+          </button>
+          .
         </p>
       </div>
     </div>

@@ -34,6 +34,22 @@ export function openOffer(): void {
  */
 export const SUPPORT_URL = "https://t.me/aurumhelp";
 
+/**
+ * Реквизиты исполнителя и оператора персональных данных.
+ *
+ * Те же значения есть в оферте (landing/public/oferta.html) и в подвале
+ * сайта (landing/src/site.ts). Приложение и сайт собираются и деплоятся
+ * порознь, общего кода у них нет, поэтому копия здесь неизбежна. Копируются
+ * только сами реквизиты, но не текст оферты: при изменении править надо все
+ * три места.
+ */
+export const LEGAL = {
+  name: "Беляев Максим Денисович",
+  inn: "561022976424",
+  /** Адрес для юридически значимых обращений — он же указан в оферте. */
+  email: "taroaurum.support@gmail.com",
+} as const;
+
 /** Открывает чат поддержки внутри Telegram, а вне него — в новой вкладке. */
 export function openSupport(): void {
   const webApp = window.Telegram?.WebApp;

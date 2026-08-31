@@ -43,6 +43,18 @@
   gap: 6px;
 }
 
+.link {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: var(--color-accent-strong);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  touch-action: manipulation;
+  cursor: pointer;
+}
+
 .list li {
   font-size: var(--text-base);
   line-height: 1.5;
