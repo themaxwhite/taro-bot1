@@ -1,5 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot, hydrateRoot } from "react-dom/client";
+import { initAnalytics } from "./analytics";
 import App from "./App";
 import "./index.css";
 
@@ -17,3 +18,7 @@ if (container.hasChildNodes()) {
 } else {
   createRoot(container).render(app);
 }
+
+/* После гидрации, а не до неё: счётчик не должен задерживать первую
+   отрисовку — она и есть то, что меряет Core Web Vitals. */
+initAnalytics();
