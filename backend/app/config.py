@@ -60,6 +60,21 @@ class Settings(BaseSettings):
     # снаружи не нужна, поэтому по умолчанию выключено.
     expose_api_docs: bool = False
 
+    # Вход в админ-панель через Telegram по OpenID Connect
+    # (app/api/admin_auth.py). Client ID и Client Secret берутся из
+    # настроек бота, раздел Login Widget. Без них вход отвечает 503, а
+    # всё остальное приложение работает как работало.
+    telegram_oauth_client_id: str | None = None
+    telegram_oauth_client_secret: str | None = None
+
+    # Куда возвращать браузер после входа — адрес самой панели.
+    admin_panel_url: str | None = None
+
+    # Собственный публичный адрес бэкенда. Из него собирается redirect_uri,
+    # и он должен совпадать с тем, что вписан в Redirect URIs у бота,
+    # символ в символ — Telegram сверяет строкой.
+    backend_public_url: str | None = None
+
     # The Mini App's own URL (your Cloudflare Pages / Vercel domain).
     # Used by the /start bot handler (app/api/payments.py) to send a
     # "launch app" button — this is independent of BotFather's chat menu

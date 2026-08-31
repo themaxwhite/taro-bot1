@@ -1,6 +1,3 @@
-import base64
-import binascii
-import json
 import logging
 
 from fastapi import Depends, Header, HTTPException
@@ -10,12 +7,8 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.db import get_db
 from app.models import User
-from app.telegram.auth import (
-    TelegramAuthError,
-    TelegramUser,
-    validate_init_data,
-    validate_login_widget,
-)
+from app.admin_session import AdminSessionError, verify as verify_admin_session
+from app.telegram.auth import TelegramAuthError, TelegramUser, validate_init_data
 
 logger = logging.getLogger(__name__)
 
@@ -30,19 +23,13 @@ DEV_MODE_USER_ID = 0
 
 def get_telegram_user(
     x_telegram_init_data: str | None = Header(default=None, alias="X-Telegram-Init-Data"),
-    x_telegram_login_data: str | None = Header(default=None, alias="X-Telegram-Login-Data"),
 ) -> TelegramUser | None:
     """
-    FastAPI dependency that validates the caller's Telegram credentials
-    and returns the authenticated user.
+    FastAPI dependency that validates the `X-Telegram-Init-Data` header
+    and returns the authenticated Telegram user.
 
-    Two headers are accepted, because the same API serves two clients.
-    `X-Telegram-Init-Data` is what the Mini App gets from Telegram on
-    open. `X-Telegram-Login-Data` is base64-encoded JSON from the Telegram
-    Login widget, which is how the admin panel signs in from an ordinary
-    browser — see app/telegram/auth.py, the two signatures are computed
-    differently. Base64 because the payload carries the user's name, and
-    a header cannot hold non-latin characters as-is.
+    This is the Mini App's way in. The admin panel signs in differently —
+    see `get_admin_user` below.
 
     Dev-mode fallback: validation is skipped (returns None) only when
     TELEGRAM_BOT_TOKEN is missing *and* ALLOW_UNVERIFIED_REQUESTS is set
@@ -71,27 +58,13 @@ def get_telegram_user(
             _warned_dev_mode = True
         return None
 
-    if x_telegram_init_data:
-        try:
-            return validate_init_data(x_telegram_init_data, settings.telegram_bot_token)
-        except TelegramAuthError as exc:
-            raise HTTPException(status_code=401, detail=str(exc)) from exc
+    if not x_telegram_init_data:
+        raise HTTPException(status_code=401, detail="Missing X-Telegram-Init-Data header")
 
-    if x_telegram_login_data:
-        try:
-            payload = json.loads(base64.b64decode(x_telegram_login_data))
-        except (ValueError, binascii.Error) as exc:
-            raise HTTPException(
-                status_code=401, detail="Malformed Telegram login data"
-            ) from exc
-        if not isinstance(payload, dict):
-            raise HTTPException(status_code=401, detail="Malformed Telegram login data")
-        try:
-            return validate_login_widget(payload, settings.telegram_bot_token)
-        except TelegramAuthError as exc:
-            raise HTTPException(status_code=401, detail=str(exc)) from exc
-
-    raise HTTPException(status_code=401, detail="Missing Telegram credentials")
+    try:
+        return validate_init_data(x_telegram_init_data, settings.telegram_bot_token)
+    except TelegramAuthError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
 
 
 def get_current_user(
@@ -132,4 +105,60 @@ def get_current_user(
         user.username = username
         db.commit()
     db.refresh(user)
+    return user
+
+
+def get_admin_user(
+    x_admin_session: str | None = Header(default=None, alias="X-Admin-Session"),
+    x_telegram_init_data: str | None = Header(default=None, alias="X-Telegram-Init-Data"),
+    db: Session = Depends(get_db),
+) -> User:
+    """
+    Доступ к админским ручкам. Пускает двоих и по-разному:
+
+    * админ-панель на своём домене — по пропуску `X-Admin-Session`,
+      который бэкенд выдал после входа через Telegram (app/admin_session.py);
+    * экран статистики внутри мини-приложения — по обычному initData.
+
+    Отдельно от `get_current_user` эта зависимость существует по простой
+    причине: та при каждом запросе освежает имя и username из данных
+    Telegram, а в пропуске панели их нет. Пойди панель через неё — и имя
+    администратора в базе затёрлось бы пустотой.
+
+    Права проверяются здесь же: список ADMIN_TELEGRAM_IDS — единственное
+    место, где решается, кто администратор.
+    """
+    if x_admin_session:
+        try:
+            telegram_id = verify_admin_session(
+                x_admin_session, settings.telegram_bot_token or ""
+            )
+        except AdminSessionError as exc:
+            raise HTTPException(status_code=401, detail=str(exc)) from exc
+    elif x_telegram_init_data:
+        if not settings.telegram_bot_token:
+            raise HTTPException(
+                status_code=503, detail="Server is not configured for authentication"
+            )
+        try:
+            telegram_id = validate_init_data(
+                x_telegram_init_data, settings.telegram_bot_token
+            ).id
+        except TelegramAuthError as exc:
+            raise HTTPException(status_code=401, detail=str(exc)) from exc
+    else:
+        raise HTTPException(status_code=401, detail="Missing admin credentials")
+
+    if telegram_id not in settings.admin_telegram_id_set:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    user = db.get(User, telegram_id)
+    if user is None:
+        # Администратор ни разу не открывал само приложение, поэтому строки
+        # в users нет. Заводить её здесь не будем: админские ручки только
+        # читают, и запись ради чтения — лишняя.
+        raise HTTPException(
+            status_code=404,
+            detail="Откройте мини-приложение хотя бы раз — учётной записи ещё нет",
+        )
     return user

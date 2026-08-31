@@ -268,3 +268,19 @@ dl.facts dd {
   color: var(--ink-muted);
   font-size: 0.9rem;
 }
+
+.login-button {
+  display: inline-block;
+  padding: 0.7rem 1.6rem;
+  border-radius: 0.7rem;
+  border: 1px solid var(--hairline-strong);
+  background: var(--surface-2);
+  color: var(--gold-strong);
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: border-color 0.2s, color 0.2s;
+}
+.login-button:hover {
+  border-color: var(--gold);
+  color: var(--ink);
+}

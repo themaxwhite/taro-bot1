@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { getUser, searchUsers, type UserBrief, type UserDetail } from "./api";
-import type { TelegramLoginPayload } from "./auth";
+import type { AdminSession } from "./auth";
 import { formatDate, formatDateTime, formatMoney, formatNumber, plural } from "./format";
 
 type Props = {
-  auth: TelegramLoginPayload;
+  session: AdminSession;
   onAuthError: (message: string) => void;
 };
 
-export function UsersScreen({ auth, onAuthError }: Props) {
+export function UsersScreen({ session, onAuthError }: Props) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<UserBrief[] | null>(null);
   const [detail, setDetail] = useState<UserDetail | null>(null);
@@ -27,7 +27,7 @@ export function UsersScreen({ auth, onAuthError }: Props) {
     setBusy(true);
     setError(null);
     setDetail(null);
-    searchUsers(auth, q)
+    searchUsers(session, q)
       .then(setResults)
       .catch(fail)
       .finally(() => setBusy(false));
@@ -36,7 +36,7 @@ export function UsersScreen({ auth, onAuthError }: Props) {
   const open = (id: number) => {
     setBusy(true);
     setError(null);
-    getUser(auth, id)
+    getUser(session, id)
       .then(setDetail)
       .catch(fail)
       .finally(() => setBusy(false));

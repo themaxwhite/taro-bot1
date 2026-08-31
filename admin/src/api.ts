@@ -6,9 +6,7 @@
  * при изменении ответа сервера правится оба места.
  */
 
-import { authHeader, clearAuth, type TelegramLoginPayload } from "./auth";
-
-const API_BASE = (import.meta.env.VITE_API_BASE_URL as string)?.replace(/\/$/, "");
+import { API_BASE, clearSession, type AdminSession } from "./auth";
 
 export type Stats = {
   users_total: number;
@@ -91,14 +89,14 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, auth: TelegramLoginPayload): Promise<T> {
+async function request<T>(path: string, session: AdminSession): Promise<T> {
   const response = await fetch(API_BASE + path, {
-    headers: { "X-Telegram-Login-Data": authHeader(auth) },
+    headers: { "X-Admin-Session": session.token },
   });
 
   if (response.status === 401) {
     // Пропуск протух или подпись не сошлась — хранить его дальше незачем.
-    clearAuth();
+    clearSession();
     throw new ApiError(401, "Вход устарел, войдите заново");
   }
   if (response.status === 403) {
@@ -111,10 +109,10 @@ async function request<T>(path: string, auth: TelegramLoginPayload): Promise<T> 
   return (await response.json()) as T;
 }
 
-export const getStats = (auth: TelegramLoginPayload) => request<Stats>("/api/admin/stats", auth);
+export const getStats = (session: AdminSession) => request<Stats>("/api/admin/stats", session);
 
-export const searchUsers = (auth: TelegramLoginPayload, query: string) =>
-  request<UserBrief[]>(`/api/admin/users?q=${encodeURIComponent(query)}`, auth);
+export const searchUsers = (session: AdminSession, query: string) =>
+  request<UserBrief[]>(`/api/admin/users?q=${encodeURIComponent(query)}`, session);
 
-export const getUser = (auth: TelegramLoginPayload, id: number) =>
-  request<UserDetail>(`/api/admin/users/${id}`, auth);
+export const getUser = (session: AdminSession, id: number) =>
+  request<UserDetail>(`/api/admin/users/${id}`, session);

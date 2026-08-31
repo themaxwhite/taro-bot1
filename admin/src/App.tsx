@@ -1,41 +1,53 @@
-import { useCallback, useState } from "react";
-import { clearAuth, loadAuth, saveAuth, type TelegramLoginPayload } from "./auth";
+import { useCallback, useEffect, useState } from "react";
+import {
+  clearSession,
+  loadSession,
+  readRedirect,
+  saveSession,
+  type AdminSession,
+} from "./auth";
 import { LoginScreen } from "./LoginScreen";
 import { StatsScreen } from "./StatsScreen";
 import { UsersScreen } from "./UsersScreen";
 
 type Tab = "stats" | "users";
 
+/* Возврат из Telegram разбираем один раз, до первой отрисовки: пропуск
+   приходит в адресе, и держать его там дольше необходимого незачем. */
+const redirect = readRedirect();
+if (redirect.session) saveSession(redirect.session);
+
 export default function App() {
-  const [auth, setAuth] = useState<TelegramLoginPayload | null>(loadAuth);
-  const [loginError, setLoginError] = useState<string | null>(null);
+  const [session, setSession] = useState<AdminSession | null>(
+    () => redirect.session ?? loadSession(),
+  );
+  const [error, setError] = useState<string | null>(redirect.error ?? null);
   const [tab, setTab] = useState<Tab>("stats");
 
-  const login = useCallback((payload: TelegramLoginPayload) => {
-    saveAuth(payload);
-    setLoginError(null);
-    setAuth(payload);
-  }, []);
-
   const logout = useCallback(() => {
-    clearAuth();
-    setAuth(null);
+    clearSession();
+    setSession(null);
+    setError(null);
   }, []);
 
-  /* Экраны сообщают сюда об ошибках доступа. 401 и 403 означают, что
-     дальше показывать нечего: пропуск протух или аккаунт не админский —
+  /* Экраны сообщают сюда об отказах доступа. 401 и 403 означают, что
+     показывать больше нечего: пропуск протух или аккаунт не админский —
      и в обоих случаях правильнее вернуть человека на вход с объяснением,
-     чем оставить его смотреть на пустую таблицу. */
+     чем оставить смотреть на пустую таблицу. */
   const handleAuthError = useCallback((message: string) => {
     if (message.includes("Вход устарел") || message.includes("не в списке")) {
-      clearAuth();
-      setAuth(null);
-      setLoginError(message);
+      clearSession();
+      setSession(null);
+      setError(message);
     }
   }, []);
 
-  if (!auth) {
-    return <LoginScreen onLogin={login} error={loginError} />;
+  useEffect(() => {
+    document.title = session ? "Панель — Taro Aurum" : "Вход — Taro Aurum";
+  }, [session]);
+
+  if (!session) {
+    return <LoginScreen error={error} />;
   }
 
   return (
@@ -45,8 +57,7 @@ export default function App() {
           <b>Taro Aurum</b> · панель
         </div>
         <div className="who">
-          {auth.first_name}
-          {auth.username ? ` @${auth.username}` : ""}{" "}
+          {session.name}{" "}
           <button type="button" className="link" onClick={logout}>
             выйти
           </button>
@@ -63,9 +74,9 @@ export default function App() {
       </nav>
 
       {tab === "stats" ? (
-        <StatsScreen auth={auth} onAuthError={handleAuthError} />
+        <StatsScreen session={session} onAuthError={handleAuthError} />
       ) : (
-        <UsersScreen auth={auth} onAuthError={handleAuthError} />
+        <UsersScreen session={session} onAuthError={handleAuthError} />
       )}
     </div>
   );

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { getStats, type Stats } from "./api";
-import type { TelegramLoginPayload } from "./auth";
+import type { AdminSession } from "./auth";
 import { formatMoney, formatNumber } from "./format";
 
 /* Человеческие названия тарифов. Ключи приходят из базы, а не из
@@ -14,17 +14,17 @@ const TIER_LABELS: Record<string, string> = {
 };
 
 type Props = {
-  auth: TelegramLoginPayload;
+  session: AdminSession;
   onAuthError: (message: string) => void;
 };
 
-export function StatsScreen({ auth, onAuthError }: Props) {
+export function StatsScreen({ session, onAuthError }: Props) {
   const [stats, setStats] = useState<Stats | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    getStats(auth)
+    getStats(session)
       .then((data) => {
         if (!cancelled) setStats(data);
       })
@@ -36,7 +36,7 @@ export function StatsScreen({ auth, onAuthError }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [auth, onAuthError]);
+  }, [session, onAuthError]);
 
   if (error) return <p className="error">{error}</p>;
   if (!stats) return <p className="muted">Загружаем…</p>;

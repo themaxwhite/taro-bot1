@@ -5,8 +5,7 @@ from pydantic import BaseModel
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user
-from app.config import settings
+from app.api.deps import get_admin_user
 from app.db import get_db
 from app.api.subscriptions import available_unlocks
 from app.energy import CHAT_QUESTION_COST
@@ -16,15 +15,14 @@ from app.models import ChatMessage, SpreadRecord, Subscription, SubscriptionPaym
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 
-def require_admin(user: User = Depends(get_current_user)) -> User:
+def require_admin(user: User = Depends(get_admin_user)) -> User:
     """
-    Gates the whole admin router on `ADMIN_TELEGRAM_IDS` — the app
-    owner's own account(s), not a general role system. A regular user
-    hitting these endpoints (or the frontend screen calling them) just
-    gets a 403, same as any other unauthorized request.
+    Доступ ко всему роутеру. Проверка «кто администратор» живёт в
+    app/api/deps.py::get_admin_user — она же решает, чем человек
+    представился: пропуском админ-панели или initData мини-приложения.
+    Обычный пользователь получает 403, как и на любой другой запрос не по
+    праву.
     """
-    if user.telegram_id not in settings.admin_telegram_id_set:
-        raise HTTPException(status_code=403, detail="Not authorized")
     return user
 
 
