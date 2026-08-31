@@ -57,7 +57,10 @@ export default function App() {
           <b>Taro Aurum</b> · панель
         </div>
         <div className="who">
-          {session.name}{" "}
+          {/* Telegram присылает в качестве имени то, что стоит в профиле, —
+              у владельца бота там оказался номер телефона. Показывать его
+              в шапке незачем: панель одна, и кто в ней сидит, известно. */}
+          ADMIN{" "}
           <button type="button" className="link" onClick={logout}>
             выйти
           </button>
