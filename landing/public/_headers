@@ -26,3 +26,6 @@
   Referrer-Policy: strict-origin-when-cross-origin
   X-Frame-Options: SAMEORIGIN
   Permissions-Policy: geolocation=(), microphone=(), camera=()
+  # Год без preload: попадание в preload-список браузеров необратимо, а
+  # поддомены домена пока не используются и проверить их нечем.
+  Strict-Transport-Security: max-age=31536000

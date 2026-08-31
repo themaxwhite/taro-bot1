@@ -1,14 +1,18 @@
 import { useEffect, useState } from "react";
+import { PLACEHOLDER } from "../content/testimonials";
 import { site } from "../site";
 import { OpenInTelegram } from "./primitives";
 import { ScrollProgress } from "./ScrollProgress";
 
+/* Пункт «Отзывы» показывается только вместе с секцией отзывов: пока там
+   заглушки, секция не выводится (см. Testimonials.tsx), и ссылка на
+   несуществующий якорь просто не прокручивала бы страницу никуда. */
 const links = [
   { href: "#spreads", label: "Расклады" },
   { href: "#answers", label: "Ответ" },
   { href: "#draw", label: "Вытянуть карту" },
   { href: "#deck", label: "Колода" },
-  { href: "#reviews", label: "Отзывы" },
+  ...(PLACEHOLDER ? [] : [{ href: "#reviews", label: "Отзывы" }]),
   { href: "#pricing", label: "Оплата" },
   { href: "#faq", label: "Вопросы" },
 ];

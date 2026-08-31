@@ -10,13 +10,30 @@
  */
 export const OFFER_URL = "https://taroaurum.online/oferta.html";
 
+/**
+ * Политика обработки персональных данных — тоже на сайте и по той же
+ * причине, что и оферта: по статье 18.1 152-ФЗ она должна быть открыта
+ * неограниченному кругу лиц, а экран внутри Telegram этому не отвечает —
+ * его не открыть по ссылке из браузера.
+ */
+export const PRIVACY_URL = "https://taroaurum.online/privacy.html";
+
 /** Открывает оферту во встроенном браузере Telegram, вне него — в новой вкладке. */
 export function openOffer(): void {
+  openExternal(OFFER_URL);
+}
+
+/** Открывает политику обработки данных тем же способом, что и оферту. */
+export function openPrivacy(): void {
+  openExternal(PRIVACY_URL);
+}
+
+function openExternal(url: string): void {
   const webApp = window.Telegram?.WebApp;
   if (webApp) {
-    webApp.openLink(OFFER_URL);
+    webApp.openLink(url);
   } else {
-    window.open(OFFER_URL, "_blank", "noopener");
+    window.open(url, "_blank", "noopener");
   }
 }
 

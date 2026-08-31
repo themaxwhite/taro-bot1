@@ -27,12 +27,24 @@ def get_telegram_user(
     FastAPI dependency that validates the `X-Telegram-Init-Data` header
     and returns the authenticated Telegram user.
 
-    Dev-mode fallback: if TELEGRAM_BOT_TOKEN is not configured, validation
-    is skipped entirely (returns None) so the API remains usable via
-    Swagger/curl during local development without a real bot. This must
-    never be the case in production — see README.
+    Dev-mode fallback: validation is skipped (returns None) only when
+    TELEGRAM_BOT_TOKEN is missing *and* ALLOW_UNVERIFIED_REQUESTS is set
+    explicitly, so the API stays usable via Swagger/curl locally. Without
+    that flag a missing token is treated as a broken deployment and every
+    request is refused — a typo in an environment variable must not turn
+    the whole API into an open one.
     """
     if not settings.telegram_bot_token:
+        if not settings.allow_unverified_requests:
+            logger.error(
+                "TELEGRAM_BOT_TOKEN is not set and ALLOW_UNVERIFIED_REQUESTS is off "
+                "— refusing every request instead of serving them unauthenticated."
+            )
+            raise HTTPException(
+                status_code=503,
+                detail="Server is not configured for authentication",
+            )
+
         global _warned_dev_mode
         if not _warned_dev_mode:
             logger.warning(

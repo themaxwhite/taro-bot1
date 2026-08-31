@@ -7,7 +7,14 @@ from app.config import settings
 from app.db import init_db
 from app.notifications import send_daily_reminders
 
-app = FastAPI(title="Tarot Mini App API", version="0.1.0")
+app = FastAPI(
+    title="Tarot Mini App API",
+    version="0.1.0",
+    # Схема API снаружи нужна только при разработке — см. EXPOSE_API_DOCS.
+    docs_url="/docs" if settings.expose_api_docs else None,
+    redoc_url=None,
+    openapi_url="/openapi.json" if settings.expose_api_docs else None,
+)
 
 app.add_middleware(
     CORSMiddleware,

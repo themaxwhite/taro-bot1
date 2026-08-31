@@ -47,6 +47,19 @@ class Settings(BaseSettings):
     # so the rest of the app works without it.
     telegram_webhook_secret: str | None = None
 
+    # Работать без проверки подписи Telegram. Нужно только для локальной
+    # разработки через Swagger или curl, где настоящего initData взять
+    # неоткуда. Раньше этот режим включался сам, стоило TELEGRAM_BOT_TOKEN
+    # оказаться пустым, — то есть опечатка в переменной окружения молча
+    # открывала весь API кому угодно и приписывала запросы одному
+    # пользователю. Теперь режим включается только явно, а без токена
+    # бэкенд отвечает 503.
+    allow_unverified_requests: bool = False
+
+    # Отдавать Swagger (/docs) и схему OpenAPI. В проде схема API никому
+    # снаружи не нужна, поэтому по умолчанию выключено.
+    expose_api_docs: bool = False
+
     # The Mini App's own URL (your Cloudflare Pages / Vercel domain).
     # Used by the /start bot handler (app/api/payments.py) to send a
     # "launch app" button — this is independent of BotFather's chat menu

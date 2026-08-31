@@ -1,5 +1,5 @@
 import { ScreenHeader } from "../../components/ScreenHeader/ScreenHeader";
-import { LEGAL, openOffer } from "../../content/contacts";
+import { LEGAL, openOffer, openPrivacy } from "../../content/contacts";
 import styles from "./TermsScreen.module.css";
 
 interface TermsScreenProps {
@@ -138,6 +138,11 @@ export function TermsScreen({ onBack }: TermsScreenProps) {
           исполнителя изложены в{" "}
           <button type="button" className={styles.link} onClick={openOffer}>
             публичной оферте
+          </button>
+          , а полный состав обрабатываемых данных, сроки их хранения и порядок
+          удаления — в{" "}
+          <button type="button" className={styles.link} onClick={openPrivacy}>
+            политике обработки персональных данных
           </button>
           .
         </p>

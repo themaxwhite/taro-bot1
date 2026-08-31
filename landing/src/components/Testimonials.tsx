@@ -6,8 +6,16 @@ import {
 import { Reveal, Section, SectionIntro } from "./primitives";
 
 /** Two rows of quote cards drifting in opposite directions; hovering either
- *  row stops it so the card under the pointer can be read. */
+ *  row stops it so the card under the pointer can be read.
+ *
+ *  Пока тексты — заглушки, секции на сайте нет вообще. Показывать выдуманные
+ *  благодарности как настоящие нельзя, а показывать их с плашкой «это
+ *  заглушки» — значит выдавать незаконченный сайт за готовый: ровно это и
+ *  читает модерация платёжной системы. Появятся настоящие отзывы —
+ *  PLACEHOLDER переключается в false, и секция возвращается. */
 export function Testimonials() {
+  if (PLACEHOLDER) return null;
+
   const top = testimonials.slice(0, Math.ceil(testimonials.length / 2));
   const bottom = testimonials.slice(Math.ceil(testimonials.length / 2));
 

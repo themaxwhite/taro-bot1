@@ -66,6 +66,15 @@ export function Footer() {
                   Публичная оферта, условия оказания услуг и порядок возврата
                 </a>
               </p>
+
+              <p className="mt-2 leading-relaxed">
+                <a
+                  href="/privacy.html"
+                  className="text-ink underline decoration-hairline-strong underline-offset-4 hover:text-gold"
+                >
+                  Политика обработки персональных данных
+                </a>
+              </p>
             </>
           )}
 
