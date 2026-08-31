@@ -8,7 +8,7 @@
  *
  * При переезде на свой домен адрес меняется здесь и в подвале сайта.
  */
-export const OFFER_URL = "https://tarot-aurum.pages.dev/oferta.html";
+export const OFFER_URL = "https://taroaurum.online/oferta.html";
 
 /** Открывает оферту во встроенном браузере Telegram, вне него — в новой вкладке. */
 export function openOffer(): void {
