@@ -26,6 +26,8 @@ export function LoginScreen({ error }: Props) {
             {error}
           </p>
         )}
+
+        <p className="build">Сборка от {__BUILD_TIME__} МСК</p>
       </div>
     </div>
   );
