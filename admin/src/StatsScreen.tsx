@@ -7,9 +7,7 @@ import { formatMoney, formatNumber } from "./format";
    фиксированного списка, поэтому незнакомый тариф показываем как есть —
    лучше сырой ключ, чем пропавшая строка.
 
-   Держать синхронно с backend/app/subscriptions.py::TIERS. «Базовый» с
-   продажи снят, но подписчики с ним ещё есть и в сводку попадают —
-   поэтому подпись ему нужна не меньше, чем действующим тарифам. */
+   Держать синхронно с backend/app/subscriptions.py::TIERS. */
 const TIER_LABELS: Record<string, string> = {
   basic: "Базовый (снят с продажи)",
   plus: "Плюс",
@@ -17,6 +15,12 @@ const TIER_LABELS: Record<string, string> = {
   master: "Магистр",
   admin: "Служебная",
 };
+
+/* Тарифы без подписчиков в таблице не показываем: «Базовый» снят с
+   продажи, и пустая строка про него только занимает место. Появится хоть
+   один подписчик — строка вернётся сама, потому что данные приходят из
+   базы, а не из этого списка. */
+const hasSubscribers = ([, count]: [string, number]) => count > 0;
 
 type Props = {
   session: AdminSession;
@@ -46,7 +50,7 @@ export function StatsScreen({ session, onAuthError }: Props) {
   if (error) return <p className="error">{error}</p>;
   if (!stats) return <p className="muted">Загружаем…</p>;
 
-  const subscriptions = Object.entries(stats.active_subscriptions);
+  const subscriptions = Object.entries(stats.active_subscriptions).filter(hasSubscribers);
   const subscribersTotal = subscriptions.reduce((sum, [, n]) => sum + n, 0);
 
   return (
@@ -61,6 +65,8 @@ export function StatsScreen({ session, onAuthError }: Props) {
         <Tile label="Выручка" value={formatMoney(stats.revenue_total_rub)}
               sub={`${formatMoney(stats.revenue_7d_rub)} за неделю`} />
         <Tile label="Подписок" value={formatNumber(subscribersTotal)} sub="действующих" />
+        <Tile label="Куплено энергии" value={formatNumber(stats.energy_sold_total)}
+              sub={`${formatNumber(stats.energy_unspent)} не израсходовано`} />
         <Tile label="По приглашениям" value={formatNumber(stats.referrals_total)}
               sub="пришли по ссылке друга" />
       </div>

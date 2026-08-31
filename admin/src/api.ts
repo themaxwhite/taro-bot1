@@ -19,6 +19,8 @@ export type Stats = {
   revenue_total_rub: number;
   revenue_7d_rub: number;
   referrals_total: number;
+  energy_sold_total: number;
+  energy_unspent: number;
 };
 
 export type UserBrief = {

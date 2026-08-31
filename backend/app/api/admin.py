@@ -41,6 +41,12 @@ class AdminStatsResponse(BaseModel):
     revenue_total_rub: int
     revenue_7d_rub: int
     referrals_total: int
+    # Сколько энергии продано за всё время и сколько из купленной ещё
+    # лежит на счетах. Второе — не то же самое, что первое: это остаток,
+    # то есть оплаченное, но не потреблённое. По сути обязательство
+    # перед пользователями, и по нему же считается возврат.
+    energy_sold_total: int
+    energy_unspent: int
 
 
 @router.get("/stats", response_model=AdminStatsResponse)
@@ -103,6 +109,16 @@ def get_admin_stats(
         )
     ).scalar_one()
 
+    energy_sold_total = db.execute(
+        select(func.coalesce(func.sum(SubscriptionPayment.energy_amount), 0)).where(
+            SubscriptionPayment.status == "succeeded",
+            SubscriptionPayment.kind == "energy",
+        )
+    ).scalar_one()
+    energy_unspent = db.execute(
+        select(func.coalesce(func.sum(User.purchased_energy), 0))
+    ).scalar_one()
+
     return AdminStatsResponse(
         users_total=users_total,
         users_new_today=users_new_today,
@@ -114,6 +130,8 @@ def get_admin_stats(
         revenue_total_rub=revenue_total,
         revenue_7d_rub=revenue_7d,
         referrals_total=referrals_total,
+        energy_sold_total=energy_sold_total,
+        energy_unspent=energy_unspent,
     )
 
 
