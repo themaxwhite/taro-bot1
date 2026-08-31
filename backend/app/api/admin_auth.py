@@ -152,9 +152,12 @@ async def finish_login(code: str | None = None, state: str | None = None,
     # client_secret_post Telegram отвечает 200 и телом без id_token — то
     # есть молча, будто запрос вообще не был опознан. Час ушёл на то,
     # чтобы это увидеть, поэтому оставляю в коде.
-    credentials = base64.b64encode(
-        f"{settings.telegram_oauth_client_id}:{settings.telegram_oauth_client_secret}".encode()
-    ).decode()
+    # strip: скопированный из панели ключ легко приезжает с переводом
+    # строки или пробелом на конце, а Basic-заголовок такое не прощает —
+    # ответ будет invalid_client, неотличимый от честной опечатки.
+    client_id = (settings.telegram_oauth_client_id or "").strip()
+    client_secret = (settings.telegram_oauth_client_secret or "").strip()
+    credentials = base64.b64encode(f"{client_id}:{client_secret}".encode()).decode()
 
     async with httpx.AsyncClient(timeout=15.0) as client:
         response = await client.post(
@@ -164,7 +167,7 @@ async def finish_login(code: str | None = None, state: str | None = None,
                 "code": code,
                 "redirect_uri": _redirect_uri(),
                 "code_verifier": verifier,
-                "client_id": settings.telegram_oauth_client_id,
+                "client_id": client_id,
             },
             headers={
                 "Authorization": f"Basic {credentials}",
@@ -186,11 +189,16 @@ async def finish_login(code: str | None = None, state: str | None = None,
     if not id_token:
         # Пишем состав ответа, но не значения: в нём может лежать
         # access_token, и логу знать его незачем.
+        # Длину секрета писать безопасно, а значение — нет. По ней видно
+        # самое частое: ключ скопирован не целиком или не скопирован вовсе.
         logger.error(
-            "В ответе token-эндпойнта нет id_token. Поля: %s. error=%s %s",
+            "В ответе token-эндпойнта нет id_token. Поля: %s. error=%s %s. "
+            "client_id=%s, длина секрета=%d",
             sorted(body.keys()),
             body.get("error"),
             body.get("error_description"),
+            client_id,
+            len(client_secret),
         )
         return RedirectResponse(_panel_url("#error=token"), status_code=302)
 
