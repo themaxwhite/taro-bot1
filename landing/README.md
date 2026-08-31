@@ -2,7 +2,8 @@
 
 Одностраничный сайт Telegram Mini App с раскладами таро.
 
-**Живой сайт:** https://tarot-aurum.pages.dev/ (Cloudflare Pages, проект `tarot-aurum`)
+**Живой сайт:** https://taroaurum.online/ (Cloudflare Pages, проект `tarot-aurum`;
+адрес `tarot-aurum.pages.dev` продолжает отдавать ту же сборку)
 
 ## Стек
 - **Vite 7** — сборка и дев-сервер
@@ -33,7 +34,7 @@ npm run deploy   # сборка и выкатка на Cloudflare Pages
 | Что | Где |
 | --- | --- |
 | Ссылка на бота / Mini App | `src/site.ts` → `botUrl` |
-| Домен для canonical, sitemap, og:url | `VITE_SITE_URL` (по умолчанию `https://tarot-aurum.pages.dev`) |
+| Домен для canonical, sitemap, og:url | `VITE_SITE_URL` (по умолчанию `https://taroaurum.online`) |
 | Title, description, og-картинка | `src/seo.ts` и `index.html` |
 | Вопросы FAQ (и разметка `FAQPage`) | `src/content/faq.ts` |
 | Заголовки кэша и безопасности | `public/_headers` |

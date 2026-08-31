@@ -7,7 +7,7 @@ FastAPI/Python backend + одностраничный лендинг.
 ```
 frontend/   — React/TS/Vite, все экраны (главный, расклад, результат, история, профиль)
 backend/    — FastAPI, Tarot Engine (выбор карт и ориентация — только здесь)
-landing/    — сайт-визитка на tarot-aurum.pages.dev (Vite + React, пререндер и SEO)
+landing/    — сайт-визитка на taroaurum.online (Vite + React, пререндер и SEO)
 DEPLOYMENT.md — пошаговая инструкция деплоя в реальный Telegram
 ```
 

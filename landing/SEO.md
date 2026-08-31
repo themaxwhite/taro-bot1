@@ -1,6 +1,6 @@
 # SEO лендинга
 
-Живой сайт: https://tarot-aurum.pages.dev/
+Живой сайт: https://taroaurum.online/
 
 ## Что уже сделано в коде
 
@@ -45,7 +45,7 @@ Open Graph и Twitter Card, og-картинка 1200×630 (`public/og.jpg`, 114 
 
 ### 1. Google Search Console
 1. https://search.google.com/search-console → добавить ресурс →
-   «Ресурс с префиксом URL» → `https://tarot-aurum.pages.dev/`
+   «Ресурс с префиксом URL» → `https://taroaurum.online/`
 2. Способ подтверждения — «HTML-тег» или «HTML-файл»:
    - **тег**: пришлите мне строку `<meta name="google-site-verification" ...>`,
      я добавлю её в `index.html`;
@@ -62,12 +62,18 @@ Open Graph и Twitter Card, og-картинка 1200×630 (`public/og.jpg`, 114 
    заметно сильнее Google
 
 ### 3. Свой домен вместо `*.pages.dev`
-Поддомены платформ ранжируются хуже и вызывают меньше доверия. Если возьмёте
-домен (например `tarot-aurum.ru`):
+Поддомены платформ ранжируются хуже и вызывают меньше доверия, поэтому взят
+домен `taroaurum.online`. Что уже сделано в коде: в `landing/.env.production`
+задан `VITE_SITE_URL=https://taroaurum.online`, и от него считаются canonical,
+`og:url`, `sitemap.xml` и `robots.txt`.
+
+Что нужно сделать в панелях, руками:
 1. Cloudflare Pages → проект `tarot-aurum` → Custom domains → добавить
-2. В `landing/.env.production` указать `VITE_SITE_URL=https://ваш-домен`
-   и пересобрать — canonical, sitemap и og:url обновятся сами
-3. Настроить редирект с `*.pages.dev` на основной домен
+   `taroaurum.online` и выполнить то, что попросит мастер (сменить NS у
+   регистратора либо добавить CNAME)
+2. Настроить редирект с `tarot-aurum.pages.dev` на основной домен — иначе две
+   копии сайта конкурируют между собой в выдаче
+3. В вебмастерах Яндекса и Google завести новый ресурс и указать переезд
 
 ### 4. Ссылки и трафик
 Пререндер и разметка дают шанс попасть в индекс, но не дают позиций сами по

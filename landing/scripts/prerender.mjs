@@ -8,6 +8,7 @@
  * from scratch.
  */
 import { readFile, writeFile, rm } from "node:fs/promises";
+import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, resolve } from "node:path";
 
@@ -15,8 +16,22 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const distIndex = resolve(root, "dist/index.html");
 const serverEntry = resolve(root, "dist-server/entry-server.js");
 
-const siteUrl = (process.env.VITE_SITE_URL ?? "https://tarot-aurum.pages.dev")
-  .replace(/\/$/, "");
+/* Домен, от которого считаются canonical, og:url, sitemap.xml и robots.txt.
+   Этот скрипт — отдельный процесс Node, и файлы .env, в отличие от Vite, он
+   сам не читает: если брать только process.env, то при сборке через
+   `npm run build` разметка уедет с доменом из .env.production, а robots.txt и
+   sitemap.xml — со значением по умолчанию. Поэтому .env.production читаем
+   явно, а хост-переменная, если она задана, остаётся главнее. */
+const envProduction = resolve(root, ".env.production");
+const siteUrlFromEnvFile = existsSync(envProduction)
+  ? readFileSync(envProduction, "utf8").match(/^\s*VITE_SITE_URL\s*=\s*(\S+)/m)?.[1]
+  : undefined;
+
+const siteUrl = (
+  process.env.VITE_SITE_URL ??
+  siteUrlFromEnvFile ??
+  "https://taroaurum.online"
+).replace(/\/$/, "");
 
 const { render } = await import(pathToFileURL(serverEntry).href);
 const { html, head } = render();
