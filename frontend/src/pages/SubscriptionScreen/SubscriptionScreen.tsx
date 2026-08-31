@@ -40,21 +40,6 @@ function tierTitle(tier: string): string {
   return TIER_TITLES[tier] ?? tier;
 }
 
-function openSupportChat(url: string) {
-  const webApp = window.Telegram?.WebApp;
-  if (!webApp) {
-    window.open(url, "_blank");
-    return;
-  }
-  // Ссылки на t.me открываются внутри Telegram, всё остальное — во
-  // встроенном браузере.
-  if (/^https:\/\/t\.me\//.test(url)) {
-    webApp.openTelegramLink(url);
-  } else {
-    webApp.openLink(url);
-  }
-}
-
 export function SubscriptionScreen({ onBack }: SubscriptionScreenProps) {
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [promoCode, setPromoCode] = useState("");
@@ -124,15 +109,6 @@ export function SubscriptionScreen({ onBack }: SubscriptionScreenProps) {
           </span>
           {active.periodEnd && (
             <span className={styles.currentRenew}>Действует до {formatDate(active.periodEnd)}</span>
-          )}
-          {active.supportChatUrl && (
-            <button
-              type="button"
-              className={styles.supportButton}
-              onClick={() => openSupportChat(active.supportChatUrl as string)}
-            >
-              Личный чат с поддержкой
-            </button>
           )}
         </div>
       )}

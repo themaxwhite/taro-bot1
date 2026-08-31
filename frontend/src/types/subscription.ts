@@ -51,6 +51,4 @@ export interface SubscriptionStatus {
   energyAvailable: boolean;
   /** Единый баланс и его состав — см. types/energy.ts. */
   energy: EnergyBreakdown;
-  /** Ссылка на личный чат поддержки; null, если тариф её не даёт. */
-  supportChatUrl: string | null;
 }

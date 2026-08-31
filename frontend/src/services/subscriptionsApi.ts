@@ -41,7 +41,6 @@ interface StatusResponseBody {
   energy_daily_max: number;
   energy_purchased: number;
   energy_referral: number;
-  support_chat_url: string | null;
 }
 
 export async function getSubscriptionStatus(): Promise<SubscriptionStatus> {
@@ -68,7 +67,6 @@ export async function getSubscriptionStatus(): Promise<SubscriptionStatus> {
             }
           : null,
     },
-    supportChatUrl: data.support_chat_url,
   };
 }
 

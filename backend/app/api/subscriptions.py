@@ -32,7 +32,7 @@ from app.config import settings
 from app.db import get_db
 from app.models import Subscription, User
 from app.energy import DAILY_FREE_ENERGY, ENERGY_PACKS
-from app.subscriptions import SUPPORT_CHAT_TIERS, TIERS, SubscriptionTier, purchasable_tiers
+from app.subscriptions import TIERS, SubscriptionTier, purchasable_tiers
 
 router = APIRouter(prefix="/api/subscriptions", tags=["subscriptions"])
 
@@ -56,10 +56,6 @@ class SubscriptionStatusResponse(BaseModel):
     energy_daily_max: int
     energy_purchased: int
     energy_referral: int
-    # Ссылка на личный чат поддержки — приходит только тем, чей тариф её
-    # включает, и только если она вообще настроена. Иначе фронтенд
-    # показал бы неработающую кнопку.
-    support_chat_url: str | None
 
 
 class TierResponse(BaseModel):
@@ -129,7 +125,6 @@ def get_subscription_status(
     _ensure_energy_refreshed(db, user)
     balance = available_unlocks(db, user)
     common = {
-        "support_chat_url": _support_chat_url(db, user),
         "energy_available": balance > 0,
         "energy_balance": balance,
         "energy_daily": user.energy,
@@ -187,15 +182,6 @@ def _activate_subscription(db: Session, user_id: int, *, tier: str, quota_total:
     sub.quota_used = 0
     sub.period_end = dt.datetime.utcnow() + dt.timedelta(days=days)
     db.commit()
-
-
-def _support_chat_url(db: Session, user: User) -> str | None:
-    if not settings.support_chat_url:
-        return None
-    sub = db.get(Subscription, user.telegram_id)
-    if sub is None or sub.status != "active" or sub.tier not in SUPPORT_CHAT_TIERS:
-        return None
-    return settings.support_chat_url
 
 
 def _expire_if_due(db: Session, sub: Subscription) -> None:
