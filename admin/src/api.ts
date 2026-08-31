@@ -1,0 +1,120 @@
+/**
+ * Обращения к админским эндпойнтам бэкенда.
+ *
+ * Типы повторяют модели из backend/app/api/admin.py. Держать их
+ * синхронными приходится вручную: у панели с бэкендом нет общей схемы, и
+ * при изменении ответа сервера правится оба места.
+ */
+
+import { authHeader, clearAuth, type TelegramLoginPayload } from "./auth";
+
+const API_BASE = (import.meta.env.VITE_API_BASE_URL as string)?.replace(/\/$/, "");
+
+export type Stats = {
+  users_total: number;
+  users_new_today: number;
+  users_new_7d: number;
+  active_today: number;
+  spreads_total: number;
+  spreads_today: number;
+  active_subscriptions: Record<string, number>;
+  revenue_total_rub: number;
+  revenue_7d_rub: number;
+  referrals_total: number;
+};
+
+export type UserBrief = {
+  telegram_id: number;
+  first_name: string;
+  username: string | null;
+  created_at: string;
+  spreads_total: number;
+};
+
+export type Payment = {
+  id: number;
+  created_at: string;
+  kind: string;
+  tier: string;
+  energy_amount: number;
+  amount_rub: number;
+  status: string;
+  provider: string;
+  provider_payment_id: string | null;
+};
+
+export type UserEvent = {
+  created_at: string;
+  kind: string;
+  title: string;
+  cost: number;
+  detail: string | null;
+};
+
+export type UserDetail = {
+  telegram_id: number;
+  first_name: string;
+  username: string | null;
+  created_at: string;
+  gender: string | null;
+  zodiac_sign: string | null;
+  patron_card: string | null;
+  notifications_enabled: boolean;
+  referred_by: number | null;
+  referrals_count: number;
+
+  energy_daily: number;
+  energy_refreshed_date: string | null;
+  energy_purchased: number;
+  energy_referral: number;
+  energy_total: number;
+
+  subscription_tier: string | null;
+  subscription_status: string | null;
+  subscription_quota_total: number | null;
+  subscription_quota_used: number | null;
+  subscription_period_end: string | null;
+
+  spreads_total: number;
+  chat_questions: number;
+  payments: Payment[];
+  events: UserEvent[];
+};
+
+/** Ошибка с кодом ответа — по нему экран решает, что показать человеку. */
+export class ApiError extends Error {
+  constructor(
+    readonly status: number,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
+async function request<T>(path: string, auth: TelegramLoginPayload): Promise<T> {
+  const response = await fetch(API_BASE + path, {
+    headers: { "X-Telegram-Login-Data": authHeader(auth) },
+  });
+
+  if (response.status === 401) {
+    // Пропуск протух или подпись не сошлась — хранить его дальше незачем.
+    clearAuth();
+    throw new ApiError(401, "Вход устарел, войдите заново");
+  }
+  if (response.status === 403) {
+    throw new ApiError(403, "Этот аккаунт Telegram не в списке администраторов");
+  }
+  if (!response.ok) {
+    throw new ApiError(response.status, `Сервер ответил ${response.status}`);
+  }
+
+  return (await response.json()) as T;
+}
+
+export const getStats = (auth: TelegramLoginPayload) => request<Stats>("/api/admin/stats", auth);
+
+export const searchUsers = (auth: TelegramLoginPayload, query: string) =>
+  request<UserBrief[]>(`/api/admin/users?q=${encodeURIComponent(query)}`, auth);
+
+export const getUser = (auth: TelegramLoginPayload, id: number) =>
+  request<UserDetail>(`/api/admin/users/${id}`, auth);

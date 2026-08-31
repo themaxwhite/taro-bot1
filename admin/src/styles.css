@@ -1,0 +1,270 @@
+/* Палитра взята с сайта, чтобы панель не выглядела чужим приложением. */
+:root {
+  --page: #08080b;
+  --surface: #101014;
+  --surface-2: #16161c;
+  --gold: #d9b166;
+  --gold-strong: #f2d492;
+  --ink: #ece8e0;
+  --ink-muted: #9c958c;
+  --hairline: rgba(217, 177, 102, 0.18);
+  --hairline-strong: rgba(217, 177, 102, 0.34);
+  --ok: #8fae9d;
+  --warn: #e0a06a;
+  --bad: #d98a8a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--gold-strong);
+}
+
+.wrap {
+  max-width: 70rem;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 4rem;
+}
+
+/* --- Шапка ------------------------------------------------------------ */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  margin-bottom: 1.75rem;
+  border-bottom: 1px solid var(--hairline);
+}
+.brand {
+  font-size: 1.05rem;
+  letter-spacing: 0.02em;
+}
+.brand b {
+  color: var(--gold);
+  font-weight: 600;
+}
+.topbar .who {
+  margin-left: auto;
+  color: var(--ink-muted);
+  font-size: 0.85rem;
+}
+
+button.link {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--ink-muted);
+  font: inherit;
+  font-size: 0.85rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+button.link:hover {
+  color: var(--ink);
+}
+
+/* --- Вкладки ---------------------------------------------------------- */
+.tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+.tabs button {
+  border: 1px solid var(--hairline);
+  background: var(--surface);
+  color: var(--ink-muted);
+  font: inherit;
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.tabs button[aria-current="true"] {
+  border-color: var(--hairline-strong);
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
+/* --- Плитки со счётчиками --------------------------------------------- */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+.tile {
+  border: 1px solid var(--hairline);
+  border-radius: 0.75rem;
+  background: var(--surface);
+  padding: 0.9rem 1rem;
+}
+.tile .label {
+  color: var(--ink-muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.tile .value {
+  margin-top: 0.35rem;
+  font-size: 1.6rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--gold-strong);
+}
+.tile .sub {
+  color: var(--ink-muted);
+  font-size: 0.8rem;
+}
+
+/* --- Панели и таблицы -------------------------------------------------- */
+.panel {
+  border: 1px solid var(--hairline);
+  border-radius: 0.75rem;
+  background: var(--surface);
+  padding: 1rem 1.15rem;
+  margin-bottom: 1rem;
+}
+.panel h2 {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+  color: var(--gold);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+th,
+td {
+  text-align: left;
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid var(--hairline);
+  vertical-align: top;
+}
+th {
+  color: var(--ink-muted);
+  font-weight: 500;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+tr.clickable {
+  cursor: pointer;
+}
+tr.clickable:hover td {
+  background: var(--surface-2);
+}
+.scroll {
+  overflow-x: auto;
+}
+
+dl.facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.35rem 1rem;
+  margin: 0;
+  font-size: 0.9rem;
+}
+dl.facts dt {
+  color: var(--ink-muted);
+}
+dl.facts dd {
+  margin: 0;
+}
+
+/* --- Мелочи ------------------------------------------------------------ */
+.search {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.search input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.55rem 0.8rem;
+  border-radius: 0.6rem;
+  border: 1px solid var(--hairline);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+}
+.search input:focus {
+  outline: none;
+  border-color: var(--hairline-strong);
+}
+.search button {
+  padding: 0.55rem 1.1rem;
+  border-radius: 0.6rem;
+  border: 1px solid var(--hairline-strong);
+  background: var(--surface-2);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.muted {
+  color: var(--ink-muted);
+}
+.error {
+  color: var(--bad);
+}
+.tag {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--hairline);
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+}
+.tag.ok {
+  color: var(--ok);
+  border-color: rgba(143, 174, 157, 0.4);
+}
+.tag.warn {
+  color: var(--warn);
+  border-color: rgba(224, 160, 106, 0.4);
+}
+
+/* --- Экран входа ------------------------------------------------------- */
+.login {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+}
+.login .card {
+  width: min(26rem, 100%);
+  border: 1px solid var(--hairline);
+  border-radius: 1rem;
+  background: var(--surface);
+  padding: 2rem 1.75rem;
+  text-align: center;
+}
+.login h1 {
+  margin: 0 0 0.5rem;
+  font-size: 1.3rem;
+}
+.login p {
+  margin: 0 0 1.5rem;
+  color: var(--ink-muted);
+  font-size: 0.9rem;
+}

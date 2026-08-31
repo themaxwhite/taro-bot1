@@ -1,0 +1,18 @@
+# Заголовки ответа Cloudflare Pages для панели.
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  # Панель не должна открываться внутри чужого фрейма ни при каких
+  # условиях: единственный смысл такой вставки — обманом заставить
+  # администратора нажать что-то в невидимом окне поверх чужой страницы.
+  X-Frame-Options: DENY
+  Permissions-Policy: geolocation=(), microphone=(), camera=()
+  Strict-Transport-Security: max-age=31536000
+  # Поисковикам здесь делать нечего — то же самое стоит в <meta> и в
+  # robots.txt, потому что каждый из трёх способов действует в своём
+  # месте: заголовок работает и для файлов, не только для HTML.
+  X-Robots-Tag: noindex, nofollow
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
