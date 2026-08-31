@@ -39,7 +39,7 @@ export function Footer() {
                     Исполнитель
                   </p>
                   <p className="leading-relaxed">
-                    Самозанятый {site.legalName}
+                    {site.legalName}
                     <br />
                     ИНН {site.inn}
                   </p>
