@@ -4,3 +4,9 @@ dist
 .env
 .env.local
 .env.*.local
+
+# Артефакты `tsc -b`: tsconfig.node.json — composite-проект и потому не может
+# отключить emit (TS6310), так что сборка кладёт рядом с исходником
+# скомпилированный vite.config и файлы инкрементальной сборки.
+vite.config.js
+vite.config.d.ts
