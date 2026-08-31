@@ -16,7 +16,7 @@ import { EnergyBalance } from "../../components/EnergyBalance/EnergyBalance";
 import { SpreadsApiError } from "../../services/spreadsApi";
 import { ScreenHeader } from "../../components/ScreenHeader/ScreenHeader";
 import { Spinner } from "../../components/Spinner/Spinner";
-import { openOffer } from "../../content/offer";
+import { openOffer } from "../../content/contacts";
 import styles from "./SubscriptionScreen.module.css";
 
 interface SubscriptionScreenProps {

@@ -18,7 +18,7 @@ import { StatRow } from "../../components/StatRow/StatRow";
 import { Switch } from "../../components/Switch/Switch";
 import { MysticalBackground } from "../../components/MysticalBackground/MysticalBackground";
 import { IdentityCard } from "../../components/IdentityCard/IdentityCard";
-import { openOffer } from "../../content/offer";
+import { openOffer, openSupport } from "../../content/contacts";
 import { isSoundEnabled, playTap, setSoundEnabled } from "../../feedback/sound";
 import styles from "./ProfileScreen.module.css";
 
@@ -281,6 +281,18 @@ export function ProfileScreen({
           <span className={styles.settingsLabel}>Как это работает</span>
           <span className={styles.chevron} aria-hidden="true">
             ›
+          </span>
+        </button>
+        {/* Поддержка доступна всем, а не только подписчикам: человеку,
+            у которого не начислилась оплата или пропала энергия, должно
+            быть куда написать независимо от тарифа. */}
+        <button type="button" className={styles.settingsItem} onClick={openSupport}>
+          <span className={styles.settingsIcon} aria-hidden="true">
+            💬
+          </span>
+          <span className={styles.settingsLabel}>Написать в поддержку</span>
+          <span className={styles.chevron} aria-hidden="true">
+            ↗
           </span>
         </button>
         <button type="button" className={styles.settingsItem} onClick={openOffer}>
