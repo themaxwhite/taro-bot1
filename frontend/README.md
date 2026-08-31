@@ -20,10 +20,14 @@ npm run dev
 src/
 ├── App.tsx        # состояние текущего экрана и вся навигация
 ├── pages/         # экраны: Main, Spread, Result, History, HistoryDetail,
-│                  #   Profile, Subscription, Referral, Terms, Admin, Onboarding
+│                  #   Profile, Stats, Chat, Guide, Subscription, Referral,
+│                  #   Terms, Admin, Onboarding
 ├── components/    # переиспользуемые куски UI (ScreenHeader, Deck, CardFront, …)
-├── hooks/         # useTelegramUser, useTheme, useAmbientSound,
-│                  #   useTelegramBackButton, useTelegramMainButton, …
+├── content/       # тексты, общие для нескольких экранов (справка, подсказки
+│                  #   к раскладам, названия арканов)
+├── feedback/      # звук и тактильная отдача: sound.ts, haptics.ts
+├── hooks/         # useTelegramUser, useTheme, useReferralCapture,
+│                  #   useTelegramBackButton, useTelegramMainButton
 ├── services/      # HTTP к backend, по одному модулю на область API
 └── types/         # общие типы, часть из них обязана совпадать с backend
 ```

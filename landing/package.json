@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "lint": "tsc --noEmit",
     "build:client": "vite build",
-    "deploy": "npm run build && wrangler pages deploy dist --project-name tarot-aurum"
+    "deploy": "npm run build && wrangler pages deploy dist --project-name tarot-aurum --branch main"
   },
   "dependencies": {
     "react": "^19.1.1",

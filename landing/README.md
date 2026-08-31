@@ -61,6 +61,10 @@ src/
     ├── Atmosphere.tsx   # зерно, виньетка, свет за курсором
     ├── Nav  Hero  Spreads  Readings  DrawCard  HowItWorks
     ├── Deck  Testimonials  Features  Stars  Faq  Footer
+    │      ↑ Stars.tsx — это раздел «Оплата» (якорь #pricing). Имя
+    │        осталось от Telegram Stars, которых в продукте никогда
+    │        не было; переименовать стоит, но ссылки в меню уже
+    │        ведут на #pricing, а не на #stars
     └── GoldDust  ScrollProgress
 ```
 
