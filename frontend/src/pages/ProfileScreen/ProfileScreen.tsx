@@ -18,6 +18,7 @@ import { StatRow } from "../../components/StatRow/StatRow";
 import { Switch } from "../../components/Switch/Switch";
 import { MysticalBackground } from "../../components/MysticalBackground/MysticalBackground";
 import { IdentityCard } from "../../components/IdentityCard/IdentityCard";
+import { openOffer } from "../../content/offer";
 import { isSoundEnabled, playTap, setSoundEnabled } from "../../feedback/sound";
 import styles from "./ProfileScreen.module.css";
 
@@ -280,6 +281,15 @@ export function ProfileScreen({
           <span className={styles.settingsLabel}>Как это работает</span>
           <span className={styles.chevron} aria-hidden="true">
             ›
+          </span>
+        </button>
+        <button type="button" className={styles.settingsItem} onClick={openOffer}>
+          <span className={styles.settingsIcon} aria-hidden="true">
+            ⚖️
+          </span>
+          <span className={styles.settingsLabel}>Публичная оферта</span>
+          <span className={styles.chevron} aria-hidden="true">
+            ↗
           </span>
         </button>
         <button type="button" className={styles.settingsItem} onClick={onOpenTerms}>

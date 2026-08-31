@@ -16,6 +16,7 @@ import { EnergyBalance } from "../../components/EnergyBalance/EnergyBalance";
 import { SpreadsApiError } from "../../services/spreadsApi";
 import { ScreenHeader } from "../../components/ScreenHeader/ScreenHeader";
 import { Spinner } from "../../components/Spinner/Spinner";
+import { openOffer } from "../../content/offer";
 import styles from "./SubscriptionScreen.module.css";
 
 interface SubscriptionScreenProps {
@@ -200,6 +201,15 @@ export function SubscriptionScreen({ onBack }: SubscriptionScreenProps) {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Оферта — на экране, где принимают решение платить, а не только
+          в настройках. Ссылка, а не копия текста: разошедшиеся редакции
+          порядка возврата означали бы два разных обещания покупателю. */}
+      {state.status !== "loading" && (
+        <button type="button" className={styles.offerLink} onClick={openOffer}>
+          Условия оказания услуг и порядок возврата ↗
+        </button>
       )}
 
       {state.status !== "loading" && (
