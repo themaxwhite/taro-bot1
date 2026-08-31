@@ -20,6 +20,10 @@ https://oauth.telegram.org/.well-known/openid-configuration
                    сверяет с ADMIN_TELEGRAM_IDS и возвращает браузер
                    в панель с собственным пропуском в адресе
 
+Кто именно вошёл, берётся из claim `id`, а не из `sub`: `sub` у Telegram —
+непрозрачный номер, свой у каждого приложения, и со списком
+администраторов он не совпадёт никогда.
+
 Про проверку подписи id_token. Токен приходит не через браузер, а прямым
 ответом token-эндпойнта на наш запрос по TLS, подтверждённый секретом
 клиента. В такой ситуации спецификация OIDC (§3.1.3.7) прямо разрешает
@@ -257,15 +261,19 @@ async def finish_login(code: str | None = None, state: str | None = None,
         logger.error("Вход отклонён: id_token просрочен")
         return RedirectResponse(_panel_url("#error=expired_token"), status_code=302)
 
-    raw_subject = str(claims.get("sub", ""))
-    if not raw_subject.lstrip("-").isdigit():
+    # Идентификатор берём из claim `id`, а не из `sub`. В токене Telegram
+    # это разные вещи: `sub` — непрозрачный номер, свой у каждого
+    # приложения, а `id` — тот самый числовой идентификатор Telegram,
+    # которым оперирует Bot API и который лежит в ADMIN_TELEGRAM_IDS.
+    # Приходит вместе со scope `profile`, который мы и запрашиваем.
+    raw_id = str(claims.get("id", ""))
+    if not raw_id.lstrip("-").isdigit():
         logger.error(
-            "Вход отклонён: sub=%r не число. Поля токена: %s",
-            raw_subject,
+            "Вход отклонён: в токене нет числового id. Поля токена: %s",
             sorted(claims.keys()),
         )
         return RedirectResponse(_panel_url("#error=subject"), status_code=302)
-    telegram_id = int(raw_subject)
+    telegram_id = int(raw_id)
 
     # Проверку «а администратор ли это» делаем здесь, а не только при
     # запросах: получить пропуск не должен даже тот, кому всё равно
