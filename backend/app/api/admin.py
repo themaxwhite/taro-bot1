@@ -2,7 +2,7 @@ import datetime as dt
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from sqlalchemy import func, or_, select
+from sqlalchemy import case, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_admin_user
@@ -10,7 +10,14 @@ from app.db import get_db
 from app.api.subscriptions import available_unlocks
 from app.energy import CHAT_QUESTION_COST
 from app.subscriptions import TIERS
-from app.models import ChatMessage, SpreadRecord, Subscription, SubscriptionPayment, User
+from app.models import (
+    ChatMessage,
+    SpreadFollowUp,
+    SpreadRecord,
+    Subscription,
+    SubscriptionPayment,
+    User,
+)
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -329,6 +336,99 @@ def list_payments(
         total_count=total_count,
         succeeded_rub=succeeded_rub,
         pending_count=pending_count,
+    )
+
+
+class AdminSpreadRow(BaseModel):
+    spread_id: str
+    title: str
+    total: int
+    # Сколько из них открыто целиком, то есть за энергию. Разница между
+    # total и unlocked — это интерес без покупки: человек расклад начал,
+    # но платить за толкование не стал.
+    unlocked: int
+    users: int
+
+
+class AdminSpreadsResponse(BaseModel):
+    rows: list[AdminSpreadRow]
+    total: int
+    unlocked_total: int
+    follow_ups: int
+    chat_questions: int
+
+
+@router.get("/spreads", response_model=AdminSpreadsResponse)
+def spreads_breakdown(
+    days: int = 30,
+    _admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> AdminSpreadsResponse:
+    """
+    Какие расклады выбирают и сколько из них доводят до открытия.
+
+    Название берём из самой записи (`spread_title`), а не из справочника
+    раскладов: расклад могли переименовать, и старые записи должны
+    называться так, как их видел человек в тот день.
+    """
+    conditions = []
+    if days > 0:
+        since = dt.datetime.utcnow() - dt.timedelta(days=days)
+        conditions.append(SpreadRecord.created_at >= since)
+
+    unlocked_sum = func.sum(case((SpreadRecord.unlocked.is_(True), 1), else_=0))
+
+    rows = db.execute(
+        select(
+            SpreadRecord.spread_id,
+            func.max(SpreadRecord.spread_title),
+            func.count(),
+            unlocked_sum,
+            func.count(func.distinct(SpreadRecord.user_id)),
+        )
+        .where(*conditions)
+        .group_by(SpreadRecord.spread_id)
+        .order_by(func.count().desc())
+    ).all()
+
+    follow_ups = db.execute(
+        select(func.count())
+        .select_from(SpreadFollowUp)
+        .where(
+            *(
+                [SpreadFollowUp.created_at >= since]
+                if days > 0
+                else []
+            )
+        )
+    ).scalar_one()
+
+    chat_questions = db.execute(
+        select(func.count())
+        .select_from(ChatMessage)
+        .where(
+            ChatMessage.role == "user",
+            *([ChatMessage.created_at >= since] if days > 0 else []),
+        )
+    ).scalar_one()
+
+    result = [
+        AdminSpreadRow(
+            spread_id=spread_id,
+            title=title or spread_id,
+            total=int(total),
+            unlocked=int(unlocked or 0),
+            users=int(users),
+        )
+        for spread_id, title, total, unlocked, users in rows
+    ]
+
+    return AdminSpreadsResponse(
+        rows=result,
+        total=sum(r.total for r in result),
+        unlocked_total=sum(r.unlocked for r in result),
+        follow_ups=follow_ups,
+        chat_questions=chat_questions,
     )
 
 

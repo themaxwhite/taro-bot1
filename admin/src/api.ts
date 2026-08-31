@@ -147,6 +147,25 @@ export type PaymentsPage = {
   pending_count: number;
 };
 
+export type SpreadRow = {
+  spread_id: string;
+  title: string;
+  total: number;
+  unlocked: number;
+  users: number;
+};
+
+export type SpreadsBreakdown = {
+  rows: SpreadRow[];
+  total: number;
+  unlocked_total: number;
+  follow_ups: number;
+  chat_questions: number;
+};
+
+export const getSpreads = (session: AdminSession, days = 30) =>
+  request<SpreadsBreakdown>(`/api/admin/spreads?days=${days}`, session);
+
 export const listPayments = (
   session: AdminSession,
   filters: { days: number; status: string; kind: string },

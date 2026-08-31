@@ -8,10 +8,11 @@ import {
 } from "./auth";
 import { LoginScreen } from "./LoginScreen";
 import { PaymentsScreen } from "./PaymentsScreen";
+import { SpreadsScreen } from "./SpreadsScreen";
 import { StatsScreen } from "./StatsScreen";
 import { UsersScreen } from "./UsersScreen";
 
-type Tab = "stats" | "payments" | "users";
+type Tab = "stats" | "payments" | "spreads" | "users";
 
 /* Возврат из Telegram разбираем один раз, до первой отрисовки: пропуск
    приходит в адресе, и держать его там дольше необходимого незачем. */
@@ -79,6 +80,9 @@ export default function App() {
         <button type="button" aria-current={tab === "payments"} onClick={() => setTab("payments")}>
           Платежи
         </button>
+        <button type="button" aria-current={tab === "spreads"} onClick={() => setTab("spreads")}>
+          Расклады
+        </button>
         <button type="button" aria-current={tab === "users"} onClick={() => setTab("users")}>
           Пользователи
         </button>
@@ -95,6 +99,7 @@ export default function App() {
           }}
         />
       )}
+      {tab === "spreads" && <SpreadsScreen session={session} onAuthError={handleAuthError} />}
       {tab === "users" && (
         <UsersScreen
           session={session}
