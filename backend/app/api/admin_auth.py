@@ -147,6 +147,15 @@ async def finish_login(code: str | None = None, state: str | None = None,
         return RedirectResponse(_panel_url("#error=expired"), status_code=302)
     verifier, _ = pending
 
+    # Секрет уходит заголовком Basic, а не полем в теле. Описание сервера
+    # (/.well-known/openid-configuration) заявляет оба способа, но на
+    # client_secret_post Telegram отвечает 200 и телом без id_token — то
+    # есть молча, будто запрос вообще не был опознан. Час ушёл на то,
+    # чтобы это увидеть, поэтому оставляю в коде.
+    credentials = base64.b64encode(
+        f"{settings.telegram_oauth_client_id}:{settings.telegram_oauth_client_secret}".encode()
+    ).decode()
+
     async with httpx.AsyncClient(timeout=15.0) as client:
         response = await client.post(
             TOKEN_ENDPOINT,
@@ -156,18 +165,33 @@ async def finish_login(code: str | None = None, state: str | None = None,
                 "redirect_uri": _redirect_uri(),
                 "code_verifier": verifier,
                 "client_id": settings.telegram_oauth_client_id,
-                "client_secret": settings.telegram_oauth_client_secret,
             },
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            headers={
+                "Authorization": f"Basic {credentials}",
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
         )
 
     if response.status_code != 200:
         logger.error("Обмен кода не удался: %s %s", response.status_code, response.text[:300])
         return RedirectResponse(_panel_url("#error=token"), status_code=302)
 
-    id_token = response.json().get("id_token")
+    try:
+        body = response.json()
+    except ValueError:
+        logger.error("Token-эндпойнт вернул не JSON: %s", response.text[:200])
+        return RedirectResponse(_panel_url("#error=token"), status_code=302)
+
+    id_token = body.get("id_token")
     if not id_token:
-        logger.error("В ответе token-эндпойнта нет id_token")
+        # Пишем состав ответа, но не значения: в нём может лежать
+        # access_token, и логу знать его незачем.
+        logger.error(
+            "В ответе token-эндпойнта нет id_token. Поля: %s. error=%s %s",
+            sorted(body.keys()),
+            body.get("error"),
+            body.get("error_description"),
+        )
         return RedirectResponse(_panel_url("#error=token"), status_code=302)
 
     claims = _decode_id_token(id_token)
