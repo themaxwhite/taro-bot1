@@ -27,7 +27,7 @@ export function TermsScreen({ onBack }: TermsScreenProps) {
           психологической консультацией и не заменяют обращение к специалисту.
         </p>
         <p className={styles.paragraph}>
-          Сервис предназначен для пользователей 16 лет и старше. Используя Taro Aurum, вы
+          Сервис предназначен для пользователей 18 лет и старше. Используя Taro Aurum, вы
           подтверждаете, что достигли этого возраста.
         </p>
         <p className={styles.paragraph}>
