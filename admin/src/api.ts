@@ -125,6 +125,40 @@ export const getStats = (session: AdminSession) => request<Stats>("/api/admin/st
 export const getTimeseries = (session: AdminSession, days = 30) =>
   request<DayStats[]>(`/api/admin/timeseries?days=${days}`, session);
 
+export type PaymentRow = {
+  id: number;
+  created_at: string;
+  user_id: number;
+  user_name: string;
+  username: string | null;
+  kind: string;
+  tier: string;
+  energy_amount: number;
+  amount_rub: number;
+  status: string;
+  provider: string;
+  provider_payment_id: string | null;
+};
+
+export type PaymentsPage = {
+  rows: PaymentRow[];
+  total_count: number;
+  succeeded_rub: number;
+  pending_count: number;
+};
+
+export const listPayments = (
+  session: AdminSession,
+  filters: { days: number; status: string; kind: string },
+) => {
+  const query = new URLSearchParams({
+    days: String(filters.days),
+    status: filters.status,
+    kind: filters.kind,
+  });
+  return request<PaymentsPage>(`/api/admin/payments?${query}`, session);
+};
+
 export const searchUsers = (session: AdminSession, query: string) =>
   request<UserBrief[]>(`/api/admin/users?q=${encodeURIComponent(query)}`, session);
 

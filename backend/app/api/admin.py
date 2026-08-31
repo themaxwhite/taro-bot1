@@ -229,6 +229,109 @@ def get_timeseries(
     return result
 
 
+class AdminPaymentRow(BaseModel):
+    """Строка ленты платежей — платёж вместе с тем, кто его совершил."""
+
+    id: int
+    created_at: dt.datetime
+    user_id: int
+    user_name: str
+    username: str | None
+    kind: str
+    tier: str
+    energy_amount: int
+    amount_rub: int
+    status: str
+    provider: str
+    provider_payment_id: str | None
+
+
+class AdminPaymentsResponse(BaseModel):
+    rows: list[AdminPaymentRow]
+    # Итоги считаем по всему отфильтрованному набору, а не по показанной
+    # странице: иначе сумма менялась бы при листании и не значила ничего.
+    total_count: int
+    succeeded_rub: int
+    pending_count: int
+
+
+@router.get("/payments", response_model=AdminPaymentsResponse)
+def list_payments(
+    days: int = 30,
+    status: str = "all",
+    kind: str = "all",
+    limit: int = 100,
+    offset: int = 0,
+    _admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> AdminPaymentsResponse:
+    """
+    Платежи за период, свежие сверху.
+
+    Незавершённые (`pending`) показываются наравне с успешными и это
+    важнее, чем кажется: именно они означают «деньги ушли, доступ не
+    пришёл» — случай, под который в оферте написан пункт 4.5.1 о полном
+    возврате. Прятать их за фильтром «только успешные» значило бы не
+    видеть ровно тех, кому нужна помощь.
+    """
+    limit = max(1, min(limit, 500))
+
+    conditions = []
+    if days > 0:
+        since = dt.datetime.utcnow() - dt.timedelta(days=days)
+        conditions.append(SubscriptionPayment.created_at >= since)
+    if status != "all":
+        conditions.append(SubscriptionPayment.status == status)
+    if kind != "all":
+        conditions.append(SubscriptionPayment.kind == kind)
+
+    total_count = db.execute(
+        select(func.count()).select_from(SubscriptionPayment).where(*conditions)
+    ).scalar_one()
+    succeeded_rub = db.execute(
+        select(func.coalesce(func.sum(SubscriptionPayment.amount_rub), 0)).where(
+            *conditions, SubscriptionPayment.status == "succeeded"
+        )
+    ).scalar_one()
+    pending_count = db.execute(
+        select(func.count())
+        .select_from(SubscriptionPayment)
+        .where(*conditions, SubscriptionPayment.status == "pending")
+    ).scalar_one()
+
+    rows = db.execute(
+        select(SubscriptionPayment, User)
+        .join(User, User.telegram_id == SubscriptionPayment.user_id)
+        .where(*conditions)
+        .order_by(SubscriptionPayment.created_at.desc())
+        .limit(limit)
+        .offset(offset)
+    ).all()
+
+    return AdminPaymentsResponse(
+        rows=[
+            AdminPaymentRow(
+                id=payment.id,
+                created_at=payment.created_at,
+                user_id=user.telegram_id,
+                user_name=user.first_name,
+                username=user.username,
+                kind=payment.kind,
+                tier=payment.tier,
+                energy_amount=payment.energy_amount,
+                amount_rub=payment.amount_rub,
+                status=payment.status,
+                provider=payment.provider,
+                provider_payment_id=payment.provider_payment_id,
+            )
+            for payment, user in rows
+        ],
+        total_count=total_count,
+        succeeded_rub=succeeded_rub,
+        pending_count=pending_count,
+    )
+
+
 # --- Карточка пользователя для поддержки --------------------------------
 #
 # Отвечает на вопрос «у кого что пошло не так»: заплатил и не получил,

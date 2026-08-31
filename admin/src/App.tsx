@@ -7,10 +7,11 @@ import {
   type AdminSession,
 } from "./auth";
 import { LoginScreen } from "./LoginScreen";
+import { PaymentsScreen } from "./PaymentsScreen";
 import { StatsScreen } from "./StatsScreen";
 import { UsersScreen } from "./UsersScreen";
 
-type Tab = "stats" | "users";
+type Tab = "stats" | "payments" | "users";
 
 /* Возврат из Telegram разбираем один раз, до первой отрисовки: пропуск
    приходит в адресе, и держать его там дольше необходимого незачем. */
@@ -23,6 +24,10 @@ export default function App() {
   );
   const [error, setError] = useState<string | null>(redirect.error ?? null);
   const [tab, setTab] = useState<Tab>("stats");
+  /* Какого пользователя открыть на вкладке «Пользователи». Ставится при
+     переходе из платежа: увидел подозрительную оплату — сразу смотришь
+     карточку плательщика, не переписывая его id руками. */
+  const [focusUser, setFocusUser] = useState<number | null>(null);
 
   const logout = useCallback(() => {
     clearSession();
@@ -71,15 +76,32 @@ export default function App() {
         <button type="button" aria-current={tab === "stats"} onClick={() => setTab("stats")}>
           Сводка
         </button>
+        <button type="button" aria-current={tab === "payments"} onClick={() => setTab("payments")}>
+          Платежи
+        </button>
         <button type="button" aria-current={tab === "users"} onClick={() => setTab("users")}>
           Пользователи
         </button>
       </nav>
 
-      {tab === "stats" ? (
-        <StatsScreen session={session} onAuthError={handleAuthError} />
-      ) : (
-        <UsersScreen session={session} onAuthError={handleAuthError} />
+      {tab === "stats" && <StatsScreen session={session} onAuthError={handleAuthError} />}
+      {tab === "payments" && (
+        <PaymentsScreen
+          session={session}
+          onAuthError={handleAuthError}
+          onOpenUser={(id) => {
+            setFocusUser(id);
+            setTab("users");
+          }}
+        />
+      )}
+      {tab === "users" && (
+        <UsersScreen
+          session={session}
+          onAuthError={handleAuthError}
+          focusUser={focusUser}
+          onFocusHandled={() => setFocusUser(null)}
+        />
       )}
     </div>
   );

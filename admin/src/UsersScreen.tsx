@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { getUser, searchUsers, type UserBrief, type UserDetail } from "./api";
 import type { AdminSession } from "./auth";
 import { formatDate, formatDateTime, formatMoney, formatNumber, plural } from "./format";
@@ -6,9 +6,12 @@ import { formatDate, formatDateTime, formatMoney, formatNumber, plural } from ".
 type Props = {
   session: AdminSession;
   onAuthError: (message: string) => void;
+  /** Кого открыть сразу — приходит при переходе из платежа. */
+  focusUser?: number | null;
+  onFocusHandled?: () => void;
 };
 
-export function UsersScreen({ session, onAuthError }: Props) {
+export function UsersScreen({ session, onAuthError, focusUser, onFocusHandled }: Props) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<UserBrief[] | null>(null);
   const [detail, setDetail] = useState<UserDetail | null>(null);
@@ -32,6 +35,22 @@ export function UsersScreen({ session, onAuthError }: Props) {
       .catch(fail)
       .finally(() => setBusy(false));
   };
+
+  /* Переход из платежа: карточка открывается сама, поиск при этом
+     остаётся пустым — искать уже нечего. */
+  useEffect(() => {
+    if (!focusUser) return;
+    setBusy(true);
+    setError(null);
+    getUser(session, focusUser)
+      .then(setDetail)
+      .catch(fail)
+      .finally(() => {
+        setBusy(false);
+        onFocusHandled?.();
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusUser, session]);
 
   const open = (id: number) => {
     setBusy(true);
