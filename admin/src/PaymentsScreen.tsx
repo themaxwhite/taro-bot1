@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
-import { listPayments, type PaymentRow, type PaymentsPage } from "./api";
+import {
+  cancelPayment,
+  confirmPayment,
+  listPayments,
+  type PaymentRow,
+  type PaymentsPage,
+} from "./api";
 import type { AdminSession } from "./auth";
 import { formatDateTime, formatMoney, formatNumber, plural } from "./format";
 
@@ -44,6 +50,11 @@ export function PaymentsScreen({ session, onAuthError, onOpenUser }: Props) {
   const [page, setPage] = useState<PaymentsPage | null>(null);
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  /* Что сейчас делаем с конкретным платежом и что из этого вышло. Держим
+     по одному платежу, а не флагом на весь экран: две кнопки в одной
+     строке должны блокироваться вместе, но соседние строки — нет. */
+  const [acting, setActing] = useState<number | null>(null);
+  const [note, setNote] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -64,6 +75,32 @@ export function PaymentsScreen({ session, onAuthError, onOpenUser }: Props) {
       cancelled = true;
     };
   }, [session, days, status, kind, onAuthError]);
+
+  /* Обе ручки пишущие, поэтому спрашиваем подтверждение прямо здесь.
+     Зачёт начисляет энергию по-настоящему, и отменить его нечем. */
+  const act = async (row: PaymentRow, action: "confirm" | "cancel") => {
+    const what =
+      action === "confirm"
+        ? `Зачесть платёж №${row.id} на ${row.amount_rub} ₽? Проверьте в кабинете Робокассы, что деньги действительно поступили.`
+        : `Пометить платёж №${row.id} отменённым? Начисления не будет.`;
+    if (!window.confirm(what)) return;
+
+    setActing(row.id);
+    setNote(null);
+    try {
+      const result =
+        action === "confirm"
+          ? await confirmPayment(session, row.id)
+          : await cancelPayment(session, row.id);
+      setNote(`Платёж №${row.id}: ${result.message}`);
+      const fresh = await listPayments(session, { days, status, kind });
+      setPage(fresh);
+    } catch (e) {
+      setNote(`Платёж №${row.id}: ${(e as Error).message}`);
+    } finally {
+      setActing(null);
+    }
+  };
 
   if (error) return <p className="error">{error}</p>;
 
@@ -114,13 +151,13 @@ export function PaymentsScreen({ session, onAuthError, onOpenUser }: Props) {
         </div>
       )}
 
+      {note && <p className="muted">{note}</p>}
       {busy && <p className="muted">Загружаем…</p>}
 
       {page && !busy && page.rows.length === 0 ? (
         <div className="panel">
           <p className="muted" style={{ margin: 0 }}>
-            Платежей за этот период нет. Приём оплаты ещё не подключён — как только
-            заработает Робокасса, каждая покупка появится здесь.
+            Платежей за этот период нет.
           </p>
         </div>
       ) : (
@@ -141,11 +178,18 @@ export function PaymentsScreen({ session, onAuthError, onOpenUser }: Props) {
                     <th>Статус</th>
                     <th>Платёж</th>
                     <th style={{ textAlign: "right" }}>Сумма</th>
+                    <th />
                   </tr>
                 </thead>
                 <tbody>
                   {page.rows.map((row) => (
-                    <Row key={row.id} row={row} onOpenUser={onOpenUser} />
+                    <Row
+                      key={row.id}
+                      row={row}
+                      onOpenUser={onOpenUser}
+                      onAct={act}
+                      busy={acting === row.id}
+                    />
                   ))}
                 </tbody>
               </table>
@@ -157,7 +201,17 @@ export function PaymentsScreen({ session, onAuthError, onOpenUser }: Props) {
   );
 }
 
-function Row({ row, onOpenUser }: { row: PaymentRow; onOpenUser: (id: number) => void }) {
+function Row({
+  row,
+  onOpenUser,
+  onAct,
+  busy,
+}: {
+  row: PaymentRow;
+  onOpenUser: (id: number) => void;
+  onAct: (row: PaymentRow, action: "confirm" | "cancel") => void;
+  busy: boolean;
+}) {
   const what =
     row.kind === "energy"
       ? `Энергия ×${row.energy_amount}`
@@ -184,6 +238,20 @@ function Row({ row, onOpenUser }: { row: PaymentRow; onOpenUser: (id: number) =>
         {row.provider_payment_id && <div>{row.provider_payment_id}</div>}
       </td>
       <td className="num">{formatMoney(row.amount_rub)}</td>
+      <td className="num">
+        {/* Действия только у ожидающих: у оплаченного зачёт начислил бы
+            второй раз, у отменённого начислять нечего. */}
+        {row.status === "pending" && (
+          <span className="rowActions">
+            <button type="button" className="link" disabled={busy} onClick={() => onAct(row, "confirm")}>
+              зачесть
+            </button>
+            <button type="button" className="link" disabled={busy} onClick={() => onAct(row, "cancel")}>
+              отменить
+            </button>
+          </span>
+        )}
+      </td>
     </tr>
   );
 }

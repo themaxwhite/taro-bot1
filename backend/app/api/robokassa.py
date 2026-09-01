@@ -16,7 +16,6 @@
 достаточно открыть адрес успеха руками, чтобы получить энергию бесплатно.
 """
 
-import datetime as dt
 import logging
 from urllib.parse import parse_qsl
 
@@ -31,6 +30,7 @@ from app.config import settings
 from app.db import get_db
 from app.energy import ENERGY_PACKS
 from app.models import SubscriptionPayment, User
+from app.payments import CreditError, credit
 from app.subscriptions import TIERS
 
 logger = logging.getLogger(__name__)
@@ -188,40 +188,18 @@ async def payment_result(request: Request, db: Session = Depends(get_db)) -> Pla
         )
         raise HTTPException(status_code=400, detail="amount mismatch")
 
-    user = db.get(User, payment.user_id)
-    if user is None:
-        logger.error("Счёт %s: пользователь %s пропал", payment.id, payment.user_id)
-        raise HTTPException(status_code=404, detail="unknown user")
-
-    if payment.kind == "energy":
-        user.purchased_energy += payment.energy_amount
-    else:
-        tier = next((t for t in TIERS.values() if t.id.value == payment.tier), None)
-        if tier is None:
-            logger.error("Счёт %s: неизвестный тариф %r", payment.id, payment.tier)
-            raise HTTPException(status_code=400, detail="unknown tier")
-        subscription = _activate(db, user.telegram_id, tier)
-        logger.info("Счёт %s: включена подписка %s до %s", payment.id, tier.id.value, subscription)
-
-    payment.status = "succeeded"
     payment.provider_payment_id = form.get("PaymentMethod") or None
-    db.commit()
+    try:
+        what = credit(db, payment)
+    except CreditError as exc:
+        logger.error("Счёт %s зачесть не удалось: %s", payment.id, exc)
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     logger.info(
-        "Счёт %s оплачен: пользователь %s, %s руб.",
-        payment.id, payment.user_id, payment.amount_rub,
+        "Счёт %s оплачен по уведомлению: пользователь %s, %s руб., начислено %s",
+        payment.id, payment.user_id, payment.amount_rub, what,
     )
     return PlainTextResponse(robokassa.result_ok(payment.id))
-
-
-def _activate(db: Session, user_id: int, tier) -> dt.datetime:
-    """Включает подписку. Вынесено сюда, чтобы обработчик читался."""
-    from app.api.subscriptions import _activate_subscription
-
-    _activate_subscription(
-        db, user_id, tier=tier.id.value, quota_total=tier.monthly_quota, days=30
-    )
-    return dt.datetime.utcnow() + dt.timedelta(days=30)
 
 
 @router.get("/success")

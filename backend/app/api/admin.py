@@ -5,6 +5,8 @@ from pydantic import BaseModel
 from sqlalchemy import case, func, or_, select
 from sqlalchemy.orm import Session
 
+import logging
+
 from app.api.deps import get_admin_user
 from app.db import get_db
 from app.api.subscriptions import available_unlocks
@@ -18,6 +20,9 @@ from app.models import (
     SubscriptionPayment,
     User,
 )
+from app.payments import CreditError, credit
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -430,6 +435,88 @@ def spreads_breakdown(
         follow_ups=follow_ups,
         chat_questions=chat_questions,
     )
+
+
+class AdminPaymentActionResponse(BaseModel):
+    status: str
+    message: str
+
+
+@router.post("/payments/{payment_id}/confirm", response_model=AdminPaymentActionResponse)
+def confirm_payment(
+    payment_id: int,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> AdminPaymentActionResponse:
+    """
+    Зачесть платёж вручную.
+
+    Нужен для случая, ради которого в оферте написан пункт 4.5.1: деньги
+    у человека списались, а уведомление до нас не дошло — сбой сети,
+    неверный пароль, упавший сервер. Обычный путь остаётся прежним, это
+    аварийный.
+
+    Зачесть можно только платёж в статусе «ожидает»: у уже оплаченного
+    повторный зачёт начислил бы энергию дважды, а у отменённого нет
+    денег, которые он бы отражал.
+
+    **Перед нажатием сверься с кабинетом Робокассы.** Панель не знает,
+    поступили ли деньги, — она знает лишь то, что мы выставили счёт.
+    """
+    payment = db.get(SubscriptionPayment, payment_id)
+    if payment is None:
+        raise HTTPException(status_code=404, detail="Платёж не найден")
+    if payment.status != "pending":
+        raise HTTPException(
+            status_code=409,
+            detail=f"Платёж уже в статусе «{payment.status}», зачесть можно только ожидающий",
+        )
+
+    # Помечаем, чей это зачёт: в журнале Робокассы такого платежа может не
+    # быть вовсе, и через полгода поле «идентификатор платежа у провайдера»
+    # окажется единственным следом того, откуда взялась энергия.
+    payment.provider_payment_id = f"manual:{admin.telegram_id}"
+    try:
+        what = credit(db, payment)
+    except CreditError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    logger.warning(
+        "Ручной зачёт счёта %s администратором %s: пользователю %s начислено %s",
+        payment.id, admin.telegram_id, payment.user_id, what,
+    )
+    return AdminPaymentActionResponse(status="succeeded", message=f"Начислено: {what}")
+
+
+@router.post("/payments/{payment_id}/cancel", response_model=AdminPaymentActionResponse)
+def cancel_payment(
+    payment_id: int,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> AdminPaymentActionResponse:
+    """
+    Пометить незавершённый платёж отменённым.
+
+    Ничего не возвращает и никого не трогает — просто убирает из списка
+    ожидающих то, что оплачено не будет: брошенные корзины и следы
+    проверок. Смысл в том, чтобы счётчик незавершённых показывал только
+    настоящие проблемы.
+    """
+    payment = db.get(SubscriptionPayment, payment_id)
+    if payment is None:
+        raise HTTPException(status_code=404, detail="Платёж не найден")
+    if payment.status != "pending":
+        raise HTTPException(
+            status_code=409,
+            detail=f"Платёж уже в статусе «{payment.status}»",
+        )
+
+    payment.status = "canceled"
+    db.commit()
+    logger.warning(
+        "Счёт %s отменён вручную администратором %s", payment.id, admin.telegram_id
+    )
+    return AdminPaymentActionResponse(status="canceled", message="Платёж помечен отменённым")
 
 
 # --- Карточка пользователя для поддержки --------------------------------

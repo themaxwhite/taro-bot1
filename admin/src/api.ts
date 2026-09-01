@@ -91,9 +91,14 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, session: AdminSession): Promise<T> {
+async function request<T>(
+  path: string,
+  session: AdminSession,
+  init?: RequestInit,
+): Promise<T> {
   const response = await fetch(API_BASE + path, {
-    headers: { "X-Admin-Session": session.token },
+    ...init,
+    headers: { "X-Admin-Session": session.token, ...init?.headers },
   });
 
   if (response.status === 401) {
@@ -165,6 +170,22 @@ export type SpreadsBreakdown = {
 
 export const getSpreads = (session: AdminSession, days = 30) =>
   request<SpreadsBreakdown>(`/api/admin/spreads?days=${days}`, session);
+
+/* Ручные действия над платежом — единственные пишущие ручки во всей
+   панели. Обе разрешены только для платежа в статусе «ожидает». */
+export const confirmPayment = (session: AdminSession, id: number) =>
+  request<{ status: string; message: string }>(
+    `/api/admin/payments/${id}/confirm`,
+    session,
+    { method: "POST" },
+  );
+
+export const cancelPayment = (session: AdminSession, id: number) =>
+  request<{ status: string; message: string }>(
+    `/api/admin/payments/${id}/cancel`,
+    session,
+    { method: "POST" },
+  );
 
 export const listPayments = (
   session: AdminSession,

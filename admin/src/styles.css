@@ -303,6 +303,19 @@ dl.facts dd {
   max-width: 100%;
 }
 
+/* Кнопки действий в строке платежа — в столбик, чтобы не растягивать
+   таблицу по ширине на узком экране. */
+.rowActions {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  align-items: flex-end;
+}
+.rowActions button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 /* --- Мелочи ------------------------------------------------------------ */
 .search {
   display: flex;
