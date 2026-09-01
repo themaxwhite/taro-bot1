@@ -46,10 +46,21 @@ _GROQ_MODEL = "openai/gpt-oss-120b"
 _GROQ_REASONING_EFFORT = "low"
 
 _ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
-# "claude-sonnet-4-6" (the id this used to hardcode) isn't a real model —
-# every call silently 404'd and fell back to static content. claude-opus-5
-# is the current default per Anthropic's Claude API guidance.
-_ANTHROPIC_MODEL = "claude-opus-5"
+# Запасной вариант, а не основной: сюда попадают только те запросы, что не
+# смог обслужить Groq. Отсюда и выбор модели.
+#
+# Здесь стоял claude-opus-5 — и это была ошибка масштаба. Одно толкование
+# на нём стоит около 2,2 руб., на Haiku 4.5 — около 0,45 руб., а на самом
+# Groq — около 6 копеек. При этом задача узкая: один абзац толкования по
+# готовому промпту и списку карт, и разницу между Haiku и Opus в ней не
+# видно. Раньше это ничего не стоило, потому что ключа Anthropic не было
+# вовсе; с закупкой трафика бесплатный уровень Groq упирается в потолок
+# (около 120 толкований в сутки), запасной путь начинает срабатывать
+# по-настоящему — и цена модели перестаёт быть теоретической.
+#
+# ("claude-sonnet-4-6", который был здесь до opus-5, вообще не существует
+# как модель: каждый вызов молча получал 404 и уходил в статичный текст.)
+_ANTHROPIC_MODEL = "claude-haiku-4-5"
 
 
 def is_configured() -> bool:
