@@ -53,9 +53,6 @@ export function EnergyBalance({ balance, onClick, variant = "compact", breakdown
   // чуть-чуть осталось».
   const rawPercent = gauge && gauge.capacity > 0 ? Math.min((gauge.charge / gauge.capacity) * 100, 100) : 0;
   const percent = gauge && gauge.charge > 0 ? Math.max(rawPercent, 6) : 0;
-  // Сверх ёмкости: купленная и реферальная. Считается от общего баланса,
-  // а не суммированием источников, — так «+N» всегда сходится с числом.
-  const extra = gauge && breakdown ? Math.max(breakdown.balance - gauge.charge, 0) : 0;
   const empty = !loading && (balance ?? 0) === 0;
 
   const Tag = onClick ? "button" : "div";
@@ -90,24 +87,20 @@ export function EnergyBalance({ balance, onClick, variant = "compact", breakdown
       onClick={onClick}
       aria-label={loading ? "Баланс энергии загружается" : `Энергия: ${balance}`}
     >
+      {/* Крупным числом — весь баланс, тот же, что на главной. Раньше здесь
+          стояла шкала «заряд / ёмкость», и у человека без подписки это
+          означало «1 / 1»: купив пять энергии, он видел в профиле единицу,
+          а на главной шесть. Шкала осталась полоской и подписью — ей место
+          рядом с числом, а не вместо него. */}
       <span className={styles.readoutRow}>
         {battery}
         <span className={styles.readout}>
-          {gauge ? (
-            <>
-              <span className={styles.charge}>{gauge.charge}</span>
-              <span className={styles.capacity}>/ {gauge.capacity}</span>
-            </>
-          ) : (
-            <span className={styles.charge}>{loading ? "…" : balance}</span>
-          )}
+          <span className={styles.charge}>{loading ? "…" : balance}</span>
         </span>
       </span>
 
       <span className={styles.caption}>
-        {gauge
-          ? [gauge.label, extra > 0 ? `+ ✦ ${extra} сверх квоты` : null].filter(Boolean).join(" · ")
-          : "энергия"}
+        {gauge ? `${gauge.label}: ${gauge.charge} / ${gauge.capacity}` : "энергия"}
       </span>
 
       {breakdown && (
@@ -115,7 +108,7 @@ export function EnergyBalance({ balance, onClick, variant = "compact", breakdown
           {[
             breakdown.purchased > 0 ? `${breakdown.purchased} куплено` : null,
             breakdown.referral > 0 ? `${breakdown.referral} за друзей` : null,
-            breakdown.subscription && breakdown.daily > 0 ? `${breakdown.daily} бесплатно сегодня` : null,
+            breakdown.daily > 0 ? `${breakdown.daily} бесплатно сегодня` : null,
           ]
             .filter(Boolean)
             .join(" · ") || (empty ? "энергия закончилась" : "")}
