@@ -18,6 +18,7 @@
 
 import datetime as dt
 import logging
+from urllib.parse import parse_qsl
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import PlainTextResponse, RedirectResponse
@@ -130,9 +131,19 @@ async def payment_result(request: Request, db: Session = Depends(get_db)) -> Pla
         logger.error("Уведомление получено, но ROBOKASSA_PASSWORD2 не задан")
         raise HTTPException(status_code=503, detail="not configured")
 
+    # Тело разбираем сами, а не через request.form(). Starlette для формы
+    # требует библиотеку python-multipart, которой в зависимостях нет, и
+    # без неё вызов падает с AssertionError — то есть уведомление об
+    # оплате получает 500, Робокасса считает его недоставленным и
+    # повторяет, а человек остаётся без начисления. Ровно это и случилось
+    # на первом же настоящем платеже.
+    #
+    # Робокасса шлёт обычную urlencoded-форму, разобрать её — одна строка
+    # стандартной библиотеки. Тянуть ради этого зависимость незачем.
     form = dict(request.query_params)
     if request.method == "POST":
-        form.update({k: str(v) for k, v in (await request.form()).items()})
+        raw = (await request.body()).decode("utf-8", "replace")
+        form.update(dict(parse_qsl(raw, keep_blank_values=True)))
 
     amount = form.get("OutSum", "")
     invoice_raw = form.get("InvId", "")
