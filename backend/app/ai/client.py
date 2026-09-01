@@ -1,19 +1,24 @@
 """
-Minimal API clients for the two AI-generated features (daily motivating
-message, spread interpretation). Deliberately not using any vendor's
-SDK to keep the dependency list small — these are single JSON POSTs.
+Клиент к языковой модели для двух функций: сообщение дня и толкование
+расклада. Намеренно без SDK поставщика — это один POST с JSON.
 
-Tried in order, each only if the previous one is unconfigured or fails:
-Groq (free) -> Anthropic (last, since it is pay-as-you-go). Both degrade
-to `None` on any failure; callers fall back to static content (see
-app/ai/fallback.py) — an LLM outage should never break the main app
-flow, just make it a bit less personalized.
+Поставщик один: Groq. Раньше за ним стоял платный Anthropic, но при
+пересчёте стоимости выяснилось, что смысла в нём нет: одно толкование на
+Groq стоит около 6 копеек, на Haiku — 45 копеек, на Opus — 2,2 рубля,
+а задача одна и та же — абзац текста по готовому промпту. Держать
+второго поставщика ради редких сбоев первого значит платить в разы
+дороже за те же слова и хранить лишний ключ.
 
-Google's Gemini used to be tried first and was removed: it had begun
-answering 503 to every call in production, so each interpretation paid
-its full timeout before Groq — which was doing all the real work
-anyway — even got asked. A provider that never succeeds is not a
-fallback, it is latency.
+Сбой Groq при этом не ломает приложение: вызов возвращает None, и
+вызывающий код показывает статичный текст (app/ai/fallback.py). Толкование
+в такие минуты будет безликим, но расклад откроется и энергия не
+спишется — списание идёт только после успешного ответа модели.
+
+До Groq первым пробовался Google Gemini и был убран: он начал отвечать
+503 на каждый вызов, и каждое толкование оплачивало его полный таймаут,
+прежде чем очередь доходила до Groq, который и делал всю работу.
+Поставщик, который никогда не отвечает, — это не запасной вариант, а
+задержка.
 """
 
 import asyncio
@@ -45,26 +50,8 @@ _GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 _GROQ_MODEL = "openai/gpt-oss-120b"
 _GROQ_REASONING_EFFORT = "low"
 
-_ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
-# Запасной вариант, а не основной: сюда попадают только те запросы, что не
-# смог обслужить Groq. Отсюда и выбор модели.
-#
-# Здесь стоял claude-opus-5 — и это была ошибка масштаба. Одно толкование
-# на нём стоит около 2,2 руб., на Haiku 4.5 — около 0,45 руб., а на самом
-# Groq — около 6 копеек. При этом задача узкая: один абзац толкования по
-# готовому промпту и списку карт, и разницу между Haiku и Opus в ней не
-# видно. Раньше это ничего не стоило, потому что ключа Anthropic не было
-# вовсе; с закупкой трафика бесплатный уровень Groq упирается в потолок
-# (около 120 толкований в сутки), запасной путь начинает срабатывать
-# по-настоящему — и цена модели перестаёт быть теоретической.
-#
-# ("claude-sonnet-4-6", который был здесь до opus-5, вообще не существует
-# как модель: каждый вызов молча получал 404 и уходил в статичный текст.)
-_ANTHROPIC_MODEL = "claude-haiku-4-5"
-
-
 def is_configured() -> bool:
-    return bool(settings.groq_api_key or settings.anthropic_api_key)
+    return bool(settings.groq_api_key)
 
 
 async def generate_text(system_prompt: str, user_prompt: str, max_tokens: int = 400) -> str | None:
@@ -76,7 +63,6 @@ async def generate_text(system_prompt: str, user_prompt: str, max_tokens: int = 
     """
     providers = [
         (settings.groq_api_key, _generate_via_groq),
-        (settings.anthropic_api_key, _generate_via_anthropic),
     ]
     for api_key, call in providers:
         if not api_key:
@@ -113,57 +99,6 @@ async def _generate_via_groq(system_prompt: str, user_prompt: str, max_tokens: i
     except Exception:  # noqa: BLE001 — any failure here should degrade, not 500 the request
         logger.exception("Groq API call failed")
         return None
-
-
-async def _generate_via_anthropic(system_prompt: str, user_prompt: str, max_tokens: int) -> str | None:
-    try:
-        async with httpx.AsyncClient(timeout=_REQUEST_TIMEOUT) as client:
-            response = await client.post(
-                _ANTHROPIC_API_URL,
-                headers={
-                    "x-api-key": settings.anthropic_api_key,
-                    "anthropic-version": "2023-06-01",
-                    # Lets the API transparently retry on a fallback model if
-                    # claude-opus-5's safety classifier declines the request,
-                    # instead of us immediately dropping to static content.
-                    "anthropic-beta": "server-side-fallback-2026-07-01",
-                    "content-type": "application/json",
-                },
-                json={
-                    "model": _ANTHROPIC_MODEL,
-                    "max_tokens": max_tokens,
-                    "system": system_prompt,
-                    "messages": [{"role": "user", "content": user_prompt}],
-                    "fallbacks": "default",
-                },
-            )
-        response.raise_for_status()
-        data = response.json()
-        parts = [block["text"] for block in data.get("content", []) if block.get("type") == "text"]
-        text = "".join(parts).strip()
-        return text or None
-    except Exception:  # noqa: BLE001 — any failure here should degrade, not 500 the request
-        logger.exception("Anthropic API call failed")
-        return None
-
-
-# --- Чат с тарологом -------------------------------------------------
-#
-# У чата свой путь к модели, и намеренно только через Groq.
-#
-# Обычные фичи при отказе Groq уходят на Anthropic, и это правильно:
-# толкование должно появиться, а разница в цене одного вызова не
-# принципиальна. Чат же — самая частая по числу вызовов вещь в
-# приложении, и тихий переход на платный ключ означал бы счёт, которого
-# никто не заказывал. Поэтому здесь при упоре в лимит мы ждём и пробуем
-# снова: пусть ответ придёт позже, но по бесплатному тарифу.
-
-# Больше общего таймаута: собеседнику простительно подумать, а обрыв на
-# десятой секунде выглядел бы поломкой.
-_CHAT_TIMEOUT = 30.0
-# Groq на бесплатном тарифе отвечает 429, когда лимит исчерпан. Пауза
-# растёт, чтобы вторая попытка не пришла в ту же занятую секунду.
-_CHAT_RETRY_DELAYS = (2.0, 5.0)
 
 
 async def generate_chat_reply(

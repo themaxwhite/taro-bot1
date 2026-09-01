@@ -22,12 +22,10 @@ class Settings(BaseSettings):
     # URL in production if you need concurrent writers or a managed DB.
     database_url: str = "sqlite:///./tarot.db"
 
-    # API keys for the AI interpretation feature and the daily motivating
-    # message (app/ai/client.py), tried in order: Groq (free) ->
-    # Anthropic (pay-as-you-go, tried last). Both optional for local dev
-    # — the features degrade to a static fallback if neither is set.
+    # Ключ Groq для двух функций с языковой моделью: толкование расклада и
+    # сообщение дня (app/ai/client.py). Необязателен: без него обе функции
+    # отдают статичный текст, остальное приложение работает как обычно.
     groq_api_key: str | None = None
-    anthropic_api_key: str | None = None
 
     # Настроек платёжного провайдера здесь нет намеренно: он не
     # подключён (см. app/api/subscriptions.py). Когда появится, его

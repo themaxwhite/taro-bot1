@@ -1,5 +1,5 @@
 """
-Static content the AI features fall back to when ANTHROPIC_API_KEY isn't
+Static content the AI features fall back to when GROQ_API_KEY isn't
 set (or a call fails) — so the app is fully usable without an API key,
 just less personalized. See app/ai/client.py.
 """
