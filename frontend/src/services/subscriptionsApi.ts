@@ -117,3 +117,21 @@ export async function redeemPromoCode(code: string): Promise<void> {
     body: JSON.stringify({ code }),
   });
 }
+
+/**
+ * Заводит платёж и возвращает адрес формы оплаты Робокассы.
+ *
+ * Ссылку строит сервер: в неё входит подпись, а ключ, которым она
+ * считается, в браузере оказаться не должен ни при каких условиях.
+ */
+export async function createPayment(
+  kind: "energy" | "subscription",
+  itemId: string,
+): Promise<string> {
+  const response = await api("/api/payments/robokassa/create", {
+    method: "POST",
+    body: JSON.stringify({ kind, item_id: itemId }),
+  });
+  const data = (await response.json()) as { payment_url: string; invoice_id: number };
+  return data.payment_url;
+}

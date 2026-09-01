@@ -6,6 +6,7 @@ import {
   type TierOption,
 } from "../../types/subscription";
 import {
+  createPayment,
   getSubscriptionStatus,
   redeemPromoCode,
   getEnergyPacks,
@@ -30,6 +31,13 @@ type LoadState =
 
 type PromoState = { status: "idle" } | { status: "checking" } | { status: "error"; message: string };
 
+/* Что именно сейчас покупается. Идентификатор, а не просто флаг: пока идёт
+   создание платежа, ждать должна одна нажатая кнопка, а не все сразу. */
+type BuyState =
+  | { status: "idle" }
+  | { status: "creating"; itemId: string }
+  | { status: "error"; message: string };
+
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
 }
@@ -44,6 +52,40 @@ export function SubscriptionScreen({ onBack }: SubscriptionScreenProps) {
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [promoCode, setPromoCode] = useState("");
   const [promoState, setPromoState] = useState<PromoState>({ status: "idle" });
+  const [buyState, setBuyState] = useState<BuyState>({ status: "idle" });
+
+  /**
+   * Уводит человека на форму оплаты Робокассы.
+   *
+   * Ссылку строит сервер и сразу заводит платёж в статусе «ожидает»: без
+   * этой записи вернувшееся уведомление об оплате не к чему привязать.
+   *
+   * Открываем через openLink, а не сменой адреса: мини-приложение живёт
+   * внутри Telegram, и уводить его вкладку на чужой домен нельзя — назад
+   * человек уже не вернётся. Встроенный браузер откроется поверх, а после
+   * оплаты закроется и вернёт в приложение.
+   */
+  const buy = async (kind: "energy" | "subscription", itemId: string) => {
+    setBuyState({ status: "creating", itemId });
+    try {
+      const url = await createPayment(kind, itemId);
+      const webApp = window.Telegram?.WebApp;
+      if (webApp) {
+        webApp.openLink(url);
+      } else {
+        window.open(url, "_blank", "noopener");
+      }
+      setBuyState({ status: "idle" });
+    } catch (error) {
+      setBuyState({
+        status: "error",
+        message:
+          error instanceof SpreadsApiError
+            ? error.message
+            : "Не удалось создать платёж. Попробуйте ещё раз.",
+      });
+    }
+  };
   const [packs, setPacks] = useState<EnergyPack[]>([]);
   const [tiers, setTiers] = useState<TierOption[]>([]);
 
@@ -127,11 +169,8 @@ export function SubscriptionScreen({ onBack }: SubscriptionScreenProps) {
         </div>
       )}
 
-      {state.status !== "loading" && (packs.length > 0 || tiers.length > 0) && (
-        <p className={styles.paymentsOff}>
-          Оплата сейчас отключена — пополнить энергию и оформить подписку нельзя. Всё
-          остальное работает: карта дня, суточная энергия и энергия за приглашённых друзей.
-        </p>
+      {buyState.status === "error" && (
+        <p className={styles.paymentsOff}>{buyState.message}</p>
       )}
 
       {packs.length > 0 && (
@@ -140,10 +179,20 @@ export function SubscriptionScreen({ onBack }: SubscriptionScreenProps) {
           <p className={styles.sectionHint}>Разово, без подписки. Купленная энергия не сгорает.</p>
           <div className={styles.packRow}>
             {packs.map((pack) => (
-              <button key={pack.id} type="button" className={styles.packCard} disabled>
+              <button
+                key={pack.id}
+                type="button"
+                className={styles.packCard}
+                onClick={() => buy("energy", pack.id)}
+                disabled={buyState.status === "creating"}
+              >
                 {pack.badge && <span className={styles.packBadge}>{pack.badge}</span>}
                 <span className={styles.packAmount}>✦ {pack.amount}</span>
-                <span className={styles.packPrice}>{pack.priceRub} ₽</span>
+                <span className={styles.packPrice}>
+                  {buyState.status === "creating" && buyState.itemId === pack.id
+                    ? "…"
+                    : `${pack.priceRub} ₽`}
+                </span>
               </button>
             ))}
           </div>
@@ -171,8 +220,17 @@ export function SubscriptionScreen({ onBack }: SubscriptionScreenProps) {
                   ))}
                 </ul>
               )}
-              <button type="button" className={styles.tierButton} disabled>
-                {isActiveTier(tier.id) ? "Уже активен" : "Пока недоступно"}
+              <button
+                type="button"
+                className={styles.tierButton}
+                onClick={() => buy("subscription", tier.id)}
+                disabled={isActiveTier(tier.id) || buyState.status === "creating"}
+              >
+                {isActiveTier(tier.id)
+                  ? "Уже активен"
+                  : buyState.status === "creating" && buyState.itemId === tier.id
+                    ? "Открываем оплату…"
+                    : `Оформить за ${tier.priceRub} ₽`}
               </button>
             </div>
           ))}
