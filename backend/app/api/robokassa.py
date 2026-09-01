@@ -155,7 +155,14 @@ async def payment_result(request: Request, db: Session = Depends(get_db)) -> Pla
         password2=settings.robokassa_password2,
         received=signature,
     ):
-        logger.warning("Уведомление с неверной подписью, счёт %r", invoice_raw)
+        # Пишем всё, кроме пароля: по этим полям видно, чем именно
+        # расходится подпись — форматом суммы, набором параметров или
+        # самим паролем #2. Хеш секретом не является, поэтому его можно.
+        logger.warning(
+            "Уведомление с неверной подписью. Счёт %r, сумма %r, подпись %r, "
+            "все поля: %s",
+            invoice_raw, amount, signature, sorted(form.keys()),
+        )
         raise HTTPException(status_code=400, detail="bad signature")
 
     if not invoice_raw.isdigit():
