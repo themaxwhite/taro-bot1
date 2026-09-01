@@ -11,6 +11,7 @@ from app.api import (
     history,
     payments,
     referral,
+    robokassa,
     spreads,
     subscriptions,
 )
@@ -69,4 +70,5 @@ app.include_router(subscriptions.router)
 app.include_router(referral.router)
 app.include_router(admin.router)
 app.include_router(admin_auth.router)
+app.include_router(robokassa.router)
 app.include_router(chat.router)
