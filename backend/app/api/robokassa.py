@@ -17,6 +17,7 @@
 """
 
 import logging
+from decimal import Decimal, InvalidOperation
 from urllib.parse import parse_qsl
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -181,10 +182,23 @@ async def payment_result(request: Request, db: Session = Depends(get_db)) -> Pla
 
     # Сверяем сумму: подпись подтверждает, что уведомление от Робокассы, но
     # не что заплатили столько, сколько мы выставили.
-    if amount != robokassa.format_amount(payment.amount_rub):
+    #
+    # Сравниваем числа, а не строки. Робокасса присылает сумму как
+    # "89.000000", мы выставляли "89.00" — как текст это разные значения,
+    # как деньги одно и то же. На первых же платежах именно это сравнение
+    # отвергало честные уведомления: подпись сходилась, а сумма «не
+    # совпадала». Decimal, а не float: деньги не место для двоичных
+    # приближений.
+    try:
+        paid = Decimal(amount)
+    except InvalidOperation:
+        logger.error("Счёт %s: сумма %r не разбирается как число", payment.id, amount)
+        raise HTTPException(status_code=400, detail="bad amount")
+
+    if paid != Decimal(payment.amount_rub):
         logger.error(
             "Счёт %s: пришло %s, ожидалось %s — не зачитываем",
-            payment.id, amount, robokassa.format_amount(payment.amount_rub),
+            payment.id, paid, payment.amount_rub,
         )
         raise HTTPException(status_code=400, detail="amount mismatch")
 
