@@ -123,7 +123,8 @@ export function TermsScreen({ onBack }: TermsScreenProps) {
 
         <h2 className={styles.heading}>8. Оператор и контакты</h2>
         <p className={styles.paragraph}>
-          Сервис оказывает и персональные данные обрабатывает {LEGAL.name}, ИНН {LEGAL.inn}.
+          Сервис оказывает и персональные данные обрабатывает {LEGAL.name}, ИНН{" "}
+          {LEGAL.inn}, самозанятый — плательщик налога на профессиональный доход.
         </p>
         <p className={styles.paragraph}>
           Запросы об обработке данных, их удалении и отзыв согласия, а также любые другие
