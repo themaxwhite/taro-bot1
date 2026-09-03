@@ -187,6 +187,17 @@ export const cancelPayment = (session: AdminSession, id: number) =>
     { method: "POST" },
   );
 
+/* Исполнение обращения человека об удалении его данных: политика
+   конфиденциальности обещает это в срок до тридцати дней. Платежи при
+   этом остаются — они нужны для налогового учёта, и его срок хранения
+   от желания человека не зависит. */
+export const eraseUser = (session: AdminSession, telegramId: number) =>
+  request<{ status: string; message: string; removed: Record<string, number> }>(
+    `/api/admin/users/${telegramId}/erase`,
+    session,
+    { method: "POST" },
+  );
+
 export const listPayments = (
   session: AdminSession,
   filters: { days: number; status: string; kind: string },

@@ -2,12 +2,13 @@ import datetime as dt
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
-from sqlalchemy import case, func, or_, select
+from sqlalchemy import case, delete, func, or_, select
 from sqlalchemy.orm import Session
 
 import logging
 
 from app.api.deps import get_admin_user
+from app.config import settings
 from app.db import get_db
 from app.api.subscriptions import available_unlocks
 from app.energy import CHAT_QUESTION_COST
@@ -771,4 +772,93 @@ def get_user_detail(
             for p in payments
         ],
         events=events[:60],
+    )
+
+
+class AdminEraseResponse(BaseModel):
+    status: str
+    message: str
+    removed: dict[str, int]
+
+
+@router.post("/users/{telegram_id}/erase", response_model=AdminEraseResponse)
+def erase_user(
+    telegram_id: int,
+    admin: User = Depends(get_admin_user),
+    db: Session = Depends(get_db),
+) -> AdminEraseResponse:
+    """
+    Исполняет обращение человека об удалении его данных.
+
+    Политика конфиденциальности обещает это в срок до тридцати дней, и
+    срок установлен законом, а не нами. До появления этой ручки обещание
+    исполнялось бы руками в боевой базе — то есть в обстановке, где легко
+    удалить не то и невозможно себя проверить.
+
+    Удаляется всё, что человек создал: расклады, уточняющие вопросы,
+    переписка с тарологом, подписка, настройки и остатки энергии.
+
+    Платежи остаются, и это не оплошность: записи об оплатах нужны для
+    налогового учёта, а его срок хранения свой и от желания человека не
+    зависит. Поэтому строка пользователя не удаляется, а обезличивается —
+    имя, ник и интересы стираются, а идентификатор остаётся, иначе
+    платежи повиснут без владельца и перестанут сходиться с выпиской.
+    """
+    user = db.get(User, telegram_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+
+    if telegram_id in settings.admin_telegram_id_set:
+        # Обезличивание админа выглядит как отказ панели работать: строка
+        # пользователя нужна для входа (см. app/api/deps.py).
+        raise HTTPException(
+            status_code=409,
+            detail="Нельзя удалить данные администратора — панель перестанет пускать",
+        )
+
+    removed: dict[str, int] = {}
+
+    spread_ids = [
+        row[0] for row in db.execute(
+            select(SpreadRecord.id).where(SpreadRecord.user_id == telegram_id)
+        ).all()
+    ]
+    if spread_ids:
+        removed["Уточняющие вопросы"] = db.execute(
+            delete(SpreadFollowUp).where(SpreadFollowUp.spread_record_id.in_(spread_ids))
+        ).rowcount or 0
+
+    removed["Расклады"] = db.execute(
+        delete(SpreadRecord).where(SpreadRecord.user_id == telegram_id)
+    ).rowcount or 0
+    removed["Сообщения в чате"] = db.execute(
+        delete(ChatMessage).where(ChatMessage.user_id == telegram_id)
+    ).rowcount or 0
+    removed["Подписка"] = db.execute(
+        delete(Subscription).where(Subscription.user_id == telegram_id)
+    ).rowcount or 0
+
+    user.first_name = "Удалённый пользователь"
+    user.username = None
+    user.interests = None
+    user.gender = None
+    user.zodiac_sign = None
+    user.patron_card = None
+    user.notifications_enabled = False
+    user.last_notified_date = None
+    user.energy = 0
+    user.purchased_energy = 0
+    user.referral_bonus_quota = 0
+    db.commit()
+
+    logger.warning(
+        "Администратор %s удалил данные пользователя %s: %s",
+        admin.telegram_id, telegram_id,
+        ", ".join(f"{k.lower()} {v}" for k, v in removed.items()),
+    )
+
+    return AdminEraseResponse(
+        status="erased",
+        message="Данные удалены, платежи сохранены для учёта",
+        removed=removed,
     )

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getUser, searchUsers, type UserBrief, type UserDetail } from "./api";
+import { eraseUser, getUser, searchUsers, type UserBrief, type UserDetail } from "./api";
 import type { AdminSession } from "./auth";
 import { formatDate, formatDateTime, formatMoney, formatNumber, plural } from "./format";
 
@@ -17,6 +17,7 @@ export function UsersScreen({ session, onAuthError, focusUser, onFocusHandled }:
   const [detail, setDetail] = useState<UserDetail | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const fail = (e: Error) => {
     setError(e.message);
@@ -74,10 +75,24 @@ export function UsersScreen({ session, onAuthError, focusUser, onFocusHandled }:
       </form>
 
       {error && <p className="error">{error}</p>}
+      {notice && <p className="muted">{notice}</p>}
       {busy && <p className="muted">Загружаем…</p>}
 
       {detail ? (
-        <UserCard detail={detail} onBack={() => setDetail(null)} />
+        <UserCard
+          detail={detail}
+          onBack={() => setDetail(null)}
+          onErase={() => {
+            setBusy(true);
+            eraseUser(session, detail.telegram_id)
+              .then((r) => {
+                setNotice(r.message);
+                return getUser(session, detail.telegram_id).then(setDetail);
+              })
+              .catch(fail)
+              .finally(() => setBusy(false));
+          }}
+        />
       ) : (
         results && <Results users={results} onOpen={open} />
       )}
@@ -123,7 +138,15 @@ function Results({ users, onOpen }: { users: UserBrief[]; onOpen: (id: number) =
   );
 }
 
-function UserCard({ detail, onBack }: { detail: UserDetail; onBack: () => void }) {
+function UserCard({
+  detail,
+  onBack,
+  onErase,
+}: {
+  detail: UserDetail;
+  onBack: () => void;
+  onErase: () => void;
+}) {
   const sub = detail.subscription_tier
     ? `${detail.subscription_tier} — ${detail.subscription_status ?? "?"}, ` +
       `${detail.subscription_quota_used ?? 0} из ${detail.subscription_quota_total ?? 0}` +
@@ -256,6 +279,25 @@ function UserCard({ detail, onBack }: { detail: UserDetail; onBack: () => void }
             </table>
           </div>
         )}
+      </div>
+
+      <div className="panel">
+        <h2>Обращение об удалении данных</h2>
+        <p className="muted">
+          Удалит расклады, уточняющие вопросы, переписку с тарологом, подписку,
+          анкету и остатки энергии. Платежи останутся: они нужны для налогового
+          учёта, и срок их хранения от желания человека не зависит. Отменить
+          нельзя — восстановить получится только из ночной копии базы.
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            const name = detail.username ? "@" + detail.username : detail.first_name;
+            if (window.confirm(`Удалить данные: ${name} (${detail.telegram_id})?`)) onErase();
+          }}
+        >
+          Удалить данные
+        </button>
       </div>
     </>
   );
