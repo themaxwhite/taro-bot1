@@ -6,7 +6,8 @@
 
 Две подписи считаются по разным паролям, и перепутать их легко:
 
-* ссылка на оплату — MD5 от `MerchantLogin:OutSum:InvId:Пароль#1`;
+* ссылка на оплату — MD5 от `MerchantLogin:OutSum:InvId:Пароль#1`,
+  а при передаче состава чека — `MerchantLogin:OutSum:InvId:Receipt:Пароль#1`;
 * уведомление на ResultURL — MD5 от `OutSum:InvId:Пароль#2`.
 
 Порядок полей строгий, и сравнение регистронезависимое: Робокасса
@@ -14,7 +15,8 @@
 """
 
 import hashlib
-from urllib.parse import urlencode
+import json
+from urllib.parse import quote, urlencode
 
 PAYMENT_URL = "https://auth.robokassa.ru/Merchant/Index.aspx"
 
@@ -33,7 +35,67 @@ def format_amount(amount_rub: int) -> str:
     return f"{amount_rub:.2f}"
 
 
-def payment_signature(merchant_login: str, amount: str, invoice_id: int, password1: str) -> str:
+def build_receipt(*, title: str, amount_rub: int) -> str:
+    """
+    Состав чека — одна позиция на весь платёж.
+
+    Без этого параметра чек не выбивается вовсе: Робокассе нечего
+    фискализировать, она знает только сумму. Именно поэтому первые платежи
+    прошли, а в «Моём налоге» ничего не появилось.
+
+    Поля выбраны под самозанятого, оказывающего услуги:
+
+    * ``payment_object: service`` — продаём услугу, а не товар;
+    * ``payment_method: full_payment`` — полный расчёт сразу, без предоплат
+      и рассрочек;
+    * ``tax: none`` — плательщик налога на профессиональный доход НДС не
+      платит, и «none» здесь означает именно это, а не нулевую ставку;
+    * ``sno`` не указываем: система налогообложения к НПД неприменима, а
+      лишнее поле Робокасса может не принять.
+
+    Сумма позиции обязана совпадать с суммой платежа — иначе чек не сойдётся
+    с оплатой.
+    """
+    receipt = {
+        "items": [
+            {
+                "name": title[:128],
+                "quantity": 1,
+                "sum": amount_rub,
+                "payment_method": "full_payment",
+                "payment_object": "service",
+                "tax": "none",
+            }
+        ]
+    }
+    # ensure_ascii=False: названия по-русски, и Робокасса ждёт UTF-8, а не
+    # экранированные последовательности. separators без пробелов — строка
+    # уходит и в подпись, и в адрес, и любой лишний символ меняет хеш.
+    return json.dumps(receipt, ensure_ascii=False, separators=(",", ":"))
+
+
+def _encode_receipt(receipt_json: str) -> str:
+    """
+    Кодирует чек ровно один раз — и для подписи, и для адреса.
+
+    Документация требует URL-кодировать значение перед добавлением в строку
+    подписи. Отсюда главная ловушка: если потом отдать сырой JSON сборщику
+    адреса, он закодирует его второй раз по своим правилам, и подпись
+    разойдётся с тем, что реально уехало. Поэтому кодируем здесь, а в адрес
+    подставляем уже готовую строку, минуя urlencode.
+    """
+    return quote(receipt_json, safe="")
+
+
+def payment_signature(
+    merchant_login: str,
+    amount: str,
+    invoice_id: int,
+    password1: str,
+    receipt_encoded: str | None = None,
+) -> str:
+    if receipt_encoded:
+        return _md5(f"{merchant_login}:{amount}:{invoice_id}:{receipt_encoded}:{password1}")
     return _md5(f"{merchant_login}:{amount}:{invoice_id}:{password1}")
 
 
@@ -57,22 +119,30 @@ def payment_url(
     базе.
     """
     amount = format_amount(amount_rub)
+    receipt_encoded = _encode_receipt(receipt) if receipt else None
+
     params = {
         "MerchantLogin": merchant_login,
         "OutSum": amount,
         "InvId": invoice_id,
         "Description": description,
-        "SignatureValue": payment_signature(merchant_login, amount, invoice_id, password1),
+        "SignatureValue": payment_signature(
+            merchant_login, amount, invoice_id, password1, receipt_encoded
+        ),
         "Culture": "ru",
         "Encoding": "utf-8",
     }
-    if receipt:
-        # Чек уходит отдельным параметром и в подпись не входит.
-        params["Receipt"] = receipt
     if is_test:
         params["IsTest"] = 1
 
-    return f"{PAYMENT_URL}?{urlencode(params)}"
+    query = urlencode(params)
+    if receipt_encoded:
+        # Подставляем уже закодированную строку сами: пропусти её через
+        # urlencode — и она закодируется второй раз, а подпись считалась по
+        # однократной.
+        query += "&Receipt=" + receipt_encoded
+
+    return f"{PAYMENT_URL}?{query}"
 
 
 def result_signature_valid(

@@ -115,6 +115,10 @@ def create_payment(
         invoice_id=payment.id,
         description=description,
         is_test=settings.robokassa_test_mode,
+        # Состав чека обязателен: без него Робокассе нечего фискализировать,
+        # и чек в «Мой налог» не попадает — оплата при этом проходит, так
+        # что заметить пропажу можно только в самом «Моём налоге».
+        receipt=robokassa.build_receipt(title=description, amount_rub=amount_rub),
     )
     logger.info(
         "Создан платёж %s: пользователь %s, %s, %s руб.",
