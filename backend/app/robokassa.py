@@ -76,13 +76,22 @@ def build_receipt(*, title: str, amount_rub: int) -> str:
 
 def _encode_receipt(receipt_json: str) -> str:
     """
-    Кодирует чек ровно один раз — и для подписи, и для адреса.
+    Кодирует чек для адреса — но не для подписи.
 
-    Документация требует URL-кодировать значение перед добавлением в строку
-    подписи. Отсюда главная ловушка: если потом отдать сырой JSON сборщику
-    адреса, он закодирует его второй раз по своим правилам, и подпись
-    разойдётся с тем, что реально уехало. Поэтому кодируем здесь, а в адрес
-    подставляем уже готовую строку, минуя urlencode.
+    Здесь расхождение между документацией и поведением, и оно стоило
+    отдельной проверки. Документация говорит: «перед добавлением в строку
+    для подписи значение Receipt нужно URL-кодировать». На деле Робокасса
+    так подписанную ссылку отвергает с кодом 29 — неверная контрольная
+    сумма.
+
+    Проверено перебором прямо на её форме, четырьмя вариантами:
+
+        без чека вовсе                                  — принято
+        подпись по закодированному, в адресе тот же      — ошибка 29
+        подпись по сырому JSON, в адресе закодированный  — ПРИНЯТО
+        подпись по закодированному, в адресе сырой       — ошибка 29
+
+    Поэтому подписываем сырой JSON, а в адрес кладём закодированный.
     """
     return quote(receipt_json, safe="")
 
@@ -92,10 +101,11 @@ def payment_signature(
     amount: str,
     invoice_id: int,
     password1: str,
-    receipt_encoded: str | None = None,
+    receipt: str | None = None,
 ) -> str:
-    if receipt_encoded:
-        return _md5(f"{merchant_login}:{amount}:{invoice_id}:{receipt_encoded}:{password1}")
+    if receipt:
+        # Сырой JSON, не закодированный — см. рассуждение в _encode_receipt.
+        return _md5(f"{merchant_login}:{amount}:{invoice_id}:{receipt}:{password1}")
     return _md5(f"{merchant_login}:{amount}:{invoice_id}:{password1}")
 
 
@@ -127,7 +137,7 @@ def payment_url(
         "InvId": invoice_id,
         "Description": description,
         "SignatureValue": payment_signature(
-            merchant_login, amount, invoice_id, password1, receipt_encoded
+            merchant_login, amount, invoice_id, password1, receipt
         ),
         "Culture": "ru",
         "Encoding": "utf-8",
