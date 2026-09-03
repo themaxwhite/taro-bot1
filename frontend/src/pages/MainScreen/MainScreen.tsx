@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTelegramUser } from "../../hooks/useTelegramUser";
 import { spreadGroups, type SpreadType } from "../../types/tarot";
 import { getDailyCardStatus } from "../../services/spreadsApi";
@@ -15,6 +15,7 @@ import { SpreadSuggestion } from "../../components/SpreadSuggestion/SpreadSugges
 import { ChatBanner } from "../../components/ChatBanner/ChatBanner";
 import { getSubscriptionStatus } from "../../services/subscriptionsApi";
 import type { EnergyBreakdown } from "../../types/energy";
+import { useRefreshOnReturn } from "../../hooks/useRefreshOnReturn";
 import { MysticalBackground } from "../../components/MysticalBackground/MysticalBackground";
 import styles from "./MainScreen.module.css";
 
@@ -57,17 +58,17 @@ export function MainScreen({
   // многоточием, чтобы шапка не прыгала, когда приедет число. Разбивка
   // нужна и здесь: без неё шкала аккумулятора не знает своей ёмкости.
   const [energy, setEnergy] = useState<EnergyBreakdown | null>(null);
-  useEffect(() => {
-    let cancelled = false;
+
+  const loadEnergy = useCallback(() => {
     getSubscriptionStatus()
-      .then((status) => {
-        if (!cancelled) setEnergy(status.energy);
-      })
+      .then((status) => setEnergy(status.energy))
       .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
   }, []);
+
+  useEffect(loadEnergy, [loadEnergy]);
+  /* Вернулись в приложение — перечитываем баланс. Главный случай: человек
+     уходил платить и вернулся с уже начисленной энергией. */
+  useRefreshOnReturn(loadEnergy);
 
   // Only used to pick the right pronoun in LoveNudgeBanner — stays null
   // (banner just doesn't render) if the fetch fails or gender was

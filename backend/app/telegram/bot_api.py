@@ -1,12 +1,16 @@
 """
-Minimal Telegram Bot API client — just the one call the /start handler
-needs. Notably not payments: the app has no payment provider connected,
-and has never used Telegram's own Stars currency.
+Минимальный клиент Bot API: приветствие на /start и сообщение о зачислении
+покупки. Оплата идёт через Робокассу, собственная валюта Telegram здесь не
+используется.
 """
+
+import logging
 
 import httpx
 
 from app.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class TelegramApiError(Exception):
@@ -49,3 +53,43 @@ async def send_app_launch_message(chat_id: int, text: str, button_text: str, app
             },
         },
     )
+
+
+def notify_purchase(user_id: int, what: str) -> None:
+    """
+    Сообщает человеку в бот, что покупка зачислена.
+
+    Вызывается после начисления, а не вместо него, и намеренно ничего не
+    возвращает: если сообщение не ушло, покупка всё равно состоялась, и
+    ронять из-за этого запрос нельзя.
+
+    Самый частый отказ — «bot was blocked» или «chat not found»: бот вправе
+    писать только тому, кто хоть раз нажал у него Start. Человек, открывший
+    мини-приложение по прямой ссылке, мог этого не делать никогда. Поэтому
+    отказ пишем в лог спокойно, как ожидаемый случай, а не как ошибку.
+
+    Клиент синхронный: вызывается из фоновой задачи FastAPI, где событийный
+    цикл ждать нечего, зато один и тот же код работает и в асинхронном
+    обработчике уведомления, и в синхронной ручке ручного зачёта.
+    """
+    if not settings.telegram_bot_token:
+        return
+
+    text = f"""✦ Оплата прошла. Начислено: {what}.
+
+Энергия уже на счету — можно открывать расклад."""
+
+    try:
+        response = httpx.post(
+            f"{_base_url()}/sendMessage",
+            json={"chat_id": user_id, "text": text},
+            timeout=10.0,
+        )
+        data = response.json()
+        if not data.get("ok"):
+            logger.info(
+                "Не удалось написать пользователю %s о покупке: %s",
+                user_id, data.get("description"),
+            )
+    except Exception:
+        logger.exception("Сбой при отправке сообщения о покупке пользователю %s", user_id)

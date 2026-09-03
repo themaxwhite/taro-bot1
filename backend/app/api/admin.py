@@ -1,6 +1,6 @@
 import datetime as dt
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import case, func, or_, select
 from sqlalchemy.orm import Session
@@ -21,6 +21,7 @@ from app.models import (
     User,
 )
 from app.payments import CreditError, credit
+from app.telegram.bot_api import notify_purchase
 
 logger = logging.getLogger(__name__)
 
@@ -445,6 +446,7 @@ class AdminPaymentActionResponse(BaseModel):
 @router.post("/payments/{payment_id}/confirm", response_model=AdminPaymentActionResponse)
 def confirm_payment(
     payment_id: int,
+    background: BackgroundTasks,
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> AdminPaymentActionResponse:
@@ -485,6 +487,10 @@ def confirm_payment(
         "Ручной зачёт счёта %s администратором %s: пользователю %s начислено %s",
         payment.id, admin.telegram_id, payment.user_id, what,
     )
+    # Человеку сообщение приходит одинаковое, зачли мы автоматически или
+    # руками: для него это просто «покупка дошла».
+    background.add_task(notify_purchase, payment.user_id, what)
+
     return AdminPaymentActionResponse(status="succeeded", message=f"Начислено: {what}")
 
 

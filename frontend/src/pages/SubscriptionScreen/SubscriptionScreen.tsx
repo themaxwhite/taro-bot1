@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   TIER_TITLES,
   type SubscriptionStatus,
@@ -18,6 +18,7 @@ import { SpreadsApiError } from "../../services/spreadsApi";
 import { ScreenHeader } from "../../components/ScreenHeader/ScreenHeader";
 import { Spinner } from "../../components/Spinner/Spinner";
 import { openOffer } from "../../content/contacts";
+import { useRefreshOnReturn } from "../../hooks/useRefreshOnReturn";
 import styles from "./SubscriptionScreen.module.css";
 
 interface SubscriptionScreenProps {
@@ -113,6 +114,16 @@ export function SubscriptionScreen({ onBack }: SubscriptionScreenProps) {
   }
 
   useEffect(load, []);
+
+  /* Перечитываем молча, без «Загружаем…»: этот экран человек видит сразу
+     после возврата с оплаты, и мигать заглушкой поверх уже показанных
+     цен незачем — меняется только число баланса. */
+  const reload = useCallback(() => {
+    getSubscriptionStatus()
+      .then((subscription) => setState({ status: "ready", subscription }))
+      .catch(() => {});
+  }, []);
+  useRefreshOnReturn(reload);
 
   async function handleRedeemPromo() {
     setPromoState({ status: "checking" });

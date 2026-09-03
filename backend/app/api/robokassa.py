@@ -20,7 +20,7 @@ import logging
 from decimal import Decimal, InvalidOperation
 from urllib.parse import parse_qsl
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from fastapi.responses import PlainTextResponse, RedirectResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -32,6 +32,7 @@ from app.db import get_db
 from app.energy import ENERGY_PACKS
 from app.models import SubscriptionPayment, User
 from app.payments import CreditError, credit
+from app.telegram.bot_api import notify_purchase
 from app.subscriptions import TIERS
 
 logger = logging.getLogger(__name__)
@@ -128,7 +129,11 @@ def create_payment(
 
 
 @router.api_route("/result", methods=["GET", "POST"], response_class=PlainTextResponse)
-async def payment_result(request: Request, db: Session = Depends(get_db)) -> PlainTextResponse:
+async def payment_result(
+    request: Request,
+    background: BackgroundTasks,
+    db: Session = Depends(get_db),
+) -> PlainTextResponse:
     """
     Уведомление от Робокассы. Единственное место, где что-то начисляется.
     """
@@ -217,6 +222,11 @@ async def payment_result(request: Request, db: Session = Depends(get_db)) -> Pla
         "Счёт %s оплачен по уведомлению: пользователь %s, %s руб., начислено %s",
         payment.id, payment.user_id, payment.amount_rub, what,
     )
+    # Фоном, после ответа: Робокасса ждёт от нас «OK», и заставлять её
+    # ждать ещё и Telegram незачем. Если сообщение не уйдёт, покупка всё
+    # равно зачтена — это уведомление, а не часть расчёта.
+    background.add_task(notify_purchase, payment.user_id, what)
+
     return PlainTextResponse(robokassa.result_ok(payment.id))
 
 
