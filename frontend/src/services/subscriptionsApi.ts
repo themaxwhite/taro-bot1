@@ -1,3 +1,4 @@
+import { fetchWithTimeout, networkErrorMessage } from "./http";
 import type { EnergyPack } from "../types/energy";
 import type { SubscriptionStatus, SubscriptionTierId, TierOption } from "../types/subscription";
 import { SpreadsApiError } from "./spreadsApi";
@@ -8,7 +9,7 @@ const API_BASE_URL: string =
 async function api(path: string, init?: RequestInit): Promise<Response> {
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}${path}`, {
+    response = await fetchWithTimeout(`${API_BASE_URL}${path}`, {
       ...init,
       headers: {
         "Content-Type": "application/json",
@@ -16,8 +17,8 @@ async function api(path: string, init?: RequestInit): Promise<Response> {
         ...init?.headers,
       },
     });
-  } catch {
-    throw new SpreadsApiError("Не удалось связаться с сервером. Проверьте подключение.");
+  } catch (error) {
+    throw new SpreadsApiError(networkErrorMessage(error));
   }
   if (response.status === 401) {
     throw new SpreadsApiError("Не удалось подтвердить пользователя Telegram.");

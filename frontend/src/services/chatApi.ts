@@ -1,3 +1,4 @@
+import { fetchWithTimeout, networkErrorMessage } from "./http";
 import { SpreadsApiError } from "./spreadsApi";
 
 const API_BASE_URL: string =
@@ -49,9 +50,9 @@ async function fail(response: Response): Promise<never> {
 export async function fetchChat(): Promise<ChatHistory> {
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}/api/chat`, { headers: headers() });
-  } catch {
-    throw new SpreadsApiError("Не удалось связаться с сервером. Проверьте подключение.");
+    response = await fetchWithTimeout(`${API_BASE_URL}/api/chat`, { headers: headers() });
+  } catch (error) {
+    throw new SpreadsApiError(networkErrorMessage(error));
   }
   if (!response.ok) await fail(response);
   return (await response.json()) as ChatHistory;
@@ -81,13 +82,13 @@ export async function askTarologist(
 ): Promise<AskResult> {
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}/api/chat`, {
+    response = await fetchWithTimeout(`${API_BASE_URL}/api/chat`, {
       method: "POST",
       headers: headers(),
       body: JSON.stringify({ question }),
     });
-  } catch {
-    throw new SpreadsApiError("Не удалось связаться с сервером. Проверьте подключение.");
+  } catch (error) {
+    throw new SpreadsApiError(networkErrorMessage(error));
   }
   if (!response.ok) await fail(response);
   if (!response.body) throw new SpreadsApiError("Сервер не прислал ответ.");

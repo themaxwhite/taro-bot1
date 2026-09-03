@@ -1,3 +1,4 @@
+import { fetchWithTimeout, networkErrorMessage } from "./http";
 import type { HistoryEntry, ProfileInsights, ProfileStats } from "../types/history";
 import { SpreadsApiError } from "./spreadsApi";
 
@@ -36,13 +37,13 @@ interface ProfileStatsDTO {
 async function authedFetch(path: string): Promise<Response> {
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}${path}`, {
+    response = await fetchWithTimeout(`${API_BASE_URL}${path}`, {
       headers: {
         "X-Telegram-Init-Data": window.Telegram?.WebApp?.initData ?? "",
       },
     });
-  } catch {
-    throw new SpreadsApiError("Не удалось связаться с сервером. Проверьте подключение.");
+  } catch (error) {
+    throw new SpreadsApiError(networkErrorMessage(error));
   }
 
   if (response.status === 401) {
@@ -131,7 +132,7 @@ export async function fetchProfile(): Promise<Profile> {
 async function authedPatch(path: string, body: unknown): Promise<void> {
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}${path}`, {
+    response = await fetchWithTimeout(`${API_BASE_URL}${path}`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -139,8 +140,8 @@ async function authedPatch(path: string, body: unknown): Promise<void> {
       },
       body: JSON.stringify(body),
     });
-  } catch {
-    throw new SpreadsApiError("Не удалось связаться с сервером. Проверьте подключение.");
+  } catch (error) {
+    throw new SpreadsApiError(networkErrorMessage(error));
   }
   if (!response.ok) {
     throw new SpreadsApiError(`Сервер вернул ошибку (${response.status}).`);

@@ -36,6 +36,7 @@ from app.db import SessionLocal, get_db
 from app.energy import CHAT_QUESTION_COST
 from app.models import ChatMessage, SpreadRecord, User
 from app.moderation import ensure_question_allowed
+from app.ratelimit import check_ai_rate_limit
 
 logger = logging.getLogger(__name__)
 
@@ -184,6 +185,8 @@ async def ask(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> StreamingResponse:
+    check_ai_rate_limit(user.telegram_id)
+
     question = body.question.strip()
     if not question:
         raise HTTPException(status_code=400, detail="Вопрос пустой.")

@@ -1,3 +1,4 @@
+import { fetchWithTimeout, networkErrorMessage } from "./http";
 import type { SpreadId } from "../types/tarot";
 import type { DrawSpreadResponse } from "../types/result";
 
@@ -22,7 +23,7 @@ export async function drawSpread(spreadId: SpreadId, question?: string): Promise
   let response: Response;
 
   try {
-    response = await fetch(`${API_BASE_URL}/api/spreads/draw`, {
+    response = await fetchWithTimeout(`${API_BASE_URL}/api/spreads/draw`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -34,8 +35,8 @@ export async function drawSpread(spreadId: SpreadId, question?: string): Promise
       },
       body: JSON.stringify({ spread_id: spreadId, question: question || null }),
     });
-  } catch {
-    throw new SpreadsApiError("Не удалось связаться с сервером. Проверьте подключение.");
+  } catch (error) {
+    throw new SpreadsApiError(networkErrorMessage(error));
   }
 
   if (response.status === 401) {
@@ -65,7 +66,7 @@ export async function drawSpread(spreadId: SpreadId, question?: string): Promise
 export async function getDailyCardStatus(): Promise<string | null> {
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}/api/spreads/daily-card/status`, {
+    response = await fetchWithTimeout(`${API_BASE_URL}/api/spreads/daily-card/status`, {
       headers: { "X-Telegram-Init-Data": window.Telegram?.WebApp?.initData ?? "" },
     });
   } catch {
@@ -88,7 +89,7 @@ export async function getDailyCardStatus(): Promise<string | null> {
 export async function checkQuestion(question: string): Promise<string | null> {
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}/api/spreads/check-question`, {
+    response = await fetchWithTimeout(`${API_BASE_URL}/api/spreads/check-question`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

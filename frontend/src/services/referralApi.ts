@@ -1,3 +1,4 @@
+import { fetchWithTimeout, networkErrorMessage } from "./http";
 import { SpreadsApiError } from "./spreadsApi";
 
 const API_BASE_URL: string =
@@ -6,7 +7,7 @@ const API_BASE_URL: string =
 async function api(path: string, init?: RequestInit): Promise<Response> {
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}${path}`, {
+    response = await fetchWithTimeout(`${API_BASE_URL}${path}`, {
       ...init,
       headers: {
         "Content-Type": "application/json",
@@ -14,8 +15,8 @@ async function api(path: string, init?: RequestInit): Promise<Response> {
         ...init?.headers,
       },
     });
-  } catch {
-    throw new SpreadsApiError("Не удалось связаться с сервером. Проверьте подключение.");
+  } catch (error) {
+    throw new SpreadsApiError(networkErrorMessage(error));
   }
   if (!response.ok) {
     const body = await response.json().catch(() => null);

@@ -18,6 +18,7 @@ from app.db import SessionLocal, get_db
 from app.tarot.schemas import DrawnCard
 from app.tarot.visibility import stored_cards
 from app.moderation import ensure_question_allowed
+from app.ratelimit import check_ai_rate_limit
 from app.models import DailyMessage, SpreadFollowUp, SpreadRecord, Subscription, User
 from app.subscriptions import FREE_TEXT_TIERS
 from app.spreads import SpreadId
@@ -154,6 +155,8 @@ async def interpret_spread(
     generated, the text is cached on the record so re-opening it later
     (e.g. from History) doesn't re-consume quota or re-call the AI.
     """
+    check_ai_rate_limit(user.telegram_id)
+
     record = db.get(SpreadRecord, spread_record_id)
     if record is None or record.user_id != user.telegram_id:
         raise HTTPException(status_code=404, detail="Spread not found")
@@ -257,6 +260,8 @@ async def ask_follow_up(
     deduped, since there's no meaningful notion of "the same" free-text
     question being asked twice.
     """
+    check_ai_rate_limit(user.telegram_id)
+
     record = db.get(SpreadRecord, spread_record_id)
     if record is None or record.user_id != user.telegram_id:
         raise HTTPException(status_code=404, detail="Spread not found")

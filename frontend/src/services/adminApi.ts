@@ -1,3 +1,4 @@
+import { fetchWithTimeout, networkErrorMessage } from "./http";
 import { SpreadsApiError } from "./spreadsApi";
 
 const API_BASE_URL: string =
@@ -52,13 +53,13 @@ function toAdminStats(data: AdminStatsDTO): AdminStats {
 export async function fetchAdminStats(): Promise<AdminStats> {
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}/api/admin/stats`, {
+    response = await fetchWithTimeout(`${API_BASE_URL}/api/admin/stats`, {
       headers: {
         "X-Telegram-Init-Data": window.Telegram?.WebApp?.initData ?? "",
       },
     });
-  } catch {
-    throw new SpreadsApiError("Не удалось связаться с сервером. Проверьте подключение.");
+  } catch (error) {
+    throw new SpreadsApiError(networkErrorMessage(error));
   }
 
   if (response.status === 403) {
@@ -132,11 +133,11 @@ export interface AdminUserDetail {
 async function adminFetch(path: string): Promise<Response> {
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}${path}`, {
+    response = await fetchWithTimeout(`${API_BASE_URL}${path}`, {
       headers: { "X-Telegram-Init-Data": window.Telegram?.WebApp?.initData ?? "" },
     });
-  } catch {
-    throw new SpreadsApiError("Не удалось связаться с сервером. Проверьте подключение.");
+  } catch (error) {
+    throw new SpreadsApiError(networkErrorMessage(error));
   }
   if (response.status === 403) throw new SpreadsApiError("Нет доступа к дашборду.");
   if (response.status === 404) throw new SpreadsApiError("Пользователь не найден.");
