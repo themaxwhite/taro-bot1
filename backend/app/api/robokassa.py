@@ -211,7 +211,15 @@ async def payment_result(
         )
         raise HTTPException(status_code=400, detail="amount mismatch")
 
-    payment.provider_payment_id = form.get("PaymentMethod") or None
+    # Робокасса не выдаёт собственного идентификатора платежа: в её учёте
+    # платёж зовётся номером счёта, а номер счёта — это наш же payment.id.
+    # Здесь мы храним способ оплаты («PayButton», «SBP»), но колонка
+    # уникальна, а способ у всех платежей один и тот же — так что второй
+    # платёж картой ронял вставку и вместе с ней всю транзакцию, то есть и
+    # начисление энергии. Поэтому подписываем номером счёта: значение
+    # остаётся уникальным, а способ по-прежнему виден в панели.
+    method = form.get("PaymentMethod")
+    payment.provider_payment_id = f"{method}:{payment.id}" if method else None
     try:
         what = credit(db, payment)
     except CreditError as exc:
