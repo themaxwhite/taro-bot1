@@ -19,6 +19,7 @@ from app.api import (
 )
 from app.config import settings
 from app.db import init_db
+from app.api.ai import prepare_daily_message
 from app.backups import send_backup
 from app.notifications import send_daily_reminders
 
@@ -67,6 +68,11 @@ def on_startup() -> None:
         hour=settings.daily_notification_hour_utc,
         minute=0,
     )
+    # Фраза дня сочиняется вскоре после полуночи UTC, пока её никто не
+    # спрашивает: иначе первый утренний наплыв упирается в пустой кэш и
+    # каждый пришедший в ту же минуту тянет модель за собой.
+    scheduler.add_job(prepare_daily_message, "cron", hour=0, minute=2)
+
     # Ночная копия базы приходит администратору файлом в Telegram
     # (app/backups.py). 1:20 UTC — это 4:20 по Москве: самое тихое время,
     # и заведомо после полуночи UTC, на которой обновляется суточная

@@ -1,10 +1,12 @@
 import datetime as dt
 import json
+import logging
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.ai.client import generate_text
@@ -12,13 +14,15 @@ from app.ai.fallback import daily_message_for, fallback_interpretation
 from app.api.deps import get_current_user
 from app.api.subscriptions import available_unlocks, require_quota
 from app.config import settings
-from app.db import get_db
+from app.db import SessionLocal, get_db
 from app.tarot.schemas import DrawnCard
 from app.tarot.visibility import stored_cards
 from app.moderation import ensure_question_allowed
 from app.models import DailyMessage, SpreadFollowUp, SpreadRecord, Subscription, User
 from app.subscriptions import FREE_TEXT_TIERS
 from app.spreads import SpreadId
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["ai"])
 
@@ -61,14 +65,26 @@ class FollowUpResponse(BaseModel):
     answer: str
 
 
-@router.get("/daily-message", response_model=DailyMessageResponse)
-async def get_daily_message(db: Session = Depends(get_db)) -> DailyMessageResponse:
-    today = dt.datetime.utcnow().date()
-    key = today.isoformat()
+async def ensure_daily_message(db: Session) -> str:
+    """
+    Фраза дня: одна на всех и одна на сутки, поэтому первый пришедший её
+    сочиняет, а остальные читают готовую.
+
+    Всё, что сложнее простого «нет в кэше — сгенерируй», нужно из-за
+    смены суток. Приложение дёргает фразу при каждом открытии, и в
+    полночь по UTC строки за новый день ещё нет: сколько человек открыло
+    приложение в эту минуту, столько обращений к модели и уйдёт, а
+    проигравшие гонку за вставку получат нарушение уникальности вместо
+    ответа. Поэтому, во-первых, фраза готовится заранее задачей
+    планировщика (см. prepare_daily_message ниже) — к утру она уже есть;
+    во-вторых, проигравший гонку не падает, а перечитывает чужой
+    результат: он ничем не хуже своего.
+    """
+    key = dt.datetime.utcnow().date().isoformat()
 
     cached = db.get(DailyMessage, key)
     if cached is not None:
-        return DailyMessageResponse(text=cached.text)
+        return cached.text
 
     generated = await generate_text(
         system_prompt=(
@@ -80,11 +96,49 @@ async def get_daily_message(db: Session = Depends(get_db)) -> DailyMessageRespon
         user_prompt="Напиши фразу дня.",
         max_tokens=80,
     )
-    text = generated or daily_message_for(today.timetuple().tm_yday)
+    text = generated or daily_message_for(dt.date.fromisoformat(key).timetuple().tm_yday)
 
     db.add(DailyMessage(date=key, text=text))
-    db.commit()
-    return DailyMessageResponse(text=text)
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        winner = db.get(DailyMessage, key)
+        if winner is not None:
+            return winner.text
+        raise
+
+    return text
+
+
+async def prepare_daily_message() -> None:
+    """
+    Задача планировщика: сочинить фразу вскоре после полуночи UTC, пока
+    её ещё никто не спрашивает. К тому часу, когда люди начинают
+    открывать приложение, она лежит в базе, и наплыв читает готовое.
+    """
+    db = SessionLocal()
+    try:
+        await ensure_daily_message(db)
+    except Exception:
+        # Не беда: первый же посетитель сочинит фразу сам. Записываем,
+        # потому что молча не сработавшая подготовка выглядит как её
+        # отсутствие.
+        logger.exception("Не удалось подготовить фразу дня заранее")
+    finally:
+        db.close()
+
+
+@router.get(
+    "/daily-message",
+    response_model=DailyMessageResponse,
+    # Фраза одна на всех, и раньше ручка была единственной открытой в
+    # API. Смотреть в ней нечего, но и держать открытую дверь в закрытом
+    # в остальном доме незачем.
+    dependencies=[Depends(get_current_user)],
+)
+async def get_daily_message(db: Session = Depends(get_db)) -> DailyMessageResponse:
+    return DailyMessageResponse(text=await ensure_daily_message(db))
 
 
 @router.post("/spreads/{spread_record_id}/interpret", response_model=InterpretationResponse)
