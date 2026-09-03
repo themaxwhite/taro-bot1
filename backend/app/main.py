@@ -1,3 +1,5 @@
+import logging
+
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,6 +20,17 @@ from app.api import (
 from app.config import settings
 from app.db import init_db
 from app.notifications import send_daily_reminders
+
+# Без этого корневой логгер остаётся на WARNING, и каждый logger.info в
+# коде приложения пропадает молча. Заметно это стало на платежах: строка
+# «Счёт N оплачен, начислено …» не писалась никуда, и об успешном зачёте
+# можно было судить только по коду ответа. Ошибки при этом были видны — то
+# есть в логах оставались одни неприятности, без подтверждений, что
+# остальное отработало.
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+)
 
 app = FastAPI(
     title="Tarot Mini App API",
