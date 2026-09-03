@@ -19,6 +19,7 @@ from app.api import (
 )
 from app.config import settings
 from app.db import init_db
+from app.backups import send_backup
 from app.notifications import send_daily_reminders
 
 # Без этого корневой логгер остаётся на WARNING, и каждый logger.info в
@@ -66,6 +67,12 @@ def on_startup() -> None:
         hour=settings.daily_notification_hour_utc,
         minute=0,
     )
+    # Ночная копия базы приходит администратору файлом в Telegram
+    # (app/backups.py). 1:20 UTC — это 4:20 по Москве: самое тихое время,
+    # и заведомо после полуночи UTC, на которой обновляется суточная
+    # энергия, так что в копию попадает уже новый день.
+    scheduler.add_job(send_backup, "cron", hour=1, minute=20)
+
     scheduler.start()
 
 
