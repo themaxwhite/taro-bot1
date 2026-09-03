@@ -235,6 +235,37 @@ def available_unlocks(db: Session, user: User) -> int:
     return daily + subscription + user.referral_bonus_quota + user.purchased_energy
 
 
+def _lock_user(db: Session, user: User) -> None:
+    """
+    Берёт строку пользователя на замок до конца транзакции и перечитывает
+    её вместе с подпиской.
+
+    Без этого проверка баланса и списание — два отдельных шага, между
+    которыми успевает вклиниться второй запрос: оба видят «энергия есть»,
+    оба получают расклад, а списывается одна единица. Достаточно дважды
+    нажать кнопку на медленной сети, так что это не теория.
+
+    Замок берётся на строке пользователя, хотя тратиться может и квота
+    подписки: подписка одна на человека, и все списания и без того идут
+    через эту функцию — значит строка пользователя годится как общий
+    рубеж, а один замок вместо двух не даст запросам встать друг напротив
+    друга и заклиниться.
+
+    На SQLite (локальная разработка) блокировок строк нет, и там мы
+    просто ничего не делаем: писатель в файловой базе и так один.
+    """
+    if db.get_bind().dialect.name != "postgresql":
+        return
+
+    db.refresh(user, with_for_update=True)
+    sub = db.get(Subscription, user.telegram_id)
+    if sub is not None:
+        # Замок на пользователе, а тратится квота подписки — значит её
+        # надо перечитать: в сессии могла остаться цифра, снятая до того,
+        # как соседний запрос дошёл до записи.
+        db.refresh(sub)
+
+
 def require_quota(db: Session, user: User, cost: int = 1) -> None:
     """
     Raises 402 unless the user has `cost` unlocks to spend, otherwise
@@ -265,6 +296,16 @@ def require_quota(db: Session, user: User, cost: int = 1) -> None:
         return
 
     _ensure_energy_refreshed(db, user)
+
+    # Просроченную подписку закрываем до замка, а не после: закрытие
+    # само по себе фиксирует транзакцию, а фиксация снимает замок. Всё,
+    # что коммитит, должно случиться раньше, чем мы его возьмём.
+    sub = db.get(Subscription, user.telegram_id)
+    if sub is not None:
+        _expire_if_due(db, sub)
+
+    _lock_user(db, user)
+
     if available_unlocks(db, user) < cost:
         raise HTTPException(
             status_code=402,
