@@ -52,7 +52,17 @@ export function EnergyBalance({ balance, onClick, variant = "compact", breakdown
   // При нуле ширина именно 0: остаток 0/70 не должен выглядеть как «ещё
   // чуть-чуть осталось».
   const rawPercent = gauge && gauge.capacity > 0 ? Math.min((gauge.charge / gauge.capacity) * 100, 100) : 0;
-  const percent = gauge && gauge.charge > 0 ? Math.max(rawPercent, 6) : 0;
+  // Купленная и реферальная энергия потолка не имеет, поэтому в шкалу она
+  // не попадает — а число рядом её считает. Из-за этого человек, купивший
+  // пять энергии и израсходовавший бесплатную на сегодня, видел рядом с
+  // пятёркой пустую полоску: баланс есть, а батарейка разряжена. Похоже на
+  // сломанный индикатор, а не на «энергия не сгорает».
+  //
+  // Поэтому: есть запас без потолка — шкала полная. Мерить его не с чем,
+  // и честный ответ здесь «заряжено», а не «ноль из одного».
+  const uncapped = breakdown ? breakdown.purchased + breakdown.referral : 0;
+  const cappedPercent = gauge && gauge.charge > 0 ? Math.max(rawPercent, 6) : 0;
+  const percent = uncapped > 0 ? 100 : cappedPercent;
   const empty = !loading && (balance ?? 0) === 0;
 
   const Tag = onClick ? "button" : "div";
@@ -100,7 +110,11 @@ export function EnergyBalance({ balance, onClick, variant = "compact", breakdown
       </span>
 
       <span className={styles.caption}>
-        {gauge ? `${gauge.label}: ${gauge.charge} / ${gauge.capacity}` : "энергия"}
+        {uncapped > 0
+          ? "Энергия не сгорает"
+          : gauge
+            ? `${gauge.label}: ${gauge.charge} / ${gauge.capacity}`
+            : "энергия"}
       </span>
 
       {breakdown && (
