@@ -50,6 +50,14 @@ _GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 _GROQ_MODEL = "openai/gpt-oss-120b"
 _GROQ_REASONING_EFFORT = "low"
 
+# У чата свои сроки, отдельно от одиночной генерации выше. Ответ там
+# идёт потоком и живёт дольше одного запроса, поэтому десяти секунд ему
+# мало, а повтор при исчерпанном лимите имеет смысл: пауза в пару секунд
+# часто спасает разговор, который иначе оборвался бы на полуслове.
+# Остальные ошибки повтором не лечатся, их не трогаем.
+_CHAT_TIMEOUT = 30.0
+_CHAT_RETRY_DELAYS = (2.0, 5.0)
+
 def is_configured() -> bool:
     return bool(settings.groq_api_key)
 
